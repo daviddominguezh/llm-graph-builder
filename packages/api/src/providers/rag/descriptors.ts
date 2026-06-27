@@ -1,16 +1,15 @@
 import type { ToolDescriptor } from '../provider.js';
 import type { RawJsonSchema } from '../types.js';
 import {
+  RAG_CURSOR_DESC,
   RAG_LIMIT_DESC,
   RAG_MIN_SIMILARITY_DESC,
   RAG_MODE_DESC,
-  RAG_OFFSET_DESC,
   RAG_QUERY_DESC,
   RAG_SEARCH_TOOL_DESC,
 } from './descriptions.js';
 
 const QUERY_MAX = 4096;
-const OFFSET_MIN = 0;
 const LIMIT_MIN = 1;
 const LIMIT_MAX = 200;
 const DEFAULT_LIMIT = 20;
@@ -20,12 +19,7 @@ const MIN_SIMILARITY_CEIL = 1;
 
 export const RAG_SEARCH_TOOL_NAME = 'search';
 
-const offsetSchema: RawJsonSchema = {
-  type: 'integer',
-  minimum: OFFSET_MIN,
-  default: OFFSET_MIN,
-  description: RAG_OFFSET_DESC,
-};
+const cursorSchema: RawJsonSchema = { type: 'string', description: RAG_CURSOR_DESC };
 const limitSchema: RawJsonSchema = {
   type: 'integer',
   minimum: LIMIT_MIN,
@@ -51,7 +45,7 @@ const searchDescriptor: ToolDescriptor = {
         default: DEFAULT_MIN_SIMILARITY,
         description: RAG_MIN_SIMILARITY_DESC,
       },
-      offset: offsetSchema,
+      cursor: cursorSchema,
       limit: limitSchema,
     },
   },

@@ -3,17 +3,16 @@ import { describe, expect, it, jest } from '@jest/globals';
 import type { Logger } from '../../../utils/logger.js';
 import type { ProviderCtx } from '../../provider.js';
 import type {
-  KvPagedResult,
   OpenFlowTool,
   RagRegexArgs,
   RagSearchArgs,
   RagStoreServices,
+  SearchPage,
 } from '../../types.js';
 import { ragProvider } from '../index.js';
 
 const TENANT_ID = 'test-tenant-id';
 const STORE_ID = 'rag-1';
-const ZERO = 0;
 const TEN = 10;
 const FIVE = 5;
 const MIN_SIM = 0.7;
@@ -36,15 +35,13 @@ function makeLogger(): Logger {
 }
 
 function makeServices(): RagStoreServices {
-  const empty: KvPagedResult<string> = { items: [], total: ZERO, offset: ZERO, limit: TEN };
+  const empty: SearchPage<string> = { items: [], limit: TEN, nextCursor: null };
   return {
     storeId: STORE_ID,
     searchBm25: jest.fn<RagStoreServices['searchBm25']>().mockResolvedValue(empty),
-    searchSemantic: jest
-      .fn<(args: RagSearchArgs) => Promise<KvPagedResult<string>>>()
-      .mockResolvedValue(empty),
-    searchHybrid: jest.fn<(args: RagSearchArgs) => Promise<KvPagedResult<string>>>().mockResolvedValue(empty),
-    searchRegex: jest.fn<(args: RagRegexArgs) => Promise<KvPagedResult<string>>>().mockResolvedValue(empty),
+    searchSemantic: jest.fn<(args: RagSearchArgs) => Promise<SearchPage<string>>>().mockResolvedValue(empty),
+    searchHybrid: jest.fn<(args: RagSearchArgs) => Promise<SearchPage<string>>>().mockResolvedValue(empty),
+    searchRegex: jest.fn<(args: RagRegexArgs) => Promise<SearchPage<string>>>().mockResolvedValue(empty),
   };
 }
 
@@ -91,7 +88,7 @@ describe('ragProvider — bm25', () => {
     const services = makeServices();
     const tool = await buildSearchTool(services);
     await tool.execute({ mode: 'bm25', query: 'hello', limit: FIVE });
-    expect(services.searchBm25).toHaveBeenCalledWith(TENANT_ID, 'hello', ZERO, FIVE);
+    expect(services.searchBm25).toHaveBeenCalledWith(TENANT_ID, 'hello', FIVE, undefined);
   });
 
   it('rejects bm25 without a query', async () => {
@@ -110,7 +107,7 @@ describe('ragProvider — semantic + hybrid', () => {
       tenantId: TENANT_ID,
       query: 'q',
       minSimilarity: MIN_SIM,
-      offset: ZERO,
+      cursor: undefined,
       limit: FIVE,
     });
   });
@@ -123,7 +120,7 @@ describe('ragProvider — semantic + hybrid', () => {
       tenantId: TENANT_ID,
       query: 'q',
       minSimilarity: DEFAULT_MIN_SIM,
-      offset: ZERO,
+      cursor: undefined,
       limit: FIVE,
     });
   });
@@ -137,7 +134,7 @@ describe('ragProvider — regex', () => {
     expect(services.searchRegex).toHaveBeenCalledWith({
       tenantId: TENANT_ID,
       pattern: 'foo',
-      offset: ZERO,
+      cursor: undefined,
       limit: FIVE,
     });
   });

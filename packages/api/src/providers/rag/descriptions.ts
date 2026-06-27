@@ -24,8 +24,8 @@ export const RAG_SEARCH_TOOL_DESC =
   'win — usually the safest default for general questions.\n' +
   '  • `regex`    — regex pattern. Use ONLY for structured patterns (emails, IDs, SKUs, error codes). ' +
   'Slower than the others; prefer `bm25` unless you truly need a pattern.\n' +
-  'Returns paginated `{ items: string[], total, offset, limit, truncated? }` where `items` are the top ' +
-  'matching chunk texts.';
+  'Returns `{ items: string[], limit, nextCursor }`; page by passing `nextCursor` back as `cursor` until ' +
+  'it is `null`.';
 
 /* ─── Field descriptions ─── */
 
@@ -47,20 +47,17 @@ export const RAG_MIN_SIMILARITY_DESC =
   'Higher values (e.g. 0.7) return fewer, more precise matches; lower values (e.g. 0.3) return more ' +
   'permissive matches. Set to 0 to disable the floor entirely.';
 
-export const RAG_OFFSET_DESC =
-  'Zero-based pagination offset. Defaults to 0 (first page). ' +
-  'Combined with `limit`, the maximum reachable index is ~1000 — beyond that the result is clamped ' +
-  'and the response sets `truncated: true`, meaning you should narrow the query instead of walking deeper.';
+export const RAG_CURSOR_DESC =
+  'Opaque continuation token. Omit on the first call. To get the next page, pass back the ' +
+  '`nextCursor` value from the previous response verbatim — do not parse or construct it yourself.';
 
 export const RAG_LIMIT_DESC =
-  'Maximum number of matching chunks to return in one page. Range 1–200. Defaults to 20.';
+  'Maximum number of matching chunks to return per page. Range 1–200. Defaults to 20.';
 
 /* ─── Pagination response shape descriptions ─── */
 
-export const RAG_RESPONSE_TOTAL_DESC = 'Total number of matching chunks in the store (may exceed `limit`).';
-export const RAG_RESPONSE_OFFSET_DESC =
-  'The `offset` actually used (echoed back; defaulted when omitted in input).';
 export const RAG_RESPONSE_LIMIT_DESC =
   'The `limit` actually used (echoed back; defaulted when omitted in input).';
-export const RAG_RESPONSE_TRUNCATED_DESC =
-  'Present and `true` only when (offset + limit) was clamped. Signals you should narrow the query.';
+export const RAG_NEXT_CURSOR_DESC =
+  'Opaque token for the next page, or `null` when there are no more matches. ' +
+  'Keep calling with this value (as `cursor`) until it is `null` to page through all matches.';

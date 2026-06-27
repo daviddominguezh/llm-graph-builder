@@ -4,10 +4,10 @@ import type { ProviderCtx } from '../provider.js';
 import type { OpenFlowTool, RagStoreServices } from '../types.js';
 import { isRagStoreServices } from '../types.js';
 import {
+  RAG_CURSOR_DESC,
   RAG_LIMIT_DESC,
   RAG_MIN_SIMILARITY_DESC,
   RAG_MODE_DESC,
-  RAG_OFFSET_DESC,
   RAG_QUERY_DESC,
   RAG_SEARCH_TOOL_DESC,
 } from './descriptions.js';
@@ -17,7 +17,6 @@ type RagToolName = typeof RAG_SEARCH_TOOL_NAME;
 
 const ONE_KILOBYTE = 1024;
 const QUERY_MAX = 4096;
-const OFFSET_MIN = 0;
 const LIMIT_MIN = 1;
 const LIMIT_MAX = 200;
 const DEFAULT_LIMIT = 20;
@@ -35,7 +34,7 @@ const searchInput = z
       .max(MIN_SIMILARITY_CEIL)
       .default(DEFAULT_MIN_SIMILARITY)
       .describe(RAG_MIN_SIMILARITY_DESC),
-    offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN).describe(RAG_OFFSET_DESC),
+    cursor: z.string().optional().describe(RAG_CURSOR_DESC),
     limit: z.number().int().min(LIMIT_MIN).max(LIMIT_MAX).default(DEFAULT_LIMIT).describe(RAG_LIMIT_DESC),
   })
   // mode='regex' tightens the cap to bound ReDoS exposure on the POSIX path.
@@ -62,7 +61,7 @@ function parseArgs<S extends z.ZodType>(schema: S, args: unknown): z.infer<S> {
 type SearchInput = z.infer<typeof searchInput>;
 
 async function executeBm25(ctx: RagToolCtx, input: SearchInput): Promise<unknown> {
-  return await ctx.services.searchBm25(ctx.tenantId, input.query, input.offset, input.limit);
+  return await ctx.services.searchBm25(ctx.tenantId, input.query, input.limit, input.cursor);
 }
 
 async function executeSemantic(ctx: RagToolCtx, input: SearchInput): Promise<unknown> {
@@ -70,7 +69,7 @@ async function executeSemantic(ctx: RagToolCtx, input: SearchInput): Promise<unk
     tenantId: ctx.tenantId,
     query: input.query,
     minSimilarity: input.minSimilarity,
-    offset: input.offset,
+    cursor: input.cursor,
     limit: input.limit,
   });
 }
@@ -80,7 +79,7 @@ async function executeHybrid(ctx: RagToolCtx, input: SearchInput): Promise<unkno
     tenantId: ctx.tenantId,
     query: input.query,
     minSimilarity: input.minSimilarity,
-    offset: input.offset,
+    cursor: input.cursor,
     limit: input.limit,
   });
 }
@@ -89,7 +88,7 @@ async function executeRegex(ctx: RagToolCtx, input: SearchInput): Promise<unknow
   return await ctx.services.searchRegex({
     tenantId: ctx.tenantId,
     pattern: input.query,
-    offset: input.offset,
+    cursor: input.cursor,
     limit: input.limit,
   });
 }

@@ -28,7 +28,8 @@ export const GET_VALUES_TOOL_DESC =
 export const SEARCH_TOOL_DESC =
   'Search KV entries by substring or regex. Use mode="substring" for simple keyword lookups; use ' +
   'mode="regex" only when you need a structured pattern. Regex scans are bounded to a sample for safety — ' +
-  'narrow with a more specific pattern if your data exceeds it. Returns matching `{ key, value }` pairs.';
+  'narrow with a more specific pattern if your data exceeds it. ' +
+  'Returns `{ items, limit, nextCursor }`; page by passing `nextCursor` back as `cursor` until it is `null`.';
 
 export const UPDATE_VALUE_TOOL_DESC =
   'Insert or update a value for a key (upsert). ' +
@@ -38,16 +39,15 @@ export const UPDATE_VALUE_TOOL_DESC =
 
 /* ─── Field descriptions (shared by Zod + JSON) ─── */
 
-export const OFFSET_DESC =
-  'Zero-based pagination offset. Defaults to 0 (first page). ' +
-  'Combined with `limit`, the maximum reachable index is ~1000 — beyond that the result is clamped ' +
-  'and the response sets `truncated: true`, meaning you should narrow the query instead of walking deeper.';
+export const CURSOR_DESC =
+  'Opaque continuation token. Omit on the first call. To get the next page, pass back the ' +
+  '`nextCursor` value from the previous response verbatim — do not parse or construct it yourself.';
 
 export const LIST_KEYS_LIMIT_DESC =
   'Maximum number of keys to return in one page. Range 1–500. Defaults to 100.';
 
 export const SEARCH_LIMIT_DESC =
-  'Maximum number of matching entries to return in one page. Range 1–500. Defaults to 50.';
+  'Maximum number of matches to return per page. Range 1–500. Defaults to 50.';
 
 export const GET_VALUES_KEYS_DESC =
   'Explicit list of keys to look up (max 100 per call, each key ≤ 256 bytes). ' +
@@ -76,10 +76,8 @@ export const UPDATE_VALUE_DESC =
 
 /* ─── Pagination response shape descriptions (for any future response schemas) ─── */
 
-export const RESPONSE_TOTAL_DESC = 'Total number of matching items in the store (may exceed `limit`).';
-export const RESPONSE_OFFSET_DESC =
-  'The `offset` actually used (echoed back; defaulted when omitted in input).';
 export const RESPONSE_LIMIT_DESC =
   'The `limit` actually used (echoed back; defaulted when omitted in input).';
-export const RESPONSE_TRUNCATED_DESC =
-  'Present and `true` only when (offset + limit) was clamped. Signals you should narrow the query.';
+export const NEXT_CURSOR_DESC =
+  'Opaque token for the next page, or `null` when there are no more matches. ' +
+  'Keep calling with this value (as `cursor`) until it is `null` to page through all matches.';

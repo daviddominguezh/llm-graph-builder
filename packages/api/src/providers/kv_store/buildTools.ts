@@ -4,11 +4,11 @@ import type { ProviderCtx } from '../provider.js';
 import type { KvStoreServices, OpenFlowTool } from '../types.js';
 import { isKvStoreServices } from '../types.js';
 import {
+  CURSOR_DESC,
   GET_VALUES_KEYS_DESC,
   GET_VALUES_TOOL_DESC,
   LIST_KEYS_LIMIT_DESC,
   LIST_KEYS_TOOL_DESC,
-  OFFSET_DESC,
   SEARCH_LIMIT_DESC,
   SEARCH_MODE_DESC,
   SEARCH_ON_DESC,
@@ -37,7 +37,6 @@ const VALUE_MAX_BYTES = KEY_MAX_BYTES * ONE_KILOBYTE;
 const KEY_PATTERN_MAX = ONE_KILOBYTE;
 const QUERY_MAX = 2048;
 const KEYS_MAX_ITEMS = 100;
-const OFFSET_MIN = 0;
 const LIMIT_MIN = 1;
 const LIMIT_MAX = 500;
 const LIST_KEYS_DEFAULT_LIMIT = 100;
@@ -47,7 +46,7 @@ const SEARCH_DEFAULT_LIMIT = 50;
 
 const listKeysInput = z
   .object({
-    offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN).describe(OFFSET_DESC),
+    cursor: z.string().optional().describe(CURSOR_DESC),
     limit: z
       .number()
       .int()
@@ -69,7 +68,7 @@ const searchInput = z
     mode: z.enum(['substring', 'regex']).describe(SEARCH_MODE_DESC),
     on: z.enum(['keys', 'values', 'both']).default('both').describe(SEARCH_ON_DESC),
     query: z.string().min(LIMIT_MIN).max(QUERY_MAX).describe(SEARCH_QUERY_DESC),
-    offset: z.number().int().min(OFFSET_MIN).default(OFFSET_MIN).describe(OFFSET_DESC),
+    cursor: z.string().optional().describe(CURSOR_DESC),
     limit: z
       .number()
       .int()
@@ -110,7 +109,7 @@ function parseArgs<S extends z.ZodType>(schema: S, args: unknown): z.infer<S> {
 
 async function executeListKeys(ctx: KvToolCtx, args: unknown): Promise<unknown> {
   const input = parseArgs(listKeysInput, args);
-  return await ctx.services.listKeys(ctx.tenantId, input.offset, input.limit);
+  return await ctx.services.listKeys(ctx.tenantId, input.limit, input.cursor);
 }
 
 async function executeGetValues(ctx: KvToolCtx, args: unknown): Promise<unknown> {
@@ -123,7 +122,7 @@ async function executeSearchSubstring(ctx: KvToolCtx, input: z.infer<typeof sear
     tenantId: ctx.tenantId,
     on: input.on,
     query: input.query,
-    offset: input.offset,
+    cursor: input.cursor,
     limit: input.limit,
   });
 }
@@ -133,7 +132,7 @@ async function executeSearchRegex(ctx: KvToolCtx, input: z.infer<typeof searchIn
     tenantId: ctx.tenantId,
     on: input.on,
     pattern: input.query,
-    offset: input.offset,
+    cursor: input.cursor,
     limit: input.limit,
   });
 }

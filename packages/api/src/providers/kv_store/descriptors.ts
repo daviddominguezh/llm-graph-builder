@@ -1,11 +1,11 @@
 import type { ToolDescriptor } from '../provider.js';
 import type { RawJsonSchema } from '../types.js';
 import {
+  CURSOR_DESC,
   GET_VALUES_KEYS_DESC,
   GET_VALUES_TOOL_DESC,
   LIST_KEYS_LIMIT_DESC,
   LIST_KEYS_TOOL_DESC,
-  OFFSET_DESC,
   SEARCH_LIMIT_DESC,
   SEARCH_MODE_DESC,
   SEARCH_ON_DESC,
@@ -21,7 +21,6 @@ const KEY_MAX_BYTES = 256;
 const VALUE_MAX_BYTES = KEY_MAX_BYTES * ONE_KILOBYTE;
 const QUERY_MAX = 2048;
 const KEYS_MAX_ITEMS = 100;
-const OFFSET_MIN = 0;
 const LIMIT_MIN = 1;
 const LIMIT_MAX = 500;
 const LIST_KEYS_DEFAULT_LIMIT = 100;
@@ -32,12 +31,7 @@ export const KV_GET_VALUES_TOOL_NAME = 'get_values';
 export const KV_SEARCH_TOOL_NAME = 'search';
 export const KV_UPDATE_VALUE_TOOL_NAME = 'update_value';
 
-const offsetSchema: RawJsonSchema = {
-  type: 'integer',
-  minimum: OFFSET_MIN,
-  default: OFFSET_MIN,
-  description: OFFSET_DESC,
-};
+const cursorSchema: RawJsonSchema = { type: 'string', description: CURSOR_DESC };
 const listKeysLimitSchema: RawJsonSchema = {
   type: 'integer',
   minimum: LIMIT_MIN,
@@ -60,7 +54,7 @@ const listKeysDescriptor: ToolDescriptor = {
     type: 'object',
     description: LIST_KEYS_TOOL_DESC,
     required: [],
-    properties: { offset: offsetSchema, limit: listKeysLimitSchema },
+    properties: { cursor: cursorSchema, limit: listKeysLimitSchema },
   },
 };
 
@@ -98,7 +92,7 @@ const searchDescriptor: ToolDescriptor = {
         maxLength: QUERY_MAX,
         description: SEARCH_QUERY_DESC,
       },
-      offset: offsetSchema,
+      cursor: cursorSchema,
       limit: searchLimitSchema,
     },
   },

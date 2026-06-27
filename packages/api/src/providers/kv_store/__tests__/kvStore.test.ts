@@ -2,12 +2,11 @@ import { describe, expect, it, jest } from '@jest/globals';
 
 import type { Logger } from '../../../utils/logger.js';
 import type { ProviderCtx } from '../../provider.js';
-import type { KvPagedResult, KvRegexArgs, KvSearchArgs, KvStoreServices } from '../../types.js';
+import type { KvRegexArgs, KvSearchArgs, KvStoreServices, OpenFlowTool, SearchPage } from '../../types.js';
 import { kvStoreProvider } from '../index.js';
 
 const TENANT_ID = 'test-tenant-id';
 const STORE_ID = 'kv-1';
-const ZERO = 0;
 const TWENTY = 20;
 const FIVE = 5;
 const LIST_KEYS_DEFAULT_LIMIT = 100;
@@ -30,22 +29,21 @@ function makeLogger(): Logger {
 }
 
 function makeServices(): KvStoreServices {
-  const emptyStringPage: KvPagedResult<string> = { items: [], total: ZERO, offset: ZERO, limit: TWENTY };
-  const emptyEntryPage: KvPagedResult<{ key: string; value: string }> = {
+  const emptyStringPage: SearchPage<string> = { items: [], limit: TWENTY, nextCursor: null };
+  const emptyEntryPage: SearchPage<{ key: string; value: string }> = {
     items: [],
-    total: ZERO,
-    offset: ZERO,
     limit: TWENTY,
+    nextCursor: null,
   };
   return {
     storeId: STORE_ID,
     listKeys: jest.fn<KvStoreServices['listKeys']>().mockResolvedValue(emptyStringPage),
     getValues: jest.fn<KvStoreServices['getValues']>().mockResolvedValue({}),
     searchSubstring: jest
-      .fn<(args: KvSearchArgs) => Promise<KvPagedResult<{ key: string; value: string }>>>()
+      .fn<(args: KvSearchArgs) => Promise<SearchPage<{ key: string; value: string }>>>()
       .mockResolvedValue(emptyEntryPage),
     searchRegex: jest
-      .fn<(args: KvRegexArgs) => Promise<KvPagedResult<{ key: string; value: string }>>>()
+      .fn<(args: KvRegexArgs) => Promise<SearchPage<{ key: string; value: string }>>>()
       .mockResolvedValue(emptyEntryPage),
     updateValue: jest.fn<KvStoreServices['updateValue']>().mockResolvedValue({ success: true }),
   };
@@ -98,46 +96,62 @@ describe('kvStoreProvider — list_keys', () => {
     expect(tool).toBeDefined();
     if (tool === undefined) throw new Error('expected list_keys tool');
     await tool.execute({});
-    expect(services.listKeys).toHaveBeenCalledWith(TENANT_ID, ZERO, LIST_KEYS_DEFAULT_LIMIT);
+    expect(services.listKeys).toHaveBeenCalledWith(TENANT_ID, LIST_KEYS_DEFAULT_LIMIT, undefined);
   });
 });
 
-describe('kvStoreProvider — search', () => {
+async function buildSearchTool(services: KvStoreServices): Promise<OpenFlowTool> {
+  const built = await kvStoreProvider.buildTools({ toolNames: ['search'], ctx: makeCtx(services) });
+  const { search: tool } = built;
+  if (tool === undefined) throw new Error('expected search tool');
+  return tool;
+}
+
+describe('kvStoreProvider — search routing', () => {
   it('routes mode="substring" to searchSubstring', async () => {
     const services = makeServices();
-    const built = await kvStoreProvider.buildTools({ toolNames: ['search'], ctx: makeCtx(services) });
-    const { search: tool } = built;
-    if (tool === undefined) throw new Error('expected search tool');
+    const tool = await buildSearchTool(services);
     await tool.execute({ mode: 'substring', query: 'q', limit: FIVE });
     expect(services.searchSubstring).toHaveBeenCalledWith({
       tenantId: TENANT_ID,
       on: 'both',
       query: 'q',
-      offset: ZERO,
+      cursor: undefined,
       limit: FIVE,
     });
   });
 
   it('routes mode="regex" to searchRegex', async () => {
     const services = makeServices();
-    const built = await kvStoreProvider.buildTools({ toolNames: ['search'], ctx: makeCtx(services) });
-    const { search: tool } = built;
-    if (tool === undefined) throw new Error('expected search tool');
+    const tool = await buildSearchTool(services);
     await tool.execute({ mode: 'regex', query: 'foo', limit: FIVE });
     expect(services.searchRegex).toHaveBeenCalledWith({
       tenantId: TENANT_ID,
       on: 'both',
       pattern: 'foo',
-      offset: ZERO,
+      cursor: undefined,
+      limit: FIVE,
+    });
+  });
+});
+
+describe('kvStoreProvider — search cursor + validation', () => {
+  it('threads cursor through to searchSubstring', async () => {
+    const services = makeServices();
+    const tool = await buildSearchTool(services);
+    await tool.execute({ mode: 'substring', query: 'q', cursor: 'abc', limit: FIVE });
+    expect(services.searchSubstring).toHaveBeenCalledWith({
+      tenantId: TENANT_ID,
+      on: 'both',
+      query: 'q',
+      cursor: 'abc',
       limit: FIVE,
     });
   });
 
   it('rejects search without a query', async () => {
     const services = makeServices();
-    const built = await kvStoreProvider.buildTools({ toolNames: ['search'], ctx: makeCtx(services) });
-    const { search: tool } = built;
-    if (tool === undefined) throw new Error('expected search tool');
+    const tool = await buildSearchTool(services);
     await expect(tool.execute({ mode: 'substring' })).rejects.toBeDefined();
   });
 });
