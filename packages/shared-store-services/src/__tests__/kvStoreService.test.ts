@@ -1,5 +1,4 @@
 import { jest } from '@jest/globals';
-
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface KvRow {
@@ -38,18 +37,15 @@ const SCAN_PATTERN = '[0-9]+[a-z]+';
 // `jest.fn()` infers a return of `unknown`, which collapses those params to
 // `never`). The arg shapes also let assertions read `.mock.calls` without any
 // type assertions.
-const listKeysPage =
-  jest.fn<(supabase: unknown, args: { afterKey: string | null }) => Promise<KeysResult>>();
+const listKeysPage = jest.fn<(supabase: unknown, args: { afterKey: string | null }) => Promise<KeysResult>>();
 const getByKeys =
   jest.fn<
     (s: unknown, store: string, tenant: string, keys: string[]) => Promise<Record<string, string | null>>
   >();
 const ilikePrefilterPage =
   jest.fn<(s: unknown, args: { afterKey: string | null; literal: string }) => Promise<PageResult>>();
-const scanKeysetPage =
-  jest.fn<(s: unknown, args: { afterKey: string | null }) => Promise<PageResult>>();
-const upsertValue =
-  jest.fn<(s: unknown, args: { key: string; value: string }) => Promise<UpsertResult>>();
+const scanKeysetPage = jest.fn<(s: unknown, args: { afterKey: string | null }) => Promise<PageResult>>();
+const upsertValue = jest.fn<(s: unknown, args: { key: string; value: string }) => Promise<UpsertResult>>();
 
 jest.unstable_mockModule('../kv/kvQueries.js', () => ({
   listKeysPage,

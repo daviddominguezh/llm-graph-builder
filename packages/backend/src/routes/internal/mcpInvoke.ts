@@ -173,7 +173,8 @@ function buildInvokeDeps(supabase: SupabaseClient): InvokeDeps {
       await assertEgressForServers([server]);
     },
     isHealthy: async () => await Promise.resolve(true),
-    connect: async (binding) => await connectEntry(binding.server, buildConnectEntryDeps(supabase, binding.orgId)),
+    connect: async (binding) =>
+      await connectEntry(binding.server, buildConnectEntryDeps(supabase, binding.orgId)),
   };
 }
 

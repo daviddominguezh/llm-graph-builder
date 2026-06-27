@@ -102,9 +102,7 @@ describe('validateOrReconnect', () => {
     const entry = newEntry(false);
     const existing = fakeHandle();
     entry.handle = existing;
-    const connect = jest.fn<() => Promise<McpClientHandle>>(
-      async () => await Promise.resolve(fakeHandle())
-    );
+    const connect = jest.fn<() => Promise<McpClientHandle>>(async () => await Promise.resolve(fakeHandle()));
     const handle = await validateOrReconnect(entry, connect, async () => await Promise.resolve(true));
     expect(handle).toBe(existing);
     expect(connect).toHaveBeenCalledTimes(NO_CALLS);

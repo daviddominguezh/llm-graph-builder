@@ -49,7 +49,10 @@ describe('createMembership cache', () => {
   it('caches the resolved list within cacheMs (one DNS call)', async () => {
     let clock = ZERO;
     const resolveTxt = txtMock();
-    const m = createMembership(deps(resolveTxt, () => clock), THREE_SECONDS);
+    const m = createMembership(
+      deps(resolveTxt, () => clock),
+      THREE_SECONDS
+    );
     await m.list();
     clock = ONE_SECOND;
     await m.list();

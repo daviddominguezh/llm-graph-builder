@@ -1,6 +1,5 @@
-import { describe, expect, it } from '@jest/globals';
-
 import type { McpServerConfig, VariableValue } from '@daviddh/graph-types';
+import { describe, expect, it } from '@jest/globals';
 
 import type { McpTenantConfigRow } from '../../../db/queries/mcpTenantConfigQueries.js';
 import { BindingNotFoundError, type ResolveBindingDeps, resolveBinding } from '../resolveBinding.js';
@@ -17,7 +16,8 @@ const rawServer: McpServerConfig = {
 
 function deps(over: Partial<ResolveBindingDeps> = {}): ResolveBindingDeps {
   return {
-    getAgent: async () => await Promise.resolve({ id: 'ag1', org_id: 'org1', current_version: CURRENT_VERSION }),
+    getAgent: async () =>
+      await Promise.resolve({ id: 'ag1', org_id: 'org1', current_version: CURRENT_VERSION }),
     getGraph: async () => await Promise.resolve({ mcpServers: [rawServer] }),
     getTenantConfigs: async () => await Promise.resolve([]),
     getEnv: async () => await Promise.resolve({ byName: {}, byId: {} }),

@@ -46,8 +46,7 @@ export const CURSOR_DESC =
 export const LIST_KEYS_LIMIT_DESC =
   'Maximum number of keys to return in one page. Range 1–500. Defaults to 100.';
 
-export const SEARCH_LIMIT_DESC =
-  'Maximum number of matches to return per page. Range 1–500. Defaults to 50.';
+export const SEARCH_LIMIT_DESC = 'Maximum number of matches to return per page. Range 1–500. Defaults to 50.';
 
 export const GET_VALUES_KEYS_DESC =
   'Explicit list of keys to look up (max 100 per call, each key ≤ 256 bytes). ' +

@@ -1,8 +1,7 @@
-import { describe, expect, it, jest } from '@jest/globals';
-
 import type { McpServerConfig } from '@daviddh/graph-types';
 import type { McpClientHandle } from '@daviddh/llm-graph-runner';
 import { SessionExpiredError } from '@daviddh/llm-graph-runner';
+import { describe, expect, it, jest } from '@jest/globals';
 
 import { type ConnectEntryDeps, connectEntry } from '../connectEntry.js';
 
@@ -35,7 +34,10 @@ async function noop(): Promise<void> {
 }
 
 /** deps whose `connect` fails with SessionExpiredError on the first call, succeeds after. */
-function expireOnceDeps(attempts: string[], resolveToken: ConnectEntryDeps['resolveToken']): ConnectEntryDeps {
+function expireOnceDeps(
+  attempts: string[],
+  resolveToken: ConnectEntryDeps['resolveToken']
+): ConnectEntryDeps {
   return {
     assertEgress: noop,
     resolveToken,

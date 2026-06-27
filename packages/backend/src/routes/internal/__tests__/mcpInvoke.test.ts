@@ -61,7 +61,9 @@ describe('invokeMcp — success path', () => {
   it('borrows, calls the tool, and returns the result', async () => {
     const out = await run({
       connect: async () =>
-        await Promise.resolve(handle(async () => await Promise.resolve({ content: [{ type: 'text', text: 'ok' }] }))),
+        await Promise.resolve(
+          handle(async () => await Promise.resolve({ content: [{ type: 'text', text: 'ok' }] }))
+        ),
     });
     expect(out).toEqual({ kind: 'result', result: { content: [{ type: 'text', text: 'ok' }] } });
   });

@@ -1,8 +1,8 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
 import { describe, expect, it } from '@jest/globals';
 
-import type { ProviderCtx } from '../../provider.js';
 import { logger } from '../../../utils/logger.js';
+import type { ProviderCtx } from '../../provider.js';
 import { buildMcpProvider } from '../buildMcpProvider.js';
 import { type MockTransport, createMockTransport } from '../client/__tests__/mockTransport.js';
 import { MCP_PROTOCOL_VERSION } from '../client/types.js';
