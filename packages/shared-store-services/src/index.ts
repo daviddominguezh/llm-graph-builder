@@ -18,3 +18,5 @@ export {
   makeInternalApiClient,
 } from './internalApiClient.js';
 export { type RagChunk, ftsPool, semanticPool } from './rag/ragQueries.js';
+export { rerankPool } from './rag/rerank.js';
+export { makeRagStoreService } from './rag/ragStoreService.js';
