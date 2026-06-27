@@ -120,30 +120,50 @@ interface ScanParams {
   limit: number;
 }
 
+interface IngestResult {
+  acc: RegexAccumulator;
+  // True when the loop broke before consuming the whole batch because the match
+  // limit was already full — i.e. the batch tail is UNSCANNED. This is distinct
+  // from "the DB returned a short batch": a limit-interrupted page must still
+  // hand back a forward cursor so the next page scans the remaining rows.
+  limitReached: boolean;
+}
+
 // Fold a fetched page into the running accumulator. The accumulator is treated
 // as immutable input (we copy `matches` and use locals), so no parameter is
 // reassigned and the shared `EMPTY_ACC` seed is never mutated. Stops early once
-// the match limit is reached so `lastKey` marks the correct resume point.
-function ingestBatch(start: RegexAccumulator, batch: KvRow[], params: ScanParams): RegexAccumulator {
+// the match limit is reached so `lastKey` marks the correct resume point, and
+// reports that early stop via `limitReached` so the caller does not mistake an
+// unscanned tail for an exhausted search.
+function ingestBatch(start: RegexAccumulator, batch: KvRow[], params: ScanParams): IngestResult {
   const matches = [...start.matches];
   let { rowsScanned, bytesScanned, lastKey } = start;
+  let limitReached = false;
   for (const row of batch) {
-    if (matches.length >= params.limit) break;
+    if (matches.length >= params.limit) {
+      limitReached = true;
+      break;
+    }
     const { key, value } = row;
     rowsScanned += ONE;
     bytesScanned += byteLength(key) + byteLength(value);
     lastKey = key;
     if (matchEntry(params.re, row, params.on)) matches.push(row);
   }
-  return { matches, rowsScanned, bytesScanned, lastKey };
+  return { acc: { matches, rowsScanned, bytesScanned, lastKey }, limitReached };
 }
 
 function budgetHit(acc: RegexAccumulator): boolean {
   return acc.rowsScanned >= KV_SCAN_ROW_BUDGET || acc.bytesScanned >= KV_SCAN_BYTE_BUDGET;
 }
 
-function regexNextCursor(acc: RegexAccumulator, exhausted: boolean): string | null {
-  if (exhausted || acc.lastKey === null) return null;
+// Return a forward cursor unless the search is genuinely complete. A page is
+// complete only when the DB had no more rows (`exhausted`) AND we did not stop
+// early on the match limit (`limitReached`); a limit-interrupted page always
+// yields a cursor so the unscanned batch tail is paged on the next request.
+function regexNextCursor(acc: RegexAccumulator, exhausted: boolean, limitReached: boolean): string | null {
+  if (acc.lastKey === null) return null;
+  if (exhausted && !limitReached) return null;
   return regexScanCursor(acc.lastKey);
 }
 
@@ -164,10 +184,11 @@ async function scanLoop(
 ): Promise<SearchPage<KvRow>> {
   const { entries, error } = await fetch(afterKey);
   if (error !== null) throw new Error(error);
-  const next = ingestBatch(acc, entries, params);
+  const { acc: next, limitReached } = ingestBatch(acc, entries, params);
   const pageExhausted = entries.length < KV_SCAN_PAGE_SIZE;
   if (scanDone(next, params, pageExhausted)) {
-    return { items: next.matches, limit: params.limit, nextCursor: regexNextCursor(next, pageExhausted) };
+    const nextCursor = regexNextCursor(next, pageExhausted, limitReached);
+    return { items: next.matches, limit: params.limit, nextCursor };
   }
   return await scanLoop(next, next.lastKey, params, fetch);
 }

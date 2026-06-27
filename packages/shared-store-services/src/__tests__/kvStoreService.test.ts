@@ -233,6 +233,35 @@ describe('makeKvStoreService.searchRegex bounded scan (no literal)', () => {
   });
 });
 
+describe('makeKvStoreService.searchRegex final short page exceeding limit', () => {
+  // Keys shaped `<digit>a` match SCAN_PATTERN; single digits keep the lexical
+  // ordering the keyset scan relies on. A short page (< KV_SCAN_PAGE_SIZE) of
+  // all-matching rows that outnumber the limit reproduces the dropped-tail bug.
+  const allMatch = sampleRows(SHORT_PAGE, '').map((r, i) => ({ key: `${String(i)}a`, value: r.value }));
+  const head = allMatch.slice(FIRST_CALL, LIMIT);
+  const tail = allMatch.slice(LIMIT);
+
+  it('keeps paging when a short final page holds more matches than the limit', async () => {
+    scanKeysetPage.mockResolvedValueOnce({ entries: allMatch, error: null });
+    const svc = makeKvStoreService(supabase, 'store1');
+    const page = await svc.searchRegex({ tenantId: 't', on: 'keys', pattern: SCAN_PATTERN, limit: LIMIT });
+    expect(page.items).toEqual(head);
+    expect(page.nextCursor).not.toBeNull();
+
+    scanKeysetPage.mockResolvedValueOnce({ entries: tail, error: null });
+    const next = await svc.searchRegex({
+      tenantId: 't',
+      on: 'keys',
+      pattern: SCAN_PATTERN,
+      limit: LIMIT,
+      cursor: page.nextCursor ?? undefined,
+    });
+    expect(next.items).toEqual(tail);
+    expect(next.nextCursor).toBeNull();
+    expect(scanKeysetPage.mock.calls.at(LAST_CALL)?.[ARGS_INDEX].afterKey).toBe(head.at(LAST_CALL)?.key);
+  });
+});
+
 describe('makeKvStoreService.getValues + updateValue', () => {
   it('getValues delegates to getByKeys', async () => {
     getByKeys.mockResolvedValue({ a: '1', b: null });
