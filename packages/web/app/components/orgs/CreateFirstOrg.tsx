@@ -1,7 +1,8 @@
 'use client';
 
 import { useSlugAvailability } from '@/app/hooks/useSlugAvailability';
-import logo from '@/app/icon.png';
+import iconWhite from '@/app/iconWhite.png';
+import iconBlack from '@/app/iconBlack.png';
 import logoBlack from '@/app/openflowLogoBlack.png';
 import logoWhite from '@/app/openflowLogoWhite.png';
 import { Button } from '@/components/ui/button';
@@ -19,9 +20,10 @@ import { CreateOrgFields, submitOrg } from './CreateOrgDialog';
 function WelcomeLogo() {
   return (
     <div className="welcome-stagger-1 flex items-center gap-2 mr-2">
-      <Image className="mb-0.5" src={logo} alt="OpenFlow" height={25} priority />
-      <Image className="dark:hidden" src={logoBlack} alt="OpenFlow" height={18} priority />
-      <Image className="hidden dark:block" src={logoWhite} alt="OpenFlow" height={18} priority />
+      <Image className="dark:hidden" src={iconBlack} alt="OpenFlow" height={30} priority />
+      <Image className="hidden dark:block" src={iconWhite} alt="OpenFlow" height={30} priority />
+      <Image className="mt-[7px] dark:hidden" src={logoBlack} alt="OpenFlow" height={20} priority />
+      <Image className="mt-[7px] hidden dark:block" src={logoWhite} alt="OpenFlow" height={20} priority />
     </div>
   );
 }
@@ -117,7 +119,7 @@ export function CreateFirstOrg() {
       </div>
       <div className="relative z-3 flex flex-col items-center">
         <Card className="welcome-stagger-3 w-full rounded-xl max-w-sm shadow-2xl! w-[400px] min-w-[400px] bg-popover border-[0.5px]! ring-0 outline-none p-0!">
-          <CardContent className='py-5.5! px-5.5!'>
+          <CardContent className="py-4.5! px-5.5!">
             <div className="relative z-3 flex flex-col items-center gap-4 mb-3.5">
               <WelcomeLogo />
               <WelcomeHeading />
