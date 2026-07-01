@@ -68,6 +68,9 @@ export interface SendMessageDeps {
   appType?: 'workflow' | 'agent';
   agentConfig?: AgentSimConfig;
   simulationLeadScore?: number | null;
+  // RU3 T19 sim-state store writers, fed by the T17 bridge events.
+  adoptSnapshot?: (snapshot: Record<string, unknown>) => void;
+  applyStatePatch?: (path: string, value: unknown) => void;
 }
 
 export interface BuildSimulateParamsOptions extends Pick<

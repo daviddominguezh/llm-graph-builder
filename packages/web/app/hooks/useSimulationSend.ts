@@ -4,11 +4,11 @@ import type { Edge as RFEdge } from '@xyflow/react';
 import { useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
-import { streamSimulation } from '../lib/api';
+import { streamSimulation } from '../lib/simulationApi';
 import type { RFEdgeData } from '../utils/graphTransformers';
 import type { CompositionPhase } from './compositionMachine';
 import type { CompositionStore } from './compositionStore';
-import { buildMergedCallbacks, sendAgentSim, sendWorkflowSim } from './simulationSendHelpers';
+import { buildMergedCallbacks, sendSim } from './simulationSendHelpers';
 import type { GraphSnapshot, SendMessageDeps } from './useSimulationHelpers';
 import { buildSimulateParams } from './useSimulationHelpers';
 
@@ -22,15 +22,10 @@ export function useSimulationSend(
   return useCallback(
     (text: string) => {
       const deps = depsRef.current;
-      const snap = store.getSnapshot();
-      const isChildActive = snap.stack.length > 0;
       if (deps.loading) return;
       const signal = abortAndCreateSignal();
-      if (deps.appType === 'agent' || isChildActive) {
-        sendAgentSim(deps, store, signal, text);
-        return;
-      }
-      sendWorkflowSim(deps, store, signal, text);
+      // One stream fn — the body's `appType` (agent when child-active) tells the BE which engine.
+      sendSim(deps, store, signal, text);
     },
     [depsRef, store, abortAndCreateSignal]
   );
@@ -79,7 +74,7 @@ export function useAutoDispatchChild(
     store.dispatch({ type: 'CHILD_AUTO_SENT' });
     const controller = new AbortController();
     const childDeps = buildChildDeps(deps, childCfg);
-    sendAgentSim(childDeps, store, controller.signal, pending.task, true);
+    sendSim(childDeps, store, controller.signal, pending.task, true);
   }, [phase, store, depsRef, abortAndCreateSignal]);
 }
 
@@ -146,9 +141,11 @@ export function useAutoResumeParent(
     });
 
     const callbacks = buildMergedCallbacks(deps, store);
-    void streamSimulation(params, callbacks, controller.signal).catch((err: unknown) => {
-      deps.setters.setLoading(false);
-      toast.error(err instanceof Error ? err.message : 'Workflow resume failed');
-    });
+    void streamSimulation({ ...params, appType: 'workflow' }, callbacks, controller.signal).catch(
+      (err: unknown) => {
+        deps.setters.setLoading(false);
+        toast.error(err instanceof Error ? err.message : 'Workflow resume failed');
+      }
+    );
   }, [phase, store, depsRef, abortAndCreateSignal]);
 }

@@ -20,6 +20,7 @@ import { createPortal } from 'react-dom';
 import type { ConversationEntry, NodeResult, SimulationTokens } from '../../../types/simulation';
 import { NodeResultItem } from './NodeResultItem';
 import { SimulationInput } from './SimulationInput';
+import { SimulationStateButton } from './SimulationStateButton';
 import { TokenDisplay } from './TokenDisplay';
 
 interface SimulationPanelProps {
@@ -34,10 +35,12 @@ interface SimulationPanelProps {
   turnCount: number;
   isAgent: boolean;
   modelId: string;
+  simulationState: Record<string, unknown>;
   onModelIdChange: (id: string) => void;
   onSendMessage: (text: string) => void;
   onStop: () => void;
   onClear: () => void;
+  onResetState: () => void;
   embedded?: boolean;
 }
 
@@ -74,12 +77,19 @@ function Breadcrumbs({ nodes }: { nodes: string[] }) {
 /* Composition breadcrumb removed — the child_start/child_end separators in the conversation
    stream are sufficient to indicate nesting. */
 
+type SimulationHeaderProps = Pick<
+  SimulationPanelProps,
+  'visitedNodes' | 'onStop' | 'onClear' | 'embedded' | 'simulationState' | 'onResetState'
+>;
+
 function SimulationHeader({
   visitedNodes,
   onStop,
   onClear,
   embedded,
-}: Pick<SimulationPanelProps, 'visitedNodes' | 'onStop' | 'onClear' | 'embedded'>) {
+  simulationState,
+  onResetState,
+}: SimulationHeaderProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const t = useTranslations('simulation');
 
@@ -95,6 +105,7 @@ function SimulationHeader({
         )}
 
         <div className="flex items-center gap-0.5">
+          <SimulationStateButton state={simulationState} onReset={onResetState} />
           <Button
             variant="destructive"
             size="icon-xs"
@@ -231,6 +242,8 @@ function SimulationBody({ props, bottomRef }: SimulationBodyProps) {
           onStop={onStop}
           onClear={props.onClear}
           embedded={props.embedded}
+          simulationState={props.simulationState}
+          onResetState={props.onResetState}
         />
         <ContentArea conversationEntries={props.conversationEntries} bottomRef={bottomRef} />
         <SimulationFooter

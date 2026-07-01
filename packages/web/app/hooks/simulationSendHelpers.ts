@@ -2,9 +2,9 @@ import type { Message } from '@daviddh/llm-graph-runner';
 import { toast } from 'sonner';
 
 import type { AgentSimulateRequestBody } from '../lib/agentSimulationApi';
-import { streamAgentSimulation } from '../lib/agentSimulationApi';
 import type { StreamCallbacks } from '../lib/api';
-import { streamSimulation } from '../lib/api';
+import type { SimulationRequestBody } from '../lib/simulationApi';
+import { streamSimulation } from '../lib/simulationApi';
 import { createUserMessage } from './compositionStackHelpers';
 import type { CompositionStore } from './compositionStore';
 import {
@@ -40,6 +40,15 @@ function getCompositionRequestOverrides(
 
 /* ─── Callback Builder ─── */
 
+// Route T17 sim-state bridge events to the T19 store. The runtime is the sole
+// authoritative writer: snapshots replace the whole copy, patches are display-only.
+function buildStateCallbacks(deps: SendMessageDeps): Pick<StreamCallbacks, 'onStateSnapshot' | 'onStatePatch'> {
+  return {
+    onStateSnapshot: (state) => deps.adoptSnapshot?.(state),
+    onStatePatch: (path, value) => deps.applyStatePatch?.(path, value),
+  };
+}
+
 export function buildMergedCallbacks(deps: SendMessageDeps, store: CompositionStore): StreamCallbacks {
   const base = buildStreamCallbacks(deps);
   const baseOnComplete = base.onComplete;
@@ -67,6 +76,7 @@ export function buildMergedCallbacks(deps: SendMessageDeps, store: CompositionSt
 
   return {
     ...base,
+    ...buildStateCallbacks(deps),
     onSimChildDispatched: (event) => {
       const snap = store.getSnapshot();
       store.dispatch({
@@ -152,39 +162,47 @@ function buildAgentParams(
   return params;
 }
 
-/* ─── Senders ─── */
+/* ─── Stream Runner ─── */
 
-export function sendAgentSim(
+// One place that calls the single `streamSimulation`. Both engines flow through
+// here; the backend routes by `body.appType`.
+function runSimStream(
+  body: SimulationRequestBody,
   deps: SendMessageDeps,
   store: CompositionStore,
-  signal: AbortSignal,
-  text: string,
-  skipUserMessage = false
+  signal: AbortSignal
 ): void {
-  const { setters } = deps;
-  if (!skipUserMessage) store.dispatch({ type: 'USER_MESSAGE', text });
-  resetBeforeSendAgent(setters, text);
-  const snap = store.getSnapshot();
-  const allMessages = getActiveMessages(snap.stack, snap.rootMessages);
-  const params = buildAgentParams(deps, store, allMessages);
-  if (params === undefined) return;
   const callbacks = buildMergedCallbacks(deps, store);
-  void streamAgentSimulation(params, callbacks, signal).catch((err: unknown) => {
-    setters.setLoading(false);
+  void streamSimulation(body, callbacks, signal).catch((err: unknown) => {
+    deps.setters.setLoading(false);
     toast.error(err instanceof Error ? err.message : 'Simulation failed');
   });
 }
 
-export function sendWorkflowSim(
+/* ─── Senders ─── */
+
+function buildAgentBody(
   deps: SendMessageDeps,
   store: CompositionStore,
-  signal: AbortSignal,
+  text: string,
+  skipUserMessage: boolean
+): AgentSimulateRequestBody | undefined {
+  if (!skipUserMessage) store.dispatch({ type: 'USER_MESSAGE', text });
+  resetBeforeSendAgent(deps.setters, text);
+  const snap = store.getSnapshot();
+  const allMessages = getActiveMessages(snap.stack, snap.rootMessages);
+  return buildAgentParams(deps, store, allMessages);
+}
+
+function buildWorkflowBody(
+  deps: SendMessageDeps,
+  store: CompositionStore,
   text: string
-): void {
+): SimulationRequestBody | undefined {
   const { preset, messages, agents, mcpServers, outputSchemas, currentNode } = deps;
   const { apiKeyId, modelId, structuredOutputs, setters } = deps;
   const snapshot = setters.getSnapshot();
-  if (preset === undefined || snapshot === null) return;
+  if (preset === undefined || snapshot === null) return undefined;
   const userMsg = createUserMessage(text);
   const allMessages = [...messages, userMsg];
   resetBeforeSend(setters, text, userMsg);
@@ -203,11 +221,25 @@ export function sendWorkflowSim(
     orgId: deps.orgId,
     simulationLeadScore: deps.simulationLeadScore,
   });
-  const callbacks = buildMergedCallbacks(deps, store);
-  void streamSimulation(params, callbacks, signal).catch((err: unknown) => {
-    setters.setLoading(false);
-    toast.error(err instanceof Error ? err.message : 'Simulation failed');
-  });
+  return { ...params, appType: 'workflow' };
+}
+
+// Single entry point: builds the appropriate body then calls the one stream fn.
+// No endpoint choice — agent vs workflow is reported via `appType`, not routed.
+export function sendSim(
+  deps: SendMessageDeps,
+  store: CompositionStore,
+  signal: AbortSignal,
+  text: string,
+  skipUserMessage = false
+): void {
+  const isChildActive = store.getSnapshot().stack.length > 0;
+  const body =
+    deps.appType === 'agent' || isChildActive
+      ? buildAgentBody(deps, store, text, skipUserMessage)
+      : buildWorkflowBody(deps, store, text);
+  if (body === undefined) return;
+  runSimStream(body, deps, store, signal);
 }
 
 /* ─── Before-send Helpers ─── */

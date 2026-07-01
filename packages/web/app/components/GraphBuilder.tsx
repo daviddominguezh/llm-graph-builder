@@ -570,10 +570,12 @@ function buildEmbeddedSimulationPanel(simulation: ReturnType<typeof useGraphBuil
       turnCount={simulation.turnCount}
       isAgent={simulation.isAgent}
       modelId={simulation.modelId}
+      simulationState={simulation.simulationState}
       onModelIdChange={simulation.setModelId}
       onSendMessage={simulation.sendMessage}
       onStop={simulation.stop}
       onClear={simulation.clear}
+      onResetState={simulation.onResetState}
     />
   );
 }

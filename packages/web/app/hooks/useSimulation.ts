@@ -63,6 +63,8 @@ export interface SimulationState {
   compositionPhase: CompositionPhase;
   modelId: string;
   setModelId: (id: string) => void;
+  simulationState: Record<string, unknown>;
+  onResetState: () => void;
   start: () => void;
   stop: () => void;
   clear: () => void;
@@ -157,6 +159,8 @@ function buildSendDeps(params: UseSimulationParams, s: SimulationHookState): Sen
     appType: params.appType,
     agentConfig: params.agentConfig,
     simulationLeadScore: s.simulationLeadScore,
+    adoptSnapshot: s.adoptSnapshot,
+    applyStatePatch: s.applyStatePatch,
   };
 }
 
@@ -211,6 +215,8 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
     compositionPhase: comp.phase,
     modelId: s.modelId,
     setModelId: s.setModelId,
+    simulationState: s.simulationState,
+    onResetState: s.resetSimulationState,
     start,
     stop,
     clear,

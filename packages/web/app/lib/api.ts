@@ -237,6 +237,9 @@ export interface StreamCallbacks extends SimCompositionCallbacks {
   onAgentResponse?: (event: AgentResponseEvent) => void;
   onChildDispatched?: (event: { childExecutionId: string; childAppType: string }) => void;
   onChildCompleted?: (event: { parentExecutionId: string; output: string; status: string }) => void;
+  // RU3 T17 sim-state bridge: runtime is the sole authoritative writer.
+  onStateSnapshot?: (state: Record<string, unknown>) => void;
+  onStatePatch?: (path: string, value: unknown) => void;
   onError?: (message: string) => void;
   onComplete?: () => void;
 }
@@ -288,6 +291,11 @@ const SseEventSchema = z.object({
   childAppType: z.string().optional(),
   parentExecutionId: z.string().optional(),
   status: z.string().optional(),
+  // Simulation state bridge fields (RU3 T17)
+  state: z.record(z.string(), z.unknown()).optional(),
+  path: z.string().optional(),
+  value: z.unknown().optional(),
+  tool: z.string().optional(),
   // Simulation composition fields
   ...SimCompositionSchemaFields,
   // Child config (resolved by backend for workflow dispatch)
@@ -378,9 +386,25 @@ function handleChildCompleted(event: SseEvent, callbacks: StreamCallbacks): void
   }
 }
 
+function handleStateSnapshot(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (event.state !== undefined) {
+    callbacks.onStateSnapshot?.(event.state);
+  }
+}
+
+function handleStatePatch(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (event.path !== undefined) {
+    callbacks.onStatePatch?.(event.path, event.value);
+  }
+}
+
 function dispatchSseEvent(event: SseEvent, callbacks: StreamCallbacks): void {
   if (dispatchSimCompositionEvent(event, callbacks)) return;
-  if (event.type === 'node_visited') {
+  if (event.type === 'simulation_state_snapshot') {
+    handleStateSnapshot(event, callbacks);
+  } else if (event.type === 'simulation_state_patch') {
+    handleStatePatch(event, callbacks);
+  } else if (event.type === 'node_visited') {
     handleNodeVisited(event, callbacks);
   } else if (event.type === 'node_processed') {
     handleNodeProcessed(event, callbacks);
@@ -458,28 +482,4 @@ export async function readSseStream(
   callbacks: StreamCallbacks
 ): Promise<void> {
   await readNextChunk({ reader, decoder: new TextDecoder(), callbacks, buffer: '' });
-}
-
-export async function streamSimulation(
-  params: SimulateRequestBody,
-  callbacks: StreamCallbacks,
-  signal?: AbortSignal
-): Promise<void> {
-  const res = await fetch('/api/simulate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-    signal,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Simulation request failed: ${String(res.status)}`);
-  }
-
-  const reader = res.body?.getReader();
-  if (reader === undefined) {
-    throw new Error('No response stream available');
-  }
-
-  await readSseStream(reader, callbacks);
 }
