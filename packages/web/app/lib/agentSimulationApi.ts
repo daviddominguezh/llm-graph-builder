@@ -1,8 +1,5 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
 
-import type { StreamCallbacks } from './api';
-import { readSseStream } from './api';
-
 export interface CompositionStackEntry {
   appType: 'agent' | 'workflow';
   parentToolCallId: string;
@@ -26,28 +23,4 @@ export interface AgentSimulateRequestBody {
     depth: number;
     stack: CompositionStackEntry[];
   };
-}
-
-export async function streamAgentSimulation(
-  params: AgentSimulateRequestBody,
-  callbacks: StreamCallbacks,
-  signal?: AbortSignal
-): Promise<void> {
-  const res = await fetch('/api/simulate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-    signal,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Agent simulation request failed: ${String(res.status)}`);
-  }
-
-  const reader = res.body?.getReader();
-  if (reader === undefined) {
-    throw new Error('No response stream available');
-  }
-
-  await readSseStream(reader, callbacks);
 }

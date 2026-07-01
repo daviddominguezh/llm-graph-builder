@@ -16,8 +16,8 @@ export type WorkflowSimulateRequestBody = SimulateRequestBody & { appType?: 'wor
 export type SimulationRequestBody = WorkflowSimulateRequestBody | AgentSimulateRequestBody;
 
 /**
- * The single FE simulation stream function. Replaces the former
- * `streamSimulation` (workflow) and `streamAgentSimulation` (agent) pair.
+ * The single FE simulation stream function. Replaces the former separate
+ * workflow and agent stream functions — the backend now routes by `appType`.
  */
 export async function streamSimulation(
   body: SimulationRequestBody,
