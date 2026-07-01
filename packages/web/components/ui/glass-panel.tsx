@@ -2,6 +2,8 @@
 
 import type { CSSProperties, ReactNode } from 'react';
 
+import { cn } from '@/lib/utils';
+
 type GlassVariant = 'background' | 'foreground';
 
 interface GlassPanelProps {
@@ -12,8 +14,11 @@ interface GlassPanelProps {
 }
 
 export function GlassPanel({ children, className, variant = 'background', style }: GlassPanelProps) {
+  // Merge with cn() (tailwind-merge) so a consumer-supplied position utility such as
+  // `fixed` overrides the default `relative` instead of losing the stylesheet-order
+  // tie-break — otherwise fixed-positioned panels (e.g. ConnectionMenu) render in-flow.
   return (
-    <div className={`relative glass-panel glass-panel--${variant} ${className ?? ''}`} style={style}>
+    <div className={cn('relative glass-panel', `glass-panel--${variant}`, className)} style={style}>
       {children}
     </div>
   );

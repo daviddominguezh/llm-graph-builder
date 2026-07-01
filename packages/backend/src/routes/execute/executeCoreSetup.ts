@@ -8,7 +8,7 @@ import { type FetchedData, fetchChildMessages, fetchResumeMessages } from './exe
 import { buildUserMessage, extractTextFromInput, logExec } from './executeHelpers.js';
 import { persistPreExecution } from './executePersistence.js';
 
-const DEFAULT_MODEL = 'x-ai/grok-4.1-fast';
+const DEFAULT_MODEL = 'x-ai/grok-4.3';
 
 export interface SetupResult {
   fetched: FetchedData;

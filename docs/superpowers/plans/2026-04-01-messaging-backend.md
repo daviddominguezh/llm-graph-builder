@@ -3449,7 +3449,7 @@ function noop(): void {
 
 export async function invokeAgent(params: InvokeParams): Promise<InvokeResult | null> {
   const { supabase, conversation, userMessageContent } = params;
-  const DEFAULT_MODEL = 'x-ai/grok-4.1-fast';
+  const DEFAULT_MODEL = 'x-ai/grok-4.3';
 
   const agentInfo = await getAgentInfo(supabase, conversation.agent_id);
   const { org_id: orgId, current_version: version } = agentInfo;

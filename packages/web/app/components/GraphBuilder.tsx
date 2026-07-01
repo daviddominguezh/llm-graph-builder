@@ -180,8 +180,8 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
 
   const apiKeys = useApiKeySelection({
     agentId,
-    initialStagingKeyId: props.stagingApiKeyId ?? null,
-    initialProductionKeyId: props.productionApiKeyId ?? null,
+    initialStagingKeyId: props.stagingApiKeyId ?? props.orgApiKeys?.[0]?.id ?? null,
+    initialProductionKeyId: props.productionApiKeyId ?? props.orgApiKeys?.[0]?.id ?? null,
   });
 
   const [globalPanelOpen, setGlobalPanelOpen] = useState(false);

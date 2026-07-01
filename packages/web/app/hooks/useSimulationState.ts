@@ -8,7 +8,7 @@ import { START_NODE_ID } from '../utils/graphContext';
 import { setByJsonPointer } from '../utils/jsonPointer';
 import type { FullSetters, GraphSnapshot } from './useSimulationHelpers';
 
-const DEFAULT_MODEL_ID = 'x-ai/grok-4.1-fast';
+const DEFAULT_MODEL_ID = 'x-ai/grok-4.3';
 const INITIAL_TOKEN_COUNT = 0;
 
 const EMPTY_TOKENS: SimulationTokens = {
