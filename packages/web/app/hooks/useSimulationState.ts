@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from 'react';
 
 import type { ConversationEntry, NodeResult, SimulationTokens } from '../types/simulation';
 import { START_NODE_ID } from '../utils/graphContext';
+import { setByJsonPointer } from '../utils/jsonPointer';
 import type { FullSetters, GraphSnapshot } from './useSimulationHelpers';
 
 const DEFAULT_MODEL_ID = 'x-ai/grok-4.1-fast';
@@ -35,6 +36,34 @@ export interface SimulationHookState {
   setModelId: React.Dispatch<React.SetStateAction<string>>;
   snapshotRef: React.RefObject<GraphSnapshot | null>;
   setters: FullSetters;
+  simulationState: Record<string, unknown>;
+  adoptSnapshot: (snapshot: Record<string, unknown>) => void;
+  applyStatePatch: (path: string, value: unknown) => void;
+  resetSimulationState: () => void;
+}
+
+export interface SimStateStore {
+  simulationState: Record<string, unknown>;
+  adoptSnapshot: (snapshot: Record<string, unknown>) => void;
+  applyStatePatch: (path: string, value: unknown) => void;
+  resetSimulationState: () => void;
+}
+
+// Runtime is the sole authoritative writer (RU3 §6): `adoptSnapshot` replaces the
+// whole copy on `simulation_state_snapshot`; `applyStatePatch` applies a
+// `simulation_state_patch` display-only via the RFC-6901 setter.
+function useSimStateStore(): SimStateStore {
+  const [simulationState, setSimulationState] = useState<Record<string, unknown>>({});
+  const adoptSnapshot = useCallback((snapshot: Record<string, unknown>) => {
+    setSimulationState(snapshot);
+  }, []);
+  const applyStatePatch = useCallback((path: string, value: unknown) => {
+    setSimulationState((prev) => setByJsonPointer(prev, path, value));
+  }, []);
+  const resetSimulationState = useCallback(() => {
+    setSimulationState({});
+  }, []);
+  return { simulationState, adoptSnapshot, applyStatePatch, resetSimulationState };
 }
 
 interface SnapshotRefReturn {
@@ -211,6 +240,7 @@ export function useSimulationState(): SimulationHookState {
   const { values, dispatchers } = useSimCoreState();
   const [modelId, setModelId] = useState(DEFAULT_MODEL_ID);
   const snap = useSnapshotRef();
+  const simState = useSimStateStore();
   const setters = buildSetters(dispatchers, snap);
-  return { ...values, modelId, setModelId, snapshotRef: snap.snapshotRef, setters };
+  return { ...values, modelId, setModelId, snapshotRef: snap.snapshotRef, setters, ...simState };
 }

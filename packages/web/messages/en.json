@@ -342,7 +342,32 @@
     "clearDescription": "This will reset the conversation and all results.",
     "clearCancel": "Cancel",
     "clearConfirm": "Clear",
-    "turn": "Turn"
+    "turn": "Turn",
+    "resetState": {
+      "title": "Reset simulation state?",
+      "description": "This clears the current simulation state and conversation. This cannot be undone.",
+      "confirm": "Reset",
+      "cancel": "Cancel"
+    },
+    "tenantSwitchReset": {
+      "title": "Switch tenant and reset?",
+      "description": "Changing the tenant resets the simulation state and conversation. This cannot be undone.",
+      "confirm": "Switch and reset",
+      "cancel": "Cancel"
+    },
+    "toolbar": {
+      "testingPresetsLabel": "Testing presets",
+      "simulationStateLabel": "Simulation state",
+      "openPanel": "Open panel"
+    },
+    "statePanel": {
+      "empty": "No simulation state yet.",
+      "resetButton": "Reset simulation"
+    },
+    "mcpBadge": {
+      "label": "Real",
+      "tooltip": "MCP tools run for real in simulation — this call has real side effects."
+    }
   },
   "agentEditor": {
     "systemPrompt": "System prompt",
