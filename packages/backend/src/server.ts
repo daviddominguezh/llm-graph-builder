@@ -46,8 +46,7 @@ import { handleUpdateOrg } from './routes/orgs/updateOrg.js';
 import { publicChatRouter } from './routes/publicChat/publicChatRouter.js';
 import { ragStoresRouter } from './routes/ragStores/ragStoresRouter.js';
 import { secretsRouter } from './routes/secrets/secretsRouter.js';
-import { handleSimulateAgent } from './routes/simulateAgentHandler.js';
-import { handleSimulate } from './routes/simulateHandler.js';
+import { handleSimulateUnified } from './routes/simulateHandlerUnified.js';
 import { handleCheckAvailability } from './routes/slugs/checkAvailability.js';
 import { templateRouter } from './routes/templates/templateRouter.js';
 import { tenantRouter } from './routes/tenants/tenantRouter.js';
@@ -150,8 +149,8 @@ function mountSystemRoutes(app: Express): void {
   app.get('/openrouter/models', handleGetOpenRouterModels);
   app.post('/mcp/discover', handleDiscover);
   app.post('/mcp/tools/call', handleToolCall);
-  app.post('/simulate', handleSimulate);
-  app.post('/simulate-agent', handleSimulateAgent);
+  app.post('/simulate', handleSimulateUnified);
+  app.post('/simulate-agent', handleSimulateUnified);
   app.get('/mcp/oauth/callback', handleCallback);
 
   app.post('/mcp', handleMcpRequest);

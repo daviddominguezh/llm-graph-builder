@@ -1,7 +1,8 @@
 import type { CallAgentOutput, Context } from '@daviddh/llm-graph-runner';
 import type { Response } from 'express';
 
-import type { SimulateRequest, SimulationEvent } from '../types.js';
+import type { WorkflowSimEvent } from '../runtime/executionEventBridge.js';
+import type { SimulateRequest } from '../types.js';
 
 interface Flushable {
   flush: () => void;
@@ -15,7 +16,13 @@ function isFlushable(value: unknown): value is Flushable {
   return typeof value === 'object' && value !== null && hasFlushProperty(value);
 }
 
-export function writeSSE(res: Response, event: SimulationEvent): void {
+/**
+ * SSE writer for the WORKFLOW sim stream. Widened (RU3 T18, HARD DEP #2) from the
+ * legacy `SimulationEvent` to `WorkflowSimEvent` so the bridge's additive
+ * state/child events (`simulation_state_patch`/`_snapshot`, `child_finished`)
+ * typecheck through the same writer the content callbacks already use.
+ */
+export function writeSSE(res: Response, event: WorkflowSimEvent): void {
   const payload = `data: ${JSON.stringify(event)}\n\n`;
   res.write(payload);
   if (isFlushable(res)) {

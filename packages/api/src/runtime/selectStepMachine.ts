@@ -40,7 +40,22 @@ function toWorkflowDeps(deps: StepMachineDeps): WorkflowMachineDeps {
 /**
  * Engine-by-type selector: `'agent'` → {@link createAgentStepMachine},
  * `'workflow'` → {@link createWorkflowStepMachine}.
+ *
+ * The literal-`executionType` overloads give callers compile-time safety: the
+ * matching engine closure becomes REQUIRED (agent → `runAgentLoop`, workflow →
+ * `runWorkflow`), so a mis-wired deps object is a type error rather than a
+ * runtime throw. The implementation signature keeps the union + the runtime
+ * throws (via `toAgentDeps`/`toWorkflowDeps`) as defense in depth.
  */
+export function selectStepMachine(
+  executionType: 'agent',
+  deps: StepMachineDeps & { runAgentLoop: () => Promise<AgentLoopResult> }
+): StepMachine;
+export function selectStepMachine(
+  executionType: 'workflow',
+  deps: StepMachineDeps & { runWorkflow: () => Promise<CallAgentOutput | null> }
+): StepMachine;
+export function selectStepMachine(executionType: ExecutionType, deps: StepMachineDeps): StepMachine;
 export function selectStepMachine(executionType: ExecutionType, deps: StepMachineDeps): StepMachine {
   if (executionType === 'agent') {
     return createAgentStepMachine(toAgentDeps(deps));

@@ -6,24 +6,23 @@ import type {
   OAuthTokenBundle,
 } from '@daviddh/llm-graph-runner';
 import { executeWithCallbacks } from '@daviddh/llm-graph-runner';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
 import { randomUUID } from 'node:crypto';
 
 import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import { assertEgressForServers } from '../lib/assertEgressForServers.js';
 import { classifyDiscoveryError } from '../lib/discoveryError.js';
 import { consoleLogger } from '../logger.js';
-import { type McpSession, closeMcpSession, createMcpSession } from '../mcp/lifecycle.js';
+import { type McpSession, createMcpSession } from '../mcp/lifecycle.js';
 import { makeNoStoreBoundKvServices, makeNoStoreBoundRagServices } from '../services/noStoreBoundServices.js';
 import type { SimulateRequest } from '../types.js';
-import { buildContext, setSseHeaders, sumTokens, writeSSE } from './simulate.js';
+import { buildContext, sumTokens, writeSSE } from './simulate.js';
 import { resolveChildConfig } from './simulateChildResolver.js';
 import { buildSimulationProviderCtx, buildSimulationRegistry } from './simulationProviderCtx.js';
 
 export { buildSimulationMcpInvoker } from './simulateMcpInvoker.js';
 export type { SimInvokerArgs, SimMcpInvokeArgs, SimMcpInvoker } from './simulateMcpInvoker.js';
 
-const EMPTY_SESSION: McpSession = { clients: [], tools: {} };
 const CHILD_DEPTH = 1;
 const ROOT_DEPTH = 0;
 
@@ -32,20 +31,29 @@ function extractTaskFromParams(params: Record<string, unknown>): string {
   return typeof raw === 'string' ? raw : JSON.stringify(raw);
 }
 
-function findDispatchToolCallId(result: CallAgentOutput, dispatchType: string): string {
+export function findDispatchToolCallId(result: CallAgentOutput, dispatchType: string): string {
   const match = result.toolCalls.find((tc) => tc.toolName === dispatchType);
   return match?.toolCallId ?? randomUUID();
 }
 
-async function emitChildDispatched(res: Response, result: CallAgentOutput, orgId: string): Promise<void> {
+/**
+ * Rich `child_dispatched` legacy SSE (parent metadata + resolved child config).
+ * Emitted directly on the content path (RU3 T18, HARD DEP #1) — the bridge nulls
+ * the runtime `child_dispatched` ExecutionEvent, so this is the sole emitter for
+ * the FE's dispatched-child card.
+ */
+export async function emitChildDispatched(
+  res: Response,
+  result: CallAgentOutput,
+  orgId: string
+): Promise<void> {
   const { dispatchResult: dispatch } = result;
   if (dispatch === undefined) return;
   const task = extractTaskFromParams(dispatch.params);
   const parentToolCallId = findDispatchToolCallId(result, dispatch.type);
-  const supabase = createServiceClient();
   try {
     const childConfig = await resolveChildConfig({
-      supabase,
+      supabase: createServiceClient(),
       dispatchType: dispatch.type,
       params: dispatch.params,
       orgId,
@@ -114,7 +122,8 @@ function extractNodeTokens(
   }));
 }
 
-function sendAgentResponse(res: Response, result: CallAgentOutput): void {
+/** Final WORKFLOW `agent_response` legacy SSE (content path). */
+export function sendWorkflowAgentResponse(res: Response, result: CallAgentOutput): void {
   const tokenUsage = sumTokens(result);
   writeSSE(res, {
     type: 'agent_response',
@@ -126,7 +135,7 @@ function sendAgentResponse(res: Response, result: CallAgentOutput): void {
   });
 }
 
-function sendError(res: Response, err: unknown): void {
+export function sendWorkflowError(res: Response, err: unknown): void {
   const message = err instanceof Error ? err.message : 'Simulation failed';
   writeSSE(res, { type: 'error', message });
 }
@@ -155,7 +164,9 @@ function buildSimulationServicesResolver(): (providerId: string) => unknown {
   };
 }
 
-function buildContextWithRegistry(body: SimulateRequest): Omit<Context, 'toolsOverride' | 'onNodeVisited'> {
+export function buildContextWithRegistry(
+  body: SimulateRequest
+): Omit<Context, 'toolsOverride' | 'onNodeVisited'> {
   const baseContext = buildContext(body);
   const mcpServers = body.graph.mcpServers ?? [];
   const services = buildSimulationServicesResolver();
@@ -184,7 +195,12 @@ function buildContextWithRegistry(body: SimulateRequest): Omit<Context, 'toolsOv
   };
 }
 
-async function runSimulation(body: SimulateRequest, res: Response): Promise<void> {
+/**
+ * WORKFLOW engine step for `executeTurn`'s `runWorkflow` closure: runs one graph
+ * traversal, streaming node content SSE live, and (RU3 T18) emits the rich
+ * `child_dispatched` when the traversal ends on a dispatch sentinel.
+ */
+export async function runWorkflowStep(res: Response, body: SimulateRequest): Promise<CallAgentOutput | null> {
   const context = buildContextWithRegistry(body);
   const result = await executeWithCallbacks({
     context,
@@ -199,22 +215,18 @@ async function runSimulation(body: SimulateRequest, res: Response): Promise<void
       sendNodeProcessed(res, event);
     },
   });
-  if (result !== null) {
-    if (result.dispatchResult !== undefined) {
-      await emitChildDispatched(res, result, body.orgId ?? '');
-    }
-    sendAgentResponse(res, result);
+  if (result?.dispatchResult !== undefined) {
+    await emitChildDispatched(res, result, body.orgId ?? '');
   }
+  return result;
 }
 
 /**
  * Egress-guard the direct-connect path: assert every MCP server URL is publicly
- * routable BEFORE opening any session, then connect. The registry path
- * (`buildSimulationRegistry`) is guarded separately via `makeGuardedCreateTransport`,
- * so this only closes the `createMcpSession` bypass. Returns `null` (and emits a
+ * routable BEFORE opening any session, then connect. Returns `null` (and emits a
  * redacted error) when egress is blocked — the caller must NOT connect.
  */
-async function guardedCreateSession(
+export async function guardedCreateSession(
   mcpServers: McpServerConfig[],
   res: Response
 ): Promise<McpSession | null> {
@@ -226,30 +238,4 @@ async function guardedCreateSession(
     return null;
   }
   return await createMcpSession(mcpServers);
-}
-
-export async function handleSimulate(
-  req: Request<Record<string, string>, unknown, SimulateRequest>,
-  res: Response
-): Promise<void> {
-  process.stdout.write(`[simulate] workflow request received, currentNode=${req.body.currentNode}\n`);
-  const { body } = req;
-  const mcpServers = body.graph.mcpServers ?? [];
-  setSseHeaders(res);
-  let session: McpSession = EMPTY_SESSION;
-  try {
-    const connected = await guardedCreateSession(mcpServers, res);
-    if (connected === null) return;
-    session = connected;
-    await runSimulation(body, res);
-    writeSSE(res, { type: 'simulation_complete' });
-    process.stdout.write('[simulate] workflow completed\n');
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    process.stdout.write(`[simulate] workflow error: ${msg}\n`);
-    sendError(res, err);
-  } finally {
-    await closeMcpSession(session);
-    res.end();
-  }
 }

@@ -26,7 +26,7 @@ const ZERO_TOKENS = { input: ZERO, output: ZERO, cached: ZERO };
 
 /* ─── AgentLoop config/callback builders ─── */
 
-async function buildLoopConfig(config: OrchestratorConfig): Promise<AgentLoopConfig> {
+export async function buildLoopConfig(config: OrchestratorConfig): Promise<AgentLoopConfig> {
   const isChild = config.depth > ZERO;
   const { body, orgId } = config;
   const { mcpServers } = body;
@@ -58,7 +58,7 @@ async function buildLoopConfig(config: OrchestratorConfig): Promise<AgentLoopCon
   };
 }
 
-function buildLoopCallbacks(
+export function buildLoopCallbacks(
   config: OrchestratorConfig,
   callbacks: OrchestratorCallbacks
 ): AgentLoopCallbacks {

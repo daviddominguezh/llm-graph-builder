@@ -43,7 +43,7 @@ jest.unstable_mockModule('@daviddh/llm-graph-runner', () => ({
   executeWithCallbacks: mockExecuteWithCallbacks,
 }));
 
-const { handleSimulate } = await import('../simulateHandler.js');
+const { handleSimulate } = await import('../simulateHandlerUnified.js');
 
 /* ------------------------------------------------------------------ */
 /*  Fixtures                                                           */

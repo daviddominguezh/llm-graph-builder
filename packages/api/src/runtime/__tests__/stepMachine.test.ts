@@ -109,6 +109,9 @@ describe('WorkflowStepMachine', () => {
 
 describe('selectStepMachine', () => {
   it('throws when the required engine closure is missing', () => {
+    // The literal overloads give compile-time safety for well-formed calls; the
+    // general overload still admits a missing closure, exercising the runtime
+    // throw that remains as defense in depth.
     expect(() => selectStepMachine('agent', baseDeps())).toThrow(/runAgentLoop/v);
     expect(() => selectStepMachine('workflow', baseDeps())).toThrow(/runWorkflow/v);
   });
