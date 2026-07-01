@@ -26,6 +26,15 @@ const APPLE_UA_PATTERN = /Macintosh|Mac OS X|iPhone|iPad|iPod/;
 export const metadata: Metadata = {
   title: "OpenFlow",
   description: "LLM State machine builder",
+  // Theme-aware favicon: the browser tab bar follows the browser color scheme,
+  // so serve the black icon on light and the white icon on dark. Defining
+  // `icons` here disables Next's automatic app/icon.png detection.
+  icons: {
+    icon: [
+      { url: '/iconBlack.png', media: '(prefers-color-scheme: light)' },
+      { url: '/iconWhite.png', media: '(prefers-color-scheme: dark)' },
+    ],
+  },
 };
 
 export default async function RootLayout({
