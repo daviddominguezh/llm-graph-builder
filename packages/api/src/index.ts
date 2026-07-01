@@ -162,6 +162,42 @@ export type {
 export { ToolError, isKvStoreServices, isRagStoreServices } from './providers/index.js';
 export { makeTavilyWebService } from './providers/index.js';
 
+// RU3 runtime unification: public barrel surface (consumed by RU4/RU5 + the backend).
+export type { ExecutionEvent, Tokens } from './events/types.js';
+export { createEventEmitter } from './events/emitter.js';
+export type { ChildResult, ChildErrorCode, TerminationInput } from './runtime/childResult.js';
+export { mapTerminationToChildResult } from './runtime/childResult.js';
+export type {
+  RuntimeCapabilities,
+  RuntimeServices,
+  ResolveChildInput,
+  ResolvedChildConfig,
+  McpInvoker,
+  SupabaseLike,
+  DispatchStrategy,
+  DispatchOutcome,
+  DispatchArgs,
+  DispatchPersistence,
+  DispatchHandle,
+  Observability,
+  RateLimiter,
+  RunnerLogger,
+} from './capabilities/index.js';
+export { executeTurn } from './runtime/executeTurn.js';
+export { childDispatch } from './runtime/childDispatch.js';
+export { selectStepMachine } from './runtime/selectStepMachine.js';
+export type { StepMachine, StepReport } from './runtime/stepMachine.js';
+export { createSimStateStore, deepFreeze } from './runtime/simStateStore.js';
+export type { SimStateStore, SimStatePatch } from './runtime/simStateStore.js';
+export { setByJsonPointer } from './runtime/jsonPointer.js';
+export { simulatedNoop } from './runtime/simulatedNoop.js';
+export { syncRecurseStrategy } from './simulation/syncRecurseStrategy.js';
+export { noopPersistence } from './simulation/noopPersistence.js';
+export { consoleObservability, consoleLogger, noopRateLimit } from './simulation/consoleCapabilities.js';
+export { makeResolveChildConfig } from './runtime/resolveChildConfig.js';
+export { MAX_DISPATCH_DEPTH, MAX_CHILD_RUNTIME_MS } from './runtime/types.js';
+export type { RuntimeInput, RuntimeOutput, DeepReadonly, ExecutionType, ToolRef } from './runtime/types.js';
+
 export const execute = async (
   context: Context,
   messages: Message[],
