@@ -2015,7 +2015,7 @@
         "list_keys": {
           "description": "List every key in the bound KV store (paginated). Useful for browsing what data exists before reading specific values.",
           "params": {
-            "offset": "Zero-based page offset. Defaults to 0.",
+            "cursor": "Opaque pagination token. Omit on the first call; to fetch the next page, pass back the nextCursor value returned by the previous response verbatim.",
             "limit": "Maximum keys per page (1–500). Defaults to 100."
           }
         },
@@ -2031,7 +2031,7 @@
             "mode": "How to match: substring (case-insensitive) or regex.",
             "on": "Which field(s) to match: keys, values, or both. Defaults to both.",
             "query": "What to search for. For substring mode: a case-insensitive substring (max 2048 chars). For regex mode: a regex pattern (max 1024 chars; no lookaround or backreferences).",
-            "offset": "Zero-based page offset. Defaults to 0.",
+            "cursor": "Opaque pagination token. Omit on the first call; to fetch the next page, pass back the nextCursor value returned by the previous response verbatim.",
             "limit": "Maximum matches per page (1–500). Defaults to 50."
           }
         },
@@ -2053,7 +2053,7 @@
             "mode": "Search strategy: bm25 (keyword), semantic (meaning), hybrid (both), or regex (pattern).",
             "query": "What to search for. For bm25: keyword(s). For semantic/hybrid: a natural-language phrase. For regex: a regex pattern (max 1024 chars; no lookaround or backreferences).",
             "minSimilarity": "Minimum cosine similarity (0.0–1.0). Only applies to semantic and hybrid. Defaults to 0.5.",
-            "offset": "Zero-based page offset. Defaults to 0.",
+            "cursor": "Opaque pagination token. Omit on the first call; to fetch the next page, pass back the nextCursor value returned by the previous response verbatim.",
             "limit": "Maximum chunks per page (1–200). Defaults to 20."
           }
         }
