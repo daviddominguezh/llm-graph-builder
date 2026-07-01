@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 
 import type { Logger } from '../../../utils/logger.js';
-import type { ProviderCtx } from '../../provider.js';
+import type { ProviderCtx, ProviderCtxBase } from '../../provider.js';
 import { compositionProvider } from '../index.js';
 
 const EXPECTED_DESCRIPTOR_COUNT = 3;
@@ -22,7 +22,7 @@ function makeLogger(): Logger {
   };
 }
 
-function makeCtx(overrides: Partial<ProviderCtx> = {}): ProviderCtx {
+function makeCtx(overrides: Partial<ProviderCtxBase> = {}): ProviderCtx {
   return {
     orgId: 'o',
     tenantId: 'test-tenant-id',

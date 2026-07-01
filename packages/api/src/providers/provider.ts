@@ -1,5 +1,6 @@
 import type { McpServerConfig } from '@daviddh/graph-types';
 
+import type { DeepReadonly } from '../runtime/types.js';
 import type { Logger } from '../utils/logger.js';
 import type { BuiltinBundles, BuiltinProviderId } from './bundles.js';
 import type { OpenFlowTool, RawJsonSchema } from './types.js';
@@ -35,12 +36,24 @@ export interface ServicesResolver {
  * dependencies (forms list, lead-scoring service, dispatch credentials, etc.)
  * are accessed via `services<T>(providerId)` so adding a new built-in provider
  * does not require editing this type.
+ *
+ * `ProviderCtx` is an env-discriminated union: both arms share
+ * `ProviderCtxBase` (so every existing `ctx.orgId` / `ctx.services` / ...
+ * access still type-checks against the union), and the `environment`
+ * discriminant narrows to the production or simulation arm. The simulation
+ * arm additionally carries the frozen sim-state snapshot plus a writer.
  */
-export interface ProviderCtx {
+export interface ProviderCtxBase {
   readonly orgId: string;
   readonly tenantId: string;
   readonly agentId: string;
   readonly isChildAgent: boolean;
+  // Optional so the union stays a proper structural superset of the previous
+  // flat `ProviderCtx`: every existing construction site (and the production
+  // constructor below) keeps compiling. Production/simulation constructors
+  // always populate it; `?? 0` is the safe default for the few callers that
+  // do not (wired end-to-end in a later task).
+  readonly dispatchDepth?: number;
   readonly logger: Logger;
 
   readonly conversationId?: string;
@@ -51,6 +64,23 @@ export interface ProviderCtx {
 
   readonly services: ServicesResolver;
 }
+
+export interface ProductionCtxArm {
+  // Optional on the production arm only, so a bare (env-less) legacy `ctx`
+  // literal still lands here. The simulation arm keeps `environment` required,
+  // forcing explicit opt-in; `ctx.environment === 'simulation'` still narrows.
+  readonly environment?: 'production';
+}
+
+export interface SimulationCtxArm {
+  readonly environment: 'simulation';
+  readonly simulationState: DeepReadonly<Record<string, unknown>>;
+  readonly writeSimulationState: (path: string, value: unknown) => void;
+}
+
+export type ProviderCtx =
+  | (ProviderCtxBase & ProductionCtxArm)
+  | (ProviderCtxBase & SimulationCtxArm);
 
 export interface ToolDescriptor {
   toolName: string;

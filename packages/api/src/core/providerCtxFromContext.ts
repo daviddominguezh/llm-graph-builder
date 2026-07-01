@@ -10,6 +10,8 @@ const EMPTY_MCP: ReadonlyMap<string, McpServerConfig> = Object.freeze(new Map<st
 
 const noServices: ServicesResolver = (() => undefined) as ServicesResolver;
 
+const ROOT_DISPATCH_DEPTH = 0;
+
 function resolveLogger(context: Context): Logger {
   return context.logger ?? noopProxyLogger;
 }
@@ -20,10 +22,12 @@ function resolveServices(context: Context): ServicesResolver {
 
 export function providerCtxFromContext(context: Context): ProviderCtx {
   return {
+    environment: 'production',
     orgId: context.orgId ?? '',
     tenantId: context.tenantID,
     agentId: context.agentId ?? '',
     isChildAgent: context.isChildAgent ?? false,
+    dispatchDepth: ROOT_DISPATCH_DEPTH,
     logger: resolveLogger(context),
     conversationId: context.conversationId,
     contextData: context.contextData,

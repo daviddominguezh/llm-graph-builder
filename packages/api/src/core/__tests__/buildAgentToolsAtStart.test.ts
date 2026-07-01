@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from '@jest/globals';
 import { z } from 'zod';
 
-import type { ProviderCtx } from '../../providers/provider.js';
+import type { ProviderCtx, ProviderCtxBase } from '../../providers/provider.js';
 import type { Registry, RegistryBuildResult } from '../../providers/registry.js';
 import type { SelectedTool } from '../../types/selectedTool.js';
 import type { Logger } from '../../utils/logger.js';
@@ -25,7 +25,7 @@ function makeLogger(overrides: Partial<Logger> = {}): Logger {
   };
 }
 
-function makeCtx(overrides: Partial<ProviderCtx> = {}): ProviderCtx {
+function makeCtx(overrides: Partial<ProviderCtxBase> = {}): ProviderCtx {
   return {
     orgId: 'o',
     tenantId: 'test-tenant-id',

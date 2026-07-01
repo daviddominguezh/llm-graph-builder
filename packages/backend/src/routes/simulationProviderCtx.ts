@@ -25,26 +25,37 @@ export interface SimulationCtxArgs {
   tenantId: string;
   agentId: string;
   isChildAgent?: boolean;
+  dispatchDepth?: number;
   conversationId?: string;
   contextData?: Readonly<Record<string, unknown>>;
   oauthTokens?: ReadonlyMap<string, OAuthTokenBundle>;
   mcpServers?: McpServerConfig[];
   services: SimulationServicesResolver;
+  simulationState?: Record<string, unknown>;
+  writeSimulationState?: (path: string, value: unknown) => void;
 }
+
+const NOOP_WRITE: (path: string, value: unknown) => void = () => undefined;
+
+const ROOT_DISPATCH_DEPTH = 0;
 
 export function buildSimulationProviderCtx(args: SimulationCtxArgs): ProviderCtx {
   const mcpServerEntries: Array<[string, McpServerConfig]> = (args.mcpServers ?? []).map((s) => [s.id, s]);
   return {
+    environment: 'simulation',
     orgId: args.orgId,
     tenantId: args.tenantId,
     agentId: args.agentId,
     isChildAgent: args.isChildAgent ?? false,
+    dispatchDepth: args.dispatchDepth ?? ROOT_DISPATCH_DEPTH,
     logger: consoleLogger,
     conversationId: args.conversationId,
     contextData: args.contextData,
     oauthTokens: args.oauthTokens ?? new Map<string, OAuthTokenBundle>(),
     mcpServers: new Map<string, McpServerConfig>(mcpServerEntries),
     services: args.services,
+    simulationState: args.simulationState ?? {},
+    writeSimulationState: args.writeSimulationState ?? NOOP_WRITE,
   };
 }
 
