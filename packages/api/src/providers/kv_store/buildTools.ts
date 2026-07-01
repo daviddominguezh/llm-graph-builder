@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { simulatedNoop } from '../../runtime/simulatedNoop.js';
 import type { ProviderCtx } from '../provider.js';
 import type { KvStoreServices, OpenFlowTool } from '../types.js';
 import { isKvStoreServices } from '../types.js';
@@ -202,7 +203,22 @@ function isKvToolName(s: string): s is KvToolName {
   return KV_TOOL_NAMES.includes(s);
 }
 
+// Simulation short-circuits before touching the real KV service. The guard is
+// keyed on the positive `=== 'simulation'` check so an env-less (undefined)
+// production ctx still runs the real path.
+function withSimGuard(ctx: ProviderCtx, tool: OpenFlowTool): OpenFlowTool {
+  return {
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+    execute: async (args: unknown) => {
+      if (ctx.environment === 'simulation') return await simulatedNoop(args, ctx);
+      return await tool.execute(args);
+    },
+  };
+}
+
 function pickTools(
+  ctx: ProviderCtx,
   all: Record<KvToolName, OpenFlowTool>,
   names: string[]
 ): Partial<Record<KvToolName, OpenFlowTool>> {
@@ -210,7 +226,7 @@ function pickTools(
   for (const name of names) {
     if (!isKvToolName(name)) continue;
     const { [name]: tool } = all;
-    out[name] = tool;
+    out[name] = withSimGuard(ctx, tool);
   }
   return out;
 }
@@ -224,7 +240,7 @@ function buildToolsSync(toolNames: string[], ctx: ProviderCtx): Partial<Record<K
   const services = narrowServices(ctx);
   if (services === undefined) return {};
   const toolCtx: KvToolCtx = { services, tenantId: ctx.tenantId };
-  return pickTools(buildAll(toolCtx), toolNames);
+  return pickTools(ctx, buildAll(toolCtx), toolNames);
 }
 
 export async function buildKvTools(args: {

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { simulatedNoop } from '../../runtime/simulatedNoop.js';
 import {
   GET_LEAD_SCORE_TOOL_NAME,
   type LeadScoringServices,
@@ -86,9 +87,23 @@ export async function buildLeadScoringTools(args: {
   for (const name of args.toolNames) {
     if (!isLeadScoringToolName(name)) continue;
     const { [name]: tool } = allTools;
-    filtered[name] = tool;
+    filtered[name] = withSimGuard(args.ctx, tool);
   }
   return await Promise.resolve(filtered);
+}
+
+// Simulation short-circuits before touching the real lead-scoring service. The
+// guard is keyed on the positive `=== 'simulation'` check so an env-less
+// (undefined) production ctx still runs the real path.
+function withSimGuard(ctx: ProviderCtx, tool: OpenFlowTool): OpenFlowTool {
+  return {
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+    execute: async (args: unknown) => {
+      if (ctx.environment === 'simulation') return await simulatedNoop(args, ctx);
+      return await tool.execute(args);
+    },
+  };
 }
 
 const LEAD_SCORING_TOOL_NAMES: readonly string[] = [SET_LEAD_SCORE_TOOL_NAME, GET_LEAD_SCORE_TOOL_NAME];

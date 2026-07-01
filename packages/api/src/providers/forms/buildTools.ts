@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { readFormField } from '../../lib/forms/readFormField.js';
+import { simulatedNoop } from '../../runtime/simulatedNoop.js';
 import type { FormsService } from '../../services/formsService.js';
 import { buildFormsToolDescription } from '../../tools/formsTools.js';
 import { executeSet } from '../../tools/formsToolsExecute.js';
@@ -81,7 +82,22 @@ function isFormsToolName(s: string): s is FormsToolName {
   return FORMS_TOOL_NAMES.includes(s);
 }
 
+// Simulation short-circuits before touching the real forms service. The guard
+// is keyed on the positive `=== 'simulation'` check so an env-less (undefined)
+// production ctx still runs the real path.
+function withSimGuard(ctx: ProviderCtx, tool: OpenFlowTool): OpenFlowTool {
+  return {
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+    execute: async (args: unknown) => {
+      if (ctx.environment === 'simulation') return await simulatedNoop(args, ctx);
+      return await tool.execute(args);
+    },
+  };
+}
+
 function filterByNames(
+  ctx: ProviderCtx,
   all: Record<FormsToolName, OpenFlowTool>,
   names: string[]
 ): Partial<Record<FormsToolName, OpenFlowTool>> {
@@ -89,7 +105,7 @@ function filterByNames(
   for (const name of names) {
     if (!isFormsToolName(name)) continue;
     const { [name]: tool } = all;
-    out[name] = tool;
+    out[name] = withSimGuard(ctx, tool);
   }
   return out;
 }
@@ -101,7 +117,7 @@ export async function buildFormsTools(args: {
   const raw = await Promise.resolve(args.ctx.services('forms'));
   if (isFormsServices(raw) && args.ctx.conversationId !== undefined) {
     const all = buildAll(raw, args.ctx.conversationId);
-    return filterByNames(all, args.toolNames);
+    return filterByNames(args.ctx, all, args.toolNames);
   }
   return {};
 }

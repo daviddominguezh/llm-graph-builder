@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 
+import { simulatedNoop } from '../../runtime/simulatedNoop.js';
 import type { ProviderCtx } from '../provider.js';
 import type { OpenFlowTool } from '../types.js';
 import { CRAWL_TOOL_DESC, EXTRACT_TOOL_DESC, MAP_TOOL_DESC, SEARCH_TOOL_DESC } from './descriptions.js';
@@ -94,7 +95,22 @@ function isWebToolName(s: string): s is WebToolName {
   return WEB_TOOL_NAMES.includes(s);
 }
 
+// Simulation short-circuits before any real network egress. The guard is keyed
+// on the positive `=== 'simulation'` check so an env-less (undefined) production
+// ctx still runs the real path.
+function withSimGuard(ctx: ProviderCtx, tool: OpenFlowTool): OpenFlowTool {
+  return {
+    description: tool.description,
+    inputSchema: tool.inputSchema,
+    execute: async (args: unknown) => {
+      if (ctx.environment === 'simulation') return await simulatedNoop(args, ctx);
+      return await tool.execute(args);
+    },
+  };
+}
+
 function pickTools(
+  ctx: ProviderCtx,
   all: Record<WebToolName, OpenFlowTool>,
   names: string[]
 ): Partial<Record<WebToolName, OpenFlowTool>> {
@@ -102,7 +118,7 @@ function pickTools(
   for (const name of names) {
     if (!isWebToolName(name)) continue;
     const { [name]: tool } = all;
-    out[name] = tool;
+    out[name] = withSimGuard(ctx, tool);
   }
   return out;
 }
@@ -119,5 +135,5 @@ export async function buildWebTools(args: {
   const service = narrowService(args.ctx);
   if (service === undefined) return await Promise.resolve({});
   const toolCtx: WebToolCtx = { service, logger: args.ctx.logger };
-  return await Promise.resolve(pickTools(buildAll(toolCtx), args.toolNames));
+  return await Promise.resolve(pickTools(args.ctx, buildAll(toolCtx), args.toolNames));
 }
