@@ -35,6 +35,11 @@ const FOLD_ACROSS = 1.8;
 const FOLD_ALONG = 0.25;
 // Folds deepen down the fall, like a curtain gathering toward the hem.
 const FOLD_GROWTH_MIN = 0.6;
+// Width taper: the sheet fans out at the top and narrows to its configured
+// width at the hem, like fabric gathered at the bottom. Quadratic falloff
+// concentrates the fan in the visible upper frame (the path's ends are
+// cropped off-screen, so a linear taper barely registers).
+const TAPER_TOP = 2.6;
 // Fold flanks shade darker the further they turn from the viewer.
 const FOLD_SHADE_MIN = 0.72;
 const FOLD_SHADE_SPAN = 0.28;
@@ -67,6 +72,12 @@ const CAMERA_FOV = 30;
 
 // Post-processing film grain strength.
 const FILM_GRAIN = 0.18;
+
+// Intrinsic world-space span of the ribbon cluster (all sheets + drift),
+// used to fit it into the right half of the frame.
+const CLUSTER_WIDTH = 6.6;
+// Never shrink the cluster below this on narrow viewports.
+const CLUSTER_MIN_SCALE = 0.75;
 
 type RibbonConfig = {
   strands: number;
@@ -247,7 +258,8 @@ function integrateCrossSection(
   time: number,
   cross: CrossSection
 ) {
-  const dv = config.width / (config.strands - 1);
+  const taper = 1 + (TAPER_TOP - 1) * (1 - u) * (1 - u);
+  const dv = (config.width * taper) / (config.strands - 1);
   const depth = FOLD_GROWTH_MIN + (1 - FOLD_GROWTH_MIN) * u;
   let d = 0;
   let r = 0;
@@ -378,13 +390,26 @@ export function createSilkRibbon(container: HTMLElement): SilkRibbon {
 
   const simplex = new SimplexNoise();
   const ribbons = RIBBONS.map((config) => createRibbon(config, simplex));
+  const stage = new THREE.Group();
   ribbons.forEach((ribbon, i) => {
     // Explicit paint order — transparent objects must layer as configured.
     ribbon.mesh.children.forEach((tap) => {
       tap.renderOrder = i;
     });
-    scene.add(ribbon.mesh);
+    stage.add(ribbon.mesh);
   });
+  scene.add(stage);
+
+  // Pin the cluster to the right half of the frame: left edge at the screen's
+  // horizontal center, right edge at the screen's right edge.
+  const layoutStage = () => {
+    const aspect = container.clientWidth / container.clientHeight;
+    const halfWidth = Math.tan(THREE.MathUtils.degToRad(CAMERA_FOV / 2)) * camera.position.z * aspect;
+    const scale = Math.max(halfWidth / CLUSTER_WIDTH, CLUSTER_MIN_SCALE);
+    stage.scale.setScalar(scale);
+    stage.position.x = halfWidth / 2;
+  };
+  layoutStage();
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
@@ -405,6 +430,7 @@ export function createSilkRibbon(container: HTMLElement): SilkRibbon {
       camera.updateProjectionMatrix();
       renderer.setSize(container.clientWidth, container.clientHeight);
       composer.setSize(container.clientWidth, container.clientHeight);
+      layoutStage();
     },
     dispose: () => {
       renderer.setAnimationLoop(null);
