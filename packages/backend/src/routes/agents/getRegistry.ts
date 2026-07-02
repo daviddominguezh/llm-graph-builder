@@ -8,8 +8,10 @@ import {
 } from '@daviddh/llm-graph-runner';
 import type { Request } from 'express';
 
+import { assembleAgentConfig, isAgentType } from '../../db/queries/agentConfigQueries.js';
 import { getAgentById } from '../../db/queries/agentQueries.js';
-import { getDecryptedEnvVariables, getPublishedGraphData } from '../../db/queries/executionAuthQueries.js';
+import { getDecryptedEnvVariables } from '../../db/queries/executionAuthQueries.js';
+import { assembleGraph } from '../../db/queries/graphQueries.js';
 import { type McpTenantConfigRow, getTenantConfigs } from '../../db/queries/mcpTenantConfigQueries.js';
 import { getTenantsByOrg } from '../../db/queries/tenantQueries.js';
 import { makeGuardedCreateTransport } from '../../lib/guardedCreateTransport.js';
@@ -25,14 +27,19 @@ import {
   getAgentId,
 } from '../routeHelpers.js';
 
-interface GraphDataLike {
-  mcpServers?: McpServerConfig[];
-}
-
-function extractMcpServers(graphData: Record<string, unknown> | null): McpServerConfig[] {
-  if (graphData === null) return [];
-  const { mcpServers } = graphData as GraphDataLike;
-  return Array.isArray(mcpServers) ? mcpServers : [];
+// The builder's tools panel reflects the DRAFT graph the user is editing (via the
+// same assemblers as GET /graph), NOT the published version — otherwise a
+// newly-added/configured MCP server shows no tools until publish.
+async function getDraftMcpServers(
+  supabase: AuthenticatedLocals['supabase'],
+  agentId: string
+): Promise<McpServerConfig[]> {
+  if (await isAgentType(supabase, agentId)) {
+    const config = await assembleAgentConfig(supabase, agentId);
+    return config?.mcpServers ?? [];
+  }
+  const graph = await assembleGraph(supabase, agentId);
+  return graph?.mcpServers ?? [];
 }
 
 function buildCatalogProviderCtx(orgId: string, agentId: string, tenantId: string): ProviderCtx {
@@ -135,8 +142,7 @@ async function respondWithRegistry(
     res.status(HTTP_NOT_FOUND).json({ error: 'agent not found' });
     return;
   }
-  const graphData = await getPublishedGraphData(supabase, agentId, agent.current_version);
-  const rawMcpServers = extractMcpServers(graphData);
+  const rawMcpServers = await getDraftMcpServers(supabase, agentId);
   const defaultTenantId = await resolveDefaultTenant(supabase, agent.org_id);
   const orgMcpServers = await resolveDefaultTenantMcpServers({
     supabase,

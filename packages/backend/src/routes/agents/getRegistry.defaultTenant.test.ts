@@ -58,7 +58,9 @@ const OTHER_CONFIG: McpTenantConfigRow = {
 
 const mockGetAgentById =
   jest.fn<() => Promise<{ result: { org_id: string; current_version: number } | null; error: null }>>();
-const mockGetPublishedGraphData = jest.fn<() => Promise<Record<string, unknown> | null>>();
+const mockIsAgentType = jest.fn<() => Promise<boolean>>();
+const mockAssembleGraph = jest.fn<() => Promise<{ mcpServers: McpServerConfig[] } | null>>();
+const mockAssembleAgentConfig = jest.fn<() => Promise<{ mcpServers: McpServerConfig[] } | null>>();
 const mockGetDecryptedEnvVariables =
   jest.fn<() => Promise<{ byName: Record<string, string>; byId: Record<string, string> }>>();
 const mockGetTenantsByOrg = jest.fn<() => Promise<{ result: TenantRow[]; error: null }>>();
@@ -71,8 +73,14 @@ jest.unstable_mockModule('../../db/queries/agentQueries.js', () => ({
   getAgentById: mockGetAgentById,
 }));
 jest.unstable_mockModule('../../db/queries/executionAuthQueries.js', () => ({
-  getPublishedGraphData: mockGetPublishedGraphData,
   getDecryptedEnvVariables: mockGetDecryptedEnvVariables,
+}));
+jest.unstable_mockModule('../../db/queries/agentConfigQueries.js', () => ({
+  isAgentType: mockIsAgentType,
+  assembleAgentConfig: mockAssembleAgentConfig,
+}));
+jest.unstable_mockModule('../../db/queries/graphQueries.js', () => ({
+  assembleGraph: mockAssembleGraph,
 }));
 jest.unstable_mockModule('../../db/queries/tenantQueries.js', () => ({
   getTenantsByOrg: mockGetTenantsByOrg,
@@ -128,7 +136,8 @@ function resetMocks(): void {
     result: { org_id: ORG_ID, current_version: VERSION },
     error: null,
   });
-  mockGetPublishedGraphData.mockResolvedValue({ mcpServers: [SERVER] });
+  mockIsAgentType.mockResolvedValue(false);
+  mockAssembleGraph.mockResolvedValue({ mcpServers: [SERVER] });
   mockGetDecryptedEnvVariables.mockResolvedValue({ byName: {}, byId: {} });
   mockGetTenantsByOrg.mockResolvedValue({
     result: [makeTenant(DEFAULT_TENANT_ID, true), makeTenant(OTHER_TENANT_ID, false)],
