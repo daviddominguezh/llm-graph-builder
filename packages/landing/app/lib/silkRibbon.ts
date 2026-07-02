@@ -61,7 +61,7 @@ const BASE_PATH = [
 
 // Multi-stop palette sampled diagonally: position along the sweep plus
 // position across the width, so color flows in both directions.
-const PALETTE = ['#9db2ff', '#7c4df0', '#ee3fa8', '#ff8f2e'];
+const PALETTE = ['#9db2ff', '#7c4df0', '#ee3fa8', '#ff8f2e', '#ffd82e'];
 const COLOR_ALONG = 0.7;
 const COLOR_ACROSS = 0.4;
 
@@ -75,9 +75,13 @@ const CAMERA_FOV = 30;
 // Post-processing film grain strength.
 const FILM_GRAIN = 0.18;
 
-// Intrinsic world-space span of the ribbon cluster (all sheets + drift),
-// used to fit it into the right half of the frame.
-const CLUSTER_WIDTH = 6.6;
+// The cluster is fitted to the right half of the frame from its *measured*
+// painted bounds each frame, low-pass filtered so the anchoring holds steady
+// while the silk breathes.
+const BOUNDS_SMOOTHING = 0.03;
+// Only vertices within this vertical band vote on the bounds — the path's
+// off-screen ends (fanned huge by the taper) must not drag the fit around.
+const BOUNDS_Y_LIMIT = 3.4;
 // Never shrink the cluster below this on narrow viewports.
 const CLUSTER_MIN_SCALE = 0.75;
 
@@ -105,14 +109,14 @@ const BLUR_TAPS: ReadonlyArray<readonly [number, number]> = [
   [0, 1],
   [0, -1],
 ];
-const BLUR_TAP_OPACITY = 0.35;
+const BLUR_TAP_OPACITY = 0.45;
 
 // Layered like the reference, packed close enough to overlap with no white
 // gaps. Order matters — later entries draw on top.
 const RIBBONS: RibbonConfig[] = [
-  { strands: 300, width: 2.2, xShift: -1.3, zShift: -0.8, timeOffset: 29, colorShift: -0.15, opacity: 0.45, blur: 0.04 },
-  { strands: 400, width: 3, xShift: 1.2, zShift: -1.4, timeOffset: 53, colorShift: 0.3, opacity: 0.55, blur: 0 },
-  { strands: 650, width: 4.2, xShift: 0, zShift: 0, timeOffset: 0, colorShift: 0, opacity: 0.7, blur: 0.08 },
+  { strands: 300, width: 2.2, xShift: -1.3, zShift: -0.8, timeOffset: 29, colorShift: -0.15, opacity: 0.6, blur: 0.04 },
+  { strands: 400, width: 3, xShift: 1.2, zShift: -1.4, timeOffset: 53, colorShift: 0.3, opacity: 0.7, blur: 0 },
+  { strands: 800, width: 4.2, xShift: 0, zShift: 0, timeOffset: 0, colorShift: 0, opacity: 0.85, blur: 0.08 },
 ];
 
 export type SilkRibbon = {
@@ -124,8 +128,14 @@ export type SilkRibbon = {
 
 type Ribbon = {
   mesh: THREE.Group;
-  update: (time: number) => void;
+  update: (time: number, bounds: Bounds) => void;
   dispose: () => void;
+};
+
+// Horizontal extent of everything painted this frame, in stage-local space.
+type Bounds = {
+  min: number;
+  max: number;
 };
 
 // Per-frame samples along a sweep, shared by every strand of its ribbon:
@@ -288,7 +298,8 @@ function updateSheet(
   time: number,
   positions: Float32Array,
   baseColors: Float32Array,
-  colors: Float32Array
+  colors: Float32Array,
+  bounds: Bounds
 ) {
   for (let j = 0; j <= SEGMENTS; j++) {
     const u = j / SEGMENTS;
@@ -312,13 +323,17 @@ function updateSheet(
     // hide the widening in depth.
     const yNorm = THREE.MathUtils.clamp((py - PATH_BOTTOM_Y) / (PATH_TOP_Y - PATH_BOTTOM_Y), 0, 1);
     const screenTaper = 1 + (TAPER_TOP - 1) * yNorm * yNorm;
+    const inBoundsBand = Math.abs(py) <= BOUNDS_Y_LIMIT;
     for (let s = 0; s < config.strands; s++) {
       const offD = (cross.d[s] ?? 0) - centerD;
       const offR = (cross.r[s] ?? 0) - centerR;
       const idx = (s * (SEGMENTS + 1) + j) * 3;
-      positions[idx] = px + (dx * offD + rx * offR) * screenTaper;
+      const x = px + (dx * offD + rx * offR) * screenTaper;
+      positions[idx] = x;
       positions[idx + 1] = py + dy * offD + ry * offR;
       positions[idx + 2] = pz + dz * offD + rz * offR;
+      if (inBoundsBand && x < bounds.min) bounds.min = x;
+      if (inBoundsBand && x > bounds.max) bounds.max = x;
       const shade = bright * (FOLD_SHADE_MIN + FOLD_SHADE_SPAN * Math.max(0, cross.facing[s] ?? 1));
       colors[idx] = (baseColors[idx] ?? 0) * shade;
       colors[idx + 1] = (baseColors[idx + 1] ?? 0) * shade;
@@ -367,11 +382,11 @@ function createRibbon(config: RibbonConfig, simplex: SimplexNoise): Ribbon {
 
   return {
     mesh: group,
-    update: (time: number) => {
+    update: (time: number, bounds: Bounds) => {
       const localTime = time + config.timeOffset;
       driftControlPoints(controlPoints, simplex, localTime, config);
       updateFrameSamples(curve, simplex, localTime, samples);
-      updateSheet(config, samples, cross, simplex, localTime, positions, baseColors, colors);
+      updateSheet(config, samples, cross, simplex, localTime, positions, baseColors, colors, bounds);
       posAttr.needsUpdate = true;
       colorAttr.needsUpdate = true;
     },
@@ -407,16 +422,22 @@ export function createSilkRibbon(container: HTMLElement): SilkRibbon {
   });
   scene.add(stage);
 
-  // Pin the cluster to the right half of the frame: left edge at the screen's
-  // horizontal center, right edge at the screen's right edge.
+  // Pin the cluster to the right half of the frame: measured leftmost edge at
+  // the screen's horizontal center, measured rightmost edge at the screen's
+  // right edge — low-pass filtered so the anchors hold while the silk breathes.
+  const measured: Bounds = { min: Infinity, max: -Infinity };
+  let smoothedMin = Number.NaN;
+  let smoothedMax = Number.NaN;
+
   const layoutStage = () => {
+    const span = smoothedMax - smoothedMin;
+    if (!Number.isFinite(span) || span <= 0) return;
     const aspect = container.clientWidth / container.clientHeight;
     const halfWidth = Math.tan(THREE.MathUtils.degToRad(CAMERA_FOV / 2)) * camera.position.z * aspect;
-    const scale = Math.max(halfWidth / CLUSTER_WIDTH, CLUSTER_MIN_SCALE);
+    const scale = Math.max(halfWidth / span, CLUSTER_MIN_SCALE);
     stage.scale.setScalar(scale);
-    stage.position.x = halfWidth / 2;
+    stage.position.x = -smoothedMin * scale;
   };
-  layoutStage();
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
@@ -425,7 +446,18 @@ export function createSilkRibbon(container: HTMLElement): SilkRibbon {
 
   const update = (t: number) => {
     const time = t / TIME_SCALE;
-    ribbons.forEach((ribbon) => ribbon.update(time));
+    measured.min = Infinity;
+    measured.max = -Infinity;
+    ribbons.forEach((ribbon) => ribbon.update(time, measured));
+    if (Number.isFinite(measured.min)) {
+      smoothedMin = Number.isNaN(smoothedMin)
+        ? measured.min
+        : smoothedMin + (measured.min - smoothedMin) * BOUNDS_SMOOTHING;
+      smoothedMax = Number.isNaN(smoothedMax)
+        ? measured.max
+        : smoothedMax + (measured.max - smoothedMax) * BOUNDS_SMOOTHING;
+    }
+    layoutStage();
     composer.render();
   };
 
