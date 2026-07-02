@@ -10,8 +10,20 @@ import { SimplexNoise } from 'three/addons/math/SimplexNoise.js';
 // Larger divisor = slower wave motion (pen used 2000).
 const TIME_SCALE = 10000;
 
-// Narrower FOV than the pen (30) zooms in so the same wave fills the wide
-// band edge-to-edge. Same geometry, same number of waves — just tighter framing.
+// Fabric feel: broad soft folds (bigger amplitude, lower frequency than the
+// pen's terrain), lateral sway so lines bend like threads instead of a
+// heightfield, folds drifting sideways like wind, and a flutter envelope so
+// the far edge hangs calm while the near hem moves freely.
+const FOLD_AMPLITUDE = 0.8;
+const FOLD_SCALE = 3;
+const WIND_DRIFT = 1.2;
+const SWAY_AMPLITUDE = 0.35;
+const SWAY_SCALE = 1.5;
+const FLUTTER_MIN = 0.35;
+
+// With the rolled camera the ribbon's long axis runs vertically, so the
+// vertical FOV must cover what the horizontal FOV covered in the landscape
+// framing (24° at a ~2:1 aspect ≈ 48° across).
 const CAMERA_FOV = 24;
 
 // Each row-line gets one flat color, stepping across this gradient from the
@@ -26,11 +38,17 @@ type WaveScene = {
   dispose: () => void;
 };
 
-function displaceWave(pos: THREE.BufferAttribute, simplex: SimplexNoise, t: number) {
+function displaceWave(pos: THREE.BufferAttribute, base: Float32Array, simplex: SimplexNoise, t: number) {
+  const time = t / TIME_SCALE;
   for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i);
-    const y = pos.getY(i);
-    pos.setZ(i, 0.5 * simplex.noise3d(x / 2, y / 2, t / TIME_SCALE));
+    const x = base[i * 3] ?? 0;
+    const y = base[i * 3 + 1] ?? 0;
+    // 0 at the pinned edge, 1 at the free hem — plane Y spans -2..2. With the
+    // rolled camera the pinned edge sits at the top of the frame.
+    const flutter = FLUTTER_MIN + (1 - FLUTTER_MIN) * ((2 - y) / 4);
+    const fold = simplex.noise3d((x + time * WIND_DRIFT) / FOLD_SCALE, y / FOLD_SCALE, time);
+    const sway = simplex.noise3d(x / SWAY_SCALE, y / SWAY_SCALE, time + 37);
+    pos.setXYZ(i, x + SWAY_AMPLITUDE * flutter * sway, y, FOLD_AMPLITUDE * flutter * fold);
   }
   pos.needsUpdate = true;
 }
@@ -73,6 +91,10 @@ function createWaveScene(container: HTMLElement): WaveScene {
 
   const camera = new THREE.PerspectiveCamera(CAMERA_FOV, container.clientWidth / container.clientHeight);
   camera.position.set(4, 2, 8);
+  // Roll the view 90°: the silk ribbon keeps its grazing angle (which is what
+  // makes the folds silhouette) but runs top-to-bottom in the frame instead
+  // of left-to-right — a falling curtain, taller than wide.
+  camera.up.set(1, 0, 0);
   camera.lookAt(scene.position);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -89,6 +111,9 @@ function createWaveScene(container: HTMLElement): WaveScene {
   );
   const material = new THREE.LineBasicMaterial({ vertexColors: true });
   const simplex = new SimplexNoise();
+  // Undeformed positions — lateral sway must displace from the rest pose,
+  // not from the previous frame, or the drift compounds.
+  const basePos = new Float32Array(pos.array);
 
   const waves = new THREE.LineSegments(geometry, material);
   waves.rotation.x = -Math.PI / 2;
@@ -97,11 +122,11 @@ function createWaveScene(container: HTMLElement): WaveScene {
   return {
     start: () =>
       renderer.setAnimationLoop((t) => {
-        displaceWave(pos, simplex, t);
+        displaceWave(pos, basePos, simplex, t);
         renderer.render(scene, camera);
       }),
     renderStill: () => {
-      displaceWave(pos, simplex, 0);
+      displaceWave(pos, basePos, simplex, 0);
       renderer.render(scene, camera);
     },
     resize: () => {
@@ -153,7 +178,7 @@ export function WaveBand() {
 
   return (
     <section aria-hidden="true" className="w-full overflow-hidden bg-white">
-      <div ref={containerRef} className="mx-auto h-[480px] w-[1000px]" />
+      <div ref={containerRef} className="mx-auto h-[720px] w-[480px]" />
     </section>
   );
 }
