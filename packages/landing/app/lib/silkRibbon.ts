@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import { SimplexNoise } from 'three/addons/math/SimplexNoise.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { FilmPass } from 'three/addons/postprocessing/FilmPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 
 // Silk-ribbon line field, evolved from the particle wave at
 // https://codepen.io/boytchev/full/OJYGqMP.
@@ -15,15 +19,16 @@ const TIME_SCALE = 30000;
 
 // How far a sweep's control points wander — the big slow billow.
 const DRIFT_AMPLITUDE = 0.9;
-// End-to-end twist of a ribbon (in half-turns) plus its animated wobble.
-// Kept below a quarter-turn so the ribbon only kisses edge-on in passing
-// instead of collapsing into a string for half its length.
-const TWIST_TURNS = 0.45;
-const TWIST_WOBBLE = 0.55;
+// Helix winding: how far (in half-turns) the roll's orientation rotates
+// around the fall axis end to end, plus its animated wobble. This is what
+// makes the curl trace a helicoid down the curtain.
+const TWIST_TURNS = 1.5;
+const TWIST_WOBBLE = 0.35;
 // Folding: the cross-section is integrated as a walk across the width whose
-// direction rotates by a noise-driven angle. Past 90° the sheet doubles back
-// into itself — real pleats with self-overlap, not surface ripple.
-const FOLD_DEPTH = 1.5;
+// direction rotates with a helical curl (linear in the across position, so
+// the sheet rolls onto itself like a scroll) plus a little noise for life.
+const CURL_TOTAL = 3.8;
+const FOLD_DEPTH = 0.45;
 const FOLD_ACROSS = 1.8;
 // Kept far below FOLD_ACROSS so crease lines run down the fall (with
 // gravity) and pockets open sideways — never horizontal, anti-gravity folds.
@@ -60,6 +65,9 @@ const BRIGHT_SPAN = 0.25;
 
 const CAMERA_FOV = 30;
 
+// Post-processing film grain strength.
+const FILM_GRAIN = 0.18;
+
 type RibbonConfig = {
   strands: number;
   width: number;
@@ -70,14 +78,28 @@ type RibbonConfig = {
   // Shift into the palette so layers pick up different color bands.
   colorShift: number;
   opacity: number;
+  // Depth-of-field: multi-tap blur radius. The focal plane sits on the
+  // farthest sheet; the closer a sheet is to the viewer, the blurrier.
+  blur: number;
 };
 
-// Layered like the reference: a narrower, warmer sheet drifting behind and a
-// broad main ribbon in front. Order matters — later entries draw on top.
+// Diamond blur kernel: the whole intact sheet is drawn once per tap at a
+// small uniform offset — a true convolution that softens edges while the
+// interior stays coherent silk (per-strand scatter shreds it into fibers).
+const BLUR_TAPS: ReadonlyArray<readonly [number, number]> = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
+const BLUR_TAP_OPACITY = 0.35;
+
+// Layered like the reference, packed close enough to overlap with no white
+// gaps. Order matters — later entries draw on top.
 const RIBBONS: RibbonConfig[] = [
-  { strands: 300, width: 2.2, xShift: -2.3, zShift: -0.8, timeOffset: 29, colorShift: -0.15, opacity: 0.45 },
-  { strands: 400, width: 3, xShift: 2.1, zShift: -1.4, timeOffset: 53, colorShift: 0.3, opacity: 0.55 },
-  { strands: 650, width: 4.2, xShift: 0, zShift: 0, timeOffset: 0, colorShift: 0, opacity: 0.7 },
+  { strands: 300, width: 2.2, xShift: -1.3, zShift: -0.8, timeOffset: 29, colorShift: -0.15, opacity: 0.45, blur: 0.04 },
+  { strands: 400, width: 3, xShift: 1.2, zShift: -1.4, timeOffset: 53, colorShift: 0.3, opacity: 0.55, blur: 0 },
+  { strands: 650, width: 4.2, xShift: 0, zShift: 0, timeOffset: 0, colorShift: 0, opacity: 0.7, blur: 0.08 },
 ];
 
 export type SilkRibbon = {
@@ -88,7 +110,7 @@ export type SilkRibbon = {
 };
 
 type Ribbon = {
-  mesh: THREE.LineSegments;
+  mesh: THREE.Group;
   update: (time: number) => void;
   dispose: () => void;
 };
@@ -226,12 +248,13 @@ function integrateCrossSection(
   cross: CrossSection
 ) {
   const dv = config.width / (config.strands - 1);
-  const depth = FOLD_DEPTH * (FOLD_GROWTH_MIN + (1 - FOLD_GROWTH_MIN) * u);
+  const depth = FOLD_GROWTH_MIN + (1 - FOLD_GROWTH_MIN) * u;
   let d = 0;
   let r = 0;
   for (let s = 0; s < config.strands; s++) {
     const v = s / (config.strands - 1);
-    const angle = depth * simplex.noise3d(v * FOLD_ACROSS, u * FOLD_ALONG, time);
+    const wave = FOLD_DEPTH * simplex.noise3d(v * FOLD_ACROSS, u * FOLD_ALONG, time);
+    const angle = depth * (CURL_TOTAL * (v - 0.5) + wave);
     cross.d[s] = d;
     cross.r[s] = r;
     const facing = Math.cos(angle);
@@ -307,16 +330,24 @@ function createRibbon(config: RibbonConfig, simplex: SimplexNoise): Ribbon {
   const material = new THREE.LineBasicMaterial({
     vertexColors: true,
     transparent: true,
-    opacity: config.opacity,
+    opacity: config.blur > 0 ? config.opacity * BLUR_TAP_OPACITY : config.opacity,
     depthWrite: false,
   });
 
-  const mesh = new THREE.LineSegments(geometry, material);
-  // Positions stream every frame; the stale bounding sphere must not cull us.
-  mesh.frustumCulled = false;
+  // One intact sheet per tap, all sharing the same streamed geometry: the
+  // taps' small uniform offsets blend into a soft depth-of-field halo.
+  const group = new THREE.Group();
+  const taps = config.blur > 0 ? BLUR_TAPS : [[0, 0] as const];
+  for (const [ox, oy] of taps) {
+    const mesh = new THREE.LineSegments(geometry, material);
+    mesh.position.set(ox * config.blur, oy * config.blur, 0);
+    // Positions stream every frame; a stale bounding sphere must not cull us.
+    mesh.frustumCulled = false;
+    group.add(mesh);
+  }
 
   return {
-    mesh,
+    mesh: group,
     update: (time: number) => {
       const localTime = time + config.timeOffset;
       driftControlPoints(controlPoints, simplex, localTime, config);
@@ -347,12 +378,23 @@ export function createSilkRibbon(container: HTMLElement): SilkRibbon {
 
   const simplex = new SimplexNoise();
   const ribbons = RIBBONS.map((config) => createRibbon(config, simplex));
-  ribbons.forEach((ribbon) => scene.add(ribbon.mesh));
+  ribbons.forEach((ribbon, i) => {
+    // Explicit paint order — transparent objects must layer as configured.
+    ribbon.mesh.children.forEach((tap) => {
+      tap.renderOrder = i;
+    });
+    scene.add(ribbon.mesh);
+  });
+
+  const composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  composer.addPass(new FilmPass(FILM_GRAIN));
+  composer.addPass(new OutputPass());
 
   const update = (t: number) => {
     const time = t / TIME_SCALE;
     ribbons.forEach((ribbon) => ribbon.update(time));
-    renderer.render(scene, camera);
+    composer.render();
   };
 
   return {
@@ -362,11 +404,13 @@ export function createSilkRibbon(container: HTMLElement): SilkRibbon {
       camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(container.clientWidth, container.clientHeight);
+      composer.setSize(container.clientWidth, container.clientHeight);
     },
     dispose: () => {
       renderer.setAnimationLoop(null);
       renderer.domElement.remove();
       ribbons.forEach((ribbon) => ribbon.dispose());
+      composer.dispose();
       renderer.dispose();
     },
   };
