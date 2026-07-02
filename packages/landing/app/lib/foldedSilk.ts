@@ -37,8 +37,6 @@ const MATERIAL_UNIFORM_VALUES = {
   glowAmount: 1.98,
   glowPower: 0.806,
   glowRamp: 0.834,
-  fiberStrength: 0.2,
-  fiberFrequency: 600,
   fiberColorAttenuation: 0.9,
   fiberParabolaPower: 3,
   colorContrast: 1,
@@ -48,6 +46,15 @@ const MATERIAL_UNIFORM_VALUES = {
 
 // Palette painted onto an offscreen canvas — the sheet samples it by UV.
 const PALETTE_STOPS = ['#9db2ff', '#7c4df0', '#ee3fa8', '#ff8f2e', '#ffd82e'];
+
+// 'solid' = opaque surface with subtle fiber grain; 'fibrous' = the fiber
+// noise carves the sheet into translucent thread strands.
+const FIBER_VARIANTS = {
+  solid: { strength: 0.2, frequency: 600, alpha: 0 },
+  fibrous: { strength: 0.45, frequency: 900, alpha: 0.85 },
+} as const;
+
+export type FoldedSilkVariant = keyof typeof FIBER_VARIANTS;
 
 const FILM_GRAIN = 0.14;
 
@@ -121,12 +128,16 @@ function createPaletteTexture(): THREE.CanvasTexture {
   return texture;
 }
 
-function createSheetMaterial(palette: THREE.Texture): THREE.ShaderMaterial {
+function createSheetMaterial(palette: THREE.Texture, variant: FoldedSilkVariant): THREE.ShaderMaterial {
   const c = MATERIAL_UNIFORM_VALUES;
+  const fibers = FIBER_VARIANTS[variant];
   return new THREE.ShaderMaterial({
     vertexShader: FOLDED_SILK_VERTEX,
     fragmentShader: FOLDED_SILK_FRAGMENT,
     side: THREE.DoubleSide,
+    transparent: fibers.alpha > 0,
+    // Translucent strands must not occlude the fold's back layer.
+    depthWrite: fibers.alpha === 0,
     uniforms: {
       u_time: { value: 0 },
       u_speed: { value: c.speed },
@@ -144,8 +155,9 @@ function createSheetMaterial(palette: THREE.Texture): THREE.ShaderMaterial {
       u_glowAmount: { value: c.glowAmount },
       u_glowPower: { value: c.glowPower },
       u_glowRamp: { value: c.glowRamp },
-      u_fiberStrength: { value: c.fiberStrength },
-      u_fiberFrequency: { value: c.fiberFrequency },
+      u_fiberStrength: { value: fibers.strength },
+      u_fiberFrequency: { value: fibers.frequency },
+      u_fiberAlpha: { value: fibers.alpha },
       u_fiberColorAttenuation: { value: c.fiberColorAttenuation },
       u_fiberParabolaPower: { value: c.fiberParabolaPower },
       u_colorContrast: { value: c.colorContrast },
@@ -155,7 +167,11 @@ function createSheetMaterial(palette: THREE.Texture): THREE.ShaderMaterial {
   });
 }
 
-export function createFoldedSilk(container: HTMLElement): FoldedSilk {
+export function createFoldedSilk(
+  container: HTMLElement,
+  timeOffset = 0,
+  variant: FoldedSilkVariant = 'solid'
+): FoldedSilk {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('white');
 
@@ -169,7 +185,7 @@ export function createFoldedSilk(container: HTMLElement): FoldedSilk {
   container.appendChild(renderer.domElement);
 
   const palette = createPaletteTexture();
-  const material = createSheetMaterial(palette);
+  const material = createSheetMaterial(palette, variant);
   const geometry = createFoldedSheetGeometry();
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.copy(MESH_POSITION);
@@ -199,7 +215,7 @@ export function createFoldedSilk(container: HTMLElement): FoldedSilk {
 
   const update = (t: number) => {
     if (material.uniforms.u_time) {
-      material.uniforms.u_time.value = t + MATERIAL_UNIFORM_VALUES.timeOffset;
+      material.uniforms.u_time.value = t + MATERIAL_UNIFORM_VALUES.timeOffset + timeOffset;
     }
     composer.render();
   };

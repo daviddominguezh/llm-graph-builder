@@ -104,6 +104,7 @@ uniform float u_fiberStrength;
 uniform float u_fiberFrequency;
 uniform float u_fiberColorAttenuation;
 uniform float u_fiberParabolaPower;
+uniform float u_fiberAlpha;
 uniform float u_glowAmount;
 uniform float u_glowPower;
 uniform float u_glowRamp;
@@ -155,6 +156,11 @@ void main() {
   // Luminous rims where the sheet folds away.
   color += (1.0 - pdy) * 0.25;
 
-  gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+  // Fibrous variant: the fiber noise carves the surface into translucent
+  // strands instead of a solid fill (u_fiberAlpha 0 = fully solid).
+  float strandMask = smoothstep(0.2, 0.8, fiber);
+  float alpha = mix(1.0, strandMask, u_fiberAlpha);
+
+  gl_FragColor = vec4(clamp(color, 0.0, 1.0), alpha);
 }
 `;

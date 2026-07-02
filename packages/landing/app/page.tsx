@@ -7,7 +7,6 @@ import { Footer } from './components/Footer';
 import { Hero } from './components/Hero';
 import { Navbar } from './components/Navbar';
 import { Problem } from './components/Problem';
-import { WaveBand } from './components/WaveBand';
 
 export default function Home() {
   return (
@@ -19,8 +18,8 @@ export default function Home() {
         <Features />
         <Comparison />
         <Audience />
-        <WaveBand />
         <FoldedSilkBand />
+        <FoldedSilkBand timeOffset={90000} variant="fibrous" />
         <FinalCta />
       </main>
       <Footer />

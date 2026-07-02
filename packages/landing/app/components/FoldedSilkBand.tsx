@@ -1,20 +1,27 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { createFoldedSilk } from '../lib/foldedSilk';
+import { createFoldedSilk, type FoldedSilkVariant } from '../lib/foldedSilk';
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-export function FoldedSilkBand() {
+type FoldedSilkBandProps = {
+  // Offsets the animation clock so multiple instances don't move in lockstep.
+  timeOffset?: number;
+  // 'solid' opaque surface (default) or 'fibrous' translucent thread strands.
+  variant?: FoldedSilkVariant;
+};
+
+export function FoldedSilkBand({ timeOffset = 0, variant = 'solid' }: FoldedSilkBandProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    const silk = createFoldedSilk(container);
+    const silk = createFoldedSilk(container, timeOffset, variant);
     const reduced = prefersReducedMotion();
 
     if (reduced) {
@@ -33,7 +40,7 @@ export function FoldedSilkBand() {
       observer.disconnect();
       silk.dispose();
     };
-  }, []);
+  }, [timeOffset, variant]);
 
   return (
     <section aria-hidden="true" className="relative h-[720px] w-full overflow-hidden bg-white">
