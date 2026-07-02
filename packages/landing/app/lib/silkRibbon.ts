@@ -11,7 +11,7 @@ import { SimplexNoise } from 'three/addons/math/SimplexNoise.js';
 //   fold lines while flat stretches stay airy (shading via density),
 // - per-strand ripple keeps the fibers from reading as perfectly parallel.
 
-const TIME_SCALE = 10000;
+const TIME_SCALE = 30000;
 
 // How far a sweep's control points wander — the big slow billow.
 const DRIFT_AMPLITUDE = 0.9;
@@ -20,10 +20,19 @@ const DRIFT_AMPLITUDE = 0.9;
 // instead of collapsing into a string for half its length.
 const TWIST_TURNS = 0.45;
 const TWIST_WOBBLE = 0.55;
-// Fine fiber detail so strands shimmer instead of staying parallel.
-const RIPPLE_AMPLITUDE = 0.18;
-const RIPPLE_ALONG = 3;
-const RIPPLE_ACROSS = 2;
+// Folding: the cross-section is integrated as a walk across the width whose
+// direction rotates by a noise-driven angle. Past 90° the sheet doubles back
+// into itself — real pleats with self-overlap, not surface ripple.
+const FOLD_DEPTH = 1.5;
+const FOLD_ACROSS = 1.8;
+// Kept far below FOLD_ACROSS so crease lines run down the fall (with
+// gravity) and pockets open sideways — never horizontal, anti-gravity folds.
+const FOLD_ALONG = 0.25;
+// Folds deepen down the fall, like a curtain gathering toward the hem.
+const FOLD_GROWTH_MIN = 0.6;
+// Fold flanks shade darker the further they turn from the viewer.
+const FOLD_SHADE_MIN = 0.72;
+const FOLD_SHADE_SPAN = 0.28;
 
 const SEGMENTS = 120;
 
@@ -66,8 +75,9 @@ type RibbonConfig = {
 // Layered like the reference: a narrower, warmer sheet drifting behind and a
 // broad main ribbon in front. Order matters — later entries draw on top.
 const RIBBONS: RibbonConfig[] = [
-  { strands: 400, width: 2.4, xShift: 2.1, zShift: -1.4, timeOffset: 53, colorShift: 0.3, opacity: 0.55 },
-  { strands: 650, width: 3.6, xShift: 0, zShift: 0, timeOffset: 0, colorShift: 0, opacity: 0.7 },
+  { strands: 300, width: 2.2, xShift: -2.3, zShift: -0.8, timeOffset: 29, colorShift: -0.15, opacity: 0.45 },
+  { strands: 400, width: 3, xShift: 2.1, zShift: -1.4, timeOffset: 53, colorShift: 0.3, opacity: 0.55 },
+  { strands: 650, width: 4.2, xShift: 0, zShift: 0, timeOffset: 0, colorShift: 0, opacity: 0.7 },
 ];
 
 export type SilkRibbon = {
@@ -149,9 +159,10 @@ function driftControlPoints(
   BASE_PATH.forEach((base, i) => {
     const point = points[i];
     if (!point) return;
+    // Horizontal sway only — fabric never billows upward against gravity.
     point.set(
       base.x + config.xShift + DRIFT_AMPLITUDE * simplex.noise3d(i * 11.3, 3, time),
-      base.y + DRIFT_AMPLITUDE * simplex.noise3d(i * 11.3, 9, time),
+      base.y,
       base.z + config.zShift + DRIFT_AMPLITUDE * simplex.noise3d(i * 11.3, 15, time)
     );
   });
@@ -159,12 +170,8 @@ function driftControlPoints(
 
 // Module-scope temps so the per-frame loops allocate nothing.
 const tmpPoint = new THREE.Vector3();
-const tmpBehind = new THREE.Vector3();
-const tmpAhead = new THREE.Vector3();
-const tmpTangent = new THREE.Vector3();
 const tmpDir = new THREE.Vector3();
 const tmpNormal = new THREE.Vector3();
-const tmpQuat = new THREE.Quaternion();
 
 function updateFrameSamples(
   curve: THREE.CatmullRomCurve3,
@@ -172,21 +179,15 @@ function updateFrameSamples(
   time: number,
   samples: FrameSamples
 ) {
-  const h = 1 / SEGMENTS;
   for (let j = 0; j <= SEGMENTS; j++) {
     const u = j / SEGMENTS;
     curve.getPoint(u, tmpPoint);
-    curve.getPoint(Math.max(0, u - h), tmpBehind);
-    curve.getPoint(Math.min(1, u + h), tmpAhead);
-    tmpTangent.subVectors(tmpAhead, tmpBehind).normalize();
-    // Width direction in the screen plane: cross(tangent, view axis)...
-    tmpDir.set(tmpTangent.y, -tmpTangent.x, 0).normalize();
-    tmpNormal.crossVectors(tmpDir, tmpTangent);
-    // ...then twisted around the tangent so the ribbon rolls as it sweeps.
+    // Cross-section confined to the horizontal plane: the twist rotates the
+    // width/normal pair around the vertical axis only, so folds can open
+    // sideways or toward the camera but never upward against gravity.
     const twist = TWIST_TURNS * Math.PI * u + TWIST_WOBBLE * simplex.noise3d(u * 1.5, 77, time);
-    tmpQuat.setFromAxisAngle(tmpTangent, twist);
-    tmpDir.applyQuaternion(tmpQuat);
-    tmpNormal.applyQuaternion(tmpQuat);
+    tmpDir.set(Math.cos(twist), 0, -Math.sin(twist));
+    tmpNormal.set(Math.sin(twist), 0, Math.cos(twist));
     tmpPoint.toArray(samples.pos, j * 3);
     tmpDir.toArray(samples.dir, j * 3);
     tmpNormal.toArray(samples.rip, j * 3);
@@ -194,32 +195,92 @@ function updateFrameSamples(
   }
 }
 
-function updateStrands(
+// Cross-section of the sheet at one point along the sweep: accumulated
+// offsets in the width direction (d) and normal direction (r) per strand,
+// plus how much the local surface faces the viewer (for shading).
+type CrossSection = {
+  d: Float32Array;
+  r: Float32Array;
+  facing: Float32Array;
+  endD: number;
+  endR: number;
+};
+
+function createCrossSection(strands: number): CrossSection {
+  return {
+    d: new Float32Array(strands),
+    r: new Float32Array(strands),
+    facing: new Float32Array(strands),
+    endD: 0,
+    endR: 0,
+  };
+}
+
+// Walk across the width rotating by a noise-driven fold angle: past 90° the
+// walk moves backward and the sheet folds over itself.
+function integrateCrossSection(
+  config: RibbonConfig,
+  simplex: SimplexNoise,
+  u: number,
+  time: number,
+  cross: CrossSection
+) {
+  const dv = config.width / (config.strands - 1);
+  const depth = FOLD_DEPTH * (FOLD_GROWTH_MIN + (1 - FOLD_GROWTH_MIN) * u);
+  let d = 0;
+  let r = 0;
+  for (let s = 0; s < config.strands; s++) {
+    const v = s / (config.strands - 1);
+    const angle = depth * simplex.noise3d(v * FOLD_ACROSS, u * FOLD_ALONG, time);
+    cross.d[s] = d;
+    cross.r[s] = r;
+    const facing = Math.cos(angle);
+    cross.facing[s] = facing;
+    d += facing * dv;
+    r += Math.sin(angle) * dv;
+  }
+  cross.endD = d;
+  cross.endR = r;
+}
+
+function updateSheet(
   config: RibbonConfig,
   samples: FrameSamples,
+  cross: CrossSection,
   simplex: SimplexNoise,
   time: number,
   positions: Float32Array,
   baseColors: Float32Array,
   colors: Float32Array
 ) {
-  for (let s = 0; s < config.strands; s++) {
-    const v = s / (config.strands - 1);
-    const off = (v - 0.5) * config.width;
-    for (let j = 0; j <= SEGMENTS; j++) {
-      const u = j / SEGMENTS;
-      const k = j * 3;
+  for (let j = 0; j <= SEGMENTS; j++) {
+    const u = j / SEGMENTS;
+    integrateCrossSection(config, simplex, u, time, cross);
+    const k = j * 3;
+    const px = samples.pos[k] ?? 0;
+    const py = samples.pos[k + 1] ?? 0;
+    const pz = samples.pos[k + 2] ?? 0;
+    const dx = samples.dir[k] ?? 0;
+    const dy = samples.dir[k + 1] ?? 0;
+    const dz = samples.dir[k + 2] ?? 0;
+    const rx = samples.rip[k] ?? 0;
+    const ry = samples.rip[k + 1] ?? 0;
+    const rz = samples.rip[k + 2] ?? 0;
+    const bright = samples.bright[j] ?? 1;
+    // Recenter so the pleated sheet stays hanging on the sweep line.
+    const centerD = cross.endD / 2;
+    const centerR = cross.endR / 2;
+    for (let s = 0; s < config.strands; s++) {
+      const offD = (cross.d[s] ?? 0) - centerD;
+      const offR = (cross.r[s] ?? 0) - centerR;
       const idx = (s * (SEGMENTS + 1) + j) * 3;
-      const ripple = RIPPLE_AMPLITUDE * simplex.noise3d(u * RIPPLE_ALONG, v * RIPPLE_ACROSS, time);
-      positions[idx] = (samples.pos[k] ?? 0) + (samples.dir[k] ?? 0) * off + (samples.rip[k] ?? 0) * ripple;
-      positions[idx + 1] =
-        (samples.pos[k + 1] ?? 0) + (samples.dir[k + 1] ?? 0) * off + (samples.rip[k + 1] ?? 0) * ripple;
-      positions[idx + 2] =
-        (samples.pos[k + 2] ?? 0) + (samples.dir[k + 2] ?? 0) * off + (samples.rip[k + 2] ?? 0) * ripple;
-      const bright = samples.bright[j] ?? 1;
-      colors[idx] = (baseColors[idx] ?? 0) * bright;
-      colors[idx + 1] = (baseColors[idx + 1] ?? 0) * bright;
-      colors[idx + 2] = (baseColors[idx + 2] ?? 0) * bright;
+      positions[idx] = px + dx * offD + rx * offR;
+      positions[idx + 1] = py + dy * offD + ry * offR;
+      positions[idx + 2] = pz + dz * offD + rz * offR;
+      const shade = bright * (FOLD_SHADE_MIN + FOLD_SHADE_SPAN * Math.max(0, cross.facing[s] ?? 1));
+      colors[idx] = (baseColors[idx] ?? 0) * shade;
+      colors[idx + 1] = (baseColors[idx + 1] ?? 0) * shade;
+      colors[idx + 2] = (baseColors[idx + 2] ?? 0) * shade;
     }
   }
 }
@@ -228,6 +289,7 @@ function createRibbon(config: RibbonConfig, simplex: SimplexNoise): Ribbon {
   const controlPoints = BASE_PATH.map((point) => point.clone());
   const curve = new THREE.CatmullRomCurve3(controlPoints, false, 'centripetal');
   const samples = createFrameSamples();
+  const cross = createCrossSection(config.strands);
 
   const baseColors = buildBaseColors(config);
   const positions = new Float32Array(baseColors.length);
@@ -259,7 +321,7 @@ function createRibbon(config: RibbonConfig, simplex: SimplexNoise): Ribbon {
       const localTime = time + config.timeOffset;
       driftControlPoints(controlPoints, simplex, localTime, config);
       updateFrameSamples(curve, simplex, localTime, samples);
-      updateStrands(config, samples, simplex, localTime, positions, baseColors, colors);
+      updateSheet(config, samples, cross, simplex, localTime, positions, baseColors, colors);
       posAttr.needsUpdate = true;
       colorAttr.needsUpdate = true;
     },
