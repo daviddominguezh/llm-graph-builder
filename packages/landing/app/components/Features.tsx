@@ -1,14 +1,17 @@
 import type { Feature } from './features-data';
 import { FEATURES } from './features-data';
+import { SectionHeading } from './SectionHeading';
+
+const CARD_SHADOW = 'shadow-[0_6px_12px_-2px_rgba(50,50,93,0.12),0_3px_7px_-3px_rgba(0,0,0,0.06)]';
 
 function LargeFeatureCard({ feature }: { feature: Feature }) {
   const Icon = feature.icon;
 
   return (
-    <div className="group rounded-xl border border-border bg-background p-8 transition-[transform,box-shadow,border-color] hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
-      <Icon className="h-7 w-7 text-primary transition-transform group-hover:scale-110" />
-      <h3 className="mt-5 font-heading text-lg font-semibold">{feature.title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
+    <div className={`rounded-lg bg-white p-8 ${CARD_SHADOW}`}>
+      <Icon className="h-7 w-7 text-[#533afd]" />
+      <h3 className="mt-5 text-lg font-medium text-[#061b31]">{feature.title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-[#425466]">{feature.description}</p>
     </div>
   );
 }
@@ -17,10 +20,10 @@ function SmallFeatureCard({ feature }: { feature: Feature }) {
   const Icon = feature.icon;
 
   return (
-    <div className="group rounded-xl border border-border bg-background p-6 transition-[transform,box-shadow,border-color] hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md">
-      <Icon className="h-5 w-5 text-primary transition-transform group-hover:scale-110" />
-      <h3 className="mt-3 font-heading text-base font-semibold">{feature.title}</h3>
-      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{feature.description}</p>
+    <div className={`rounded-lg bg-white p-6 ${CARD_SHADOW}`}>
+      <Icon className="h-5 w-5 text-[#533afd]" />
+      <h3 className="mt-3 text-base font-medium text-[#061b31]">{feature.title}</h3>
+      <p className="mt-1.5 text-sm leading-relaxed text-[#425466]">{feature.description}</p>
     </div>
   );
 }
@@ -47,16 +50,12 @@ function FeaturesGrid() {
 
 export function Features() {
   return (
-    <section id="features" className="px-6 py-24">
-      <div className="mx-auto max-w-6xl">
-        <h2 className="font-heading text-3xl font-semibold leading-tight tracking-tight text-balance sm:text-4xl">
-          How We&#39;re Different
-        </h2>
-        <p className="mt-4 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-          We don&#39;t sell to people who build agents for themselves. We sell to people who build agents to
-          sell to other people.
-        </p>
-
+    <section id="features" className="bg-[#f6f9fc] px-10 py-24">
+      <div className="mx-auto max-w-[1240px]">
+        <SectionHeading
+          lead="Flexible building blocks for every agent business."
+          rest="We don't sell to people who build agents for themselves — we sell to people who build agents to sell to other people."
+        />
         <FeaturesGrid />
       </div>
     </section>

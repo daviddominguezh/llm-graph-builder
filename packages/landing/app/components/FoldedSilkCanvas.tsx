@@ -7,14 +7,15 @@ function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-type FoldedSilkBandProps = {
+type FoldedSilkCanvasProps = {
+  className: string;
   // Offsets the animation clock so multiple instances don't move in lockstep.
   timeOffset?: number;
-  // 'solid' opaque surface (default) or 'fibrous' translucent thread strands.
+  // 'solid' opaque silk on white (default) or 'fibrous' line strands on navy.
   variant?: FoldedSilkVariant;
 };
 
-export function FoldedSilkBand({ timeOffset = 0, variant = 'solid' }: FoldedSilkBandProps) {
+export function FoldedSilkCanvas({ className, timeOffset = 0, variant = 'solid' }: FoldedSilkCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,9 +43,5 @@ export function FoldedSilkBand({ timeOffset = 0, variant = 'solid' }: FoldedSilk
     };
   }, [timeOffset, variant]);
 
-  return (
-    <section aria-hidden="true" className="relative h-[720px] w-full overflow-hidden bg-white">
-      <div ref={containerRef} className="absolute inset-0" />
-    </section>
-  );
+  return <div ref={containerRef} className={className} aria-hidden="true" />;
 }

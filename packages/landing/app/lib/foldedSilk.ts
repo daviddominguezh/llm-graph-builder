@@ -1,9 +1,15 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { FilmPass } from 'three/addons/postprocessing/FilmPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { FOLDED_SILK_FRAGMENT, FOLDED_SILK_LINES_FRAGMENT, FOLDED_SILK_VERTEX } from './foldedSilkShaders';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import {
+  FOLDED_SILK_FRAGMENT,
+  FOLDED_SILK_LINES_FRAGMENT,
+  FOLDED_SILK_VERTEX,
+  GLOW_GRAIN_FRAGMENT,
+  GLOW_GRAIN_VERTEX,
+} from './foldedSilkShaders';
 
 // Folded-silk sheet: one opaque plane folded over itself (baked geometry),
 // animated by a vertex shader and painted by a fragment shader. Technique
@@ -19,10 +25,21 @@ const SUBDIVISIONS_Y = 256;
 const FOLD_HALF = 16;
 
 const SPEED = 4e-5;
-const FILM_GRAIN = 0.14;
+const GRAIN_AMOUNT = 1.1;
 
 // Palette painted onto an offscreen canvas — the sheet samples it by UV.
-const PALETTE_STOPS = ['#9db2ff', '#7c4df0', '#ee3fa8', '#ff8f2e', '#ffd82e'];
+// A coarse 2D color grid (sampled from the reference's palette) upscaled
+// with bilinear smoothing into the final texture.
+const PALETTE_GRID: readonly (readonly string[])[] = [
+  ['#dfecff', '#d0e3f6', '#e4d4b4', '#f3c065', '#fab323', '#ffb10c', '#fd9660', '#f98bad', '#f982cf', '#fd93c0', '#f37a86', '#f8666c', '#f775a2', '#efa3d9', '#e9bdf2', '#e7edf8'],
+  ['#d8e0fb', '#e2c9e8', '#f6bc5c', '#fcb328', '#fdab1a', '#fea524', '#fb8b73', '#f492af', '#f39bd4', '#f9a2d1', '#f392b6', '#fa7f79', '#fa9583', '#f8adb0', '#e550de', '#ecdaf0'],
+  ['#f2b9ef', '#f8aac5', '#fcaa4c', '#fbb23b', '#ffb433', '#feaa67', '#ffa88c', '#f8b0c0', '#fab3dc', '#ffaede', '#feb0df', '#fa9bdd', '#fba29a', '#fc979d', '#fb98ae', '#f7bce1'],
+  ['#ffb5ee', '#fd97cb', '#f77b9f', '#f89479', '#ffb56a', '#fdd09b', '#ffd8a1', '#fdd5ca', '#ffd1cf', '#f3a7c9', '#ea9bea', '#e3a1ef', '#f09fd8', '#ffb0b8', '#ffb6b4', '#fcb2c8'],
+  ['#fb99dc', '#fa5fae', '#f466a5', '#f98990', '#fead78', '#fecaa3', '#fed6ab', '#fee4bf', '#fee4ac', '#ffd89f', '#fdd8a6', '#c3aae4', '#c7a4ec', '#fcafad', '#ffce8b', '#fcb7d4'],
+  ['#f699dd', '#f46cb5', '#f88097', '#fcad67', '#febc83', '#ffcca9', '#ffe0c0', '#fee5c4', '#fee9bb', '#fed298', '#fcc599', '#feb5b1', '#fab4c1', '#fba5ba', '#f785b0', '#fbadda'],
+  ['#da9edb', '#ec7db1', '#f58199', '#fba070', '#feb665', '#fec084', '#fddeb6', '#fee4ca', '#fdd8a5', '#ffa472', '#ff8652', '#ff7d59', '#fd9b70', '#f5849f', '#ee7eae', '#f1aadb'],
+  ['#c195f0', '#c751d7', '#e14ec3', '#f87b95', '#fda46b', '#feb885', '#fedfc6', '#fce2d8', '#f8caa7', '#fdc8b1', '#fdb07e', '#fe9669', '#f87097', '#e246c8', '#c54bd6', '#e09fe5'],
+];
 
 export type FoldedSilkVariant = 'solid' | 'fibrous';
 
@@ -55,7 +72,7 @@ const VARIANTS: Record<FoldedSilkVariant, VariantConfig> = {
     background: '#ffffff',
     fragmentShader: FOLDED_SILK_FRAGMENT,
     timeOffset: 17500,
-    position: [380, -301.7, -11.1],
+    position: [640, -301.7, -11.1],
     rotation: [-0.4496, -0.1176, 1.8744],
     scale: [9, 8, 5],
     displaceFrequencyX: 0.005831,
@@ -82,7 +99,7 @@ const VARIANTS: Record<FoldedSilkVariant, VariantConfig> = {
   },
   // Discrete flowing strands on dark navy — the line-based dark preset.
   fibrous: {
-    background: '#0a2540',
+    background: '#0e1a38',
     fragmentShader: FOLDED_SILK_LINES_FRAGMENT,
     timeOffset: 1150,
     position: [-24.3, -56.4, -11.1],
@@ -98,14 +115,16 @@ const VARIANTS: Record<FoldedSilkVariant, VariantConfig> = {
     twistPowerY: 5.85,
     twistPowerZ: 6.33,
     colorContrast: 1,
-    colorSaturation: 1.15,
+    colorSaturation: 0.8,
     colorHueShift: -0.0316,
     extraUniforms: () => ({
       u_lineAmount: { value: 425 },
       u_lineThickness: { value: 1 },
       u_lineDerivativePower: { value: 0.95 },
+      // Dim strands — the reference's dark band keeps them barely luminous.
+      u_lineOpacity: { value: 0.3 },
       u_maxWidth: { value: 1232 },
-      u_clearColor: { value: new THREE.Color('#0a2540') },
+      u_clearColor: { value: new THREE.Color('#0e1a38') },
     }),
   },
 };
@@ -155,24 +174,27 @@ function createFoldedSheetGeometry(): THREE.BufferGeometry {
 }
 
 function createPaletteTexture(): THREE.CanvasTexture {
+  const rows = PALETTE_GRID.length;
+  const cols = PALETTE_GRID[0]?.length ?? 1;
+  const seed = document.createElement('canvas');
+  seed.width = cols;
+  seed.height = rows;
+  const seedCtx = seed.getContext('2d');
+  if (!seedCtx) throw new Error('FoldedSilk: 2d canvas context unavailable');
+  PALETTE_GRID.forEach((row, y) => {
+    row.forEach((hex, x) => {
+      seedCtx.fillStyle = hex;
+      seedCtx.fillRect(x, y, 1, 1);
+    });
+  });
   const canvas = document.createElement('canvas');
   canvas.width = 1024;
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('FoldedSilk: 2d canvas context unavailable');
-  const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-  PALETTE_STOPS.forEach((stop, i) => {
-    gradient.addColorStop(i / (PALETTE_STOPS.length - 1), stop);
-  });
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  // Vertical sheen so color varies across both UV axes.
-  const sheen = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  sheen.addColorStop(0, 'rgba(255, 255, 255, 0.35)');
-  sheen.addColorStop(0.45, 'rgba(255, 255, 255, 0)');
-  sheen.addColorStop(1, 'rgba(40, 20, 80, 0.25)');
-  ctx.fillStyle = sheen;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(seed, 0, 0, canvas.width, canvas.height);
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.ClampToEdgeWrapping;
@@ -237,7 +259,13 @@ export function createFoldedSilk(
 
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  composer.addPass(new FilmPass(FILM_GRAIN));
+  composer.addPass(
+    new ShaderPass({
+      uniforms: { tDiffuse: { value: null }, u_grainAmount: { value: GRAIN_AMOUNT } },
+      vertexShader: GLOW_GRAIN_VERTEX,
+      fragmentShader: GLOW_GRAIN_FRAGMENT,
+    })
+  );
   composer.addPass(new OutputPass());
 
   const resize = () => {

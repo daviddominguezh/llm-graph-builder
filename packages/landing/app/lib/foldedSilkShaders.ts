@@ -169,6 +169,58 @@ void main() {
 }
 `;
 
+// Full-frame finishing pass: angular-blur glow halo bled around the silk
+// plus dither grain — the reference's post-processing recipe.
+export const GLOW_GRAIN_FRAGMENT = /* glsl */ `
+uniform sampler2D tDiffuse;
+uniform float u_grainAmount;
+
+varying vec2 vUv;
+
+float random(in vec2 st) {
+  return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+vec3 grain(vec3 color, float amount) {
+  float gridPosition = random(gl_FragCoord.xy * 0.01);
+  vec3 shift = vec3(4.0 / 255.0);
+  shift = mix(amount * shift, -amount * shift, gridPosition);
+  return color + shift;
+}
+
+// Rotational blur around the frame center.
+vec4 blurAngular(sampler2D tex, vec2 uv, float angle, int samples) {
+  vec4 total = vec4(0.0);
+  vec2 coord = uv - 0.5;
+  float dist = 1.0 / float(samples);
+  vec2 dir = vec2(cos(angle * dist), sin(angle * dist));
+  mat2 rot = mat2(dir.x, dir.y, -dir.y, dir.x);
+  for (int i = 0; i < 16; i++) {
+    if (i >= samples) break;
+    total += texture2D(tex, coord + 0.5);
+    coord *= rot;
+  }
+  return total * dist;
+}
+
+void main() {
+  vec4 raw = texture2D(tDiffuse, vUv);
+  vec4 blurred = blurAngular(tDiffuse, vUv, 0.14, 16);
+  vec4 color = mix(raw, blurred, 0.25);
+  color.rgb = grain(color.rgb, u_grainAmount);
+  gl_FragColor = color;
+}
+`;
+
+export const GLOW_GRAIN_VERTEX = /* glsl */ `
+varying vec2 vUv;
+
+void main() {
+  vUv = uv;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
 export const FOLDED_SILK_LINES_FRAGMENT = /* glsl */ `
 precision highp float;
 
@@ -177,6 +229,7 @@ uniform vec3 u_clearColor;
 uniform float u_lineAmount;
 uniform float u_lineThickness;
 uniform float u_lineDerivativePower;
+uniform float u_lineOpacity;
 uniform float u_maxWidth;
 
 varying vec2 v_uv;
@@ -197,7 +250,7 @@ void main() {
   // Non-line pixels mix to the ground color instead of using transparency —
   // opaque output, no blend-sorting artifacts. Receding folds fade out.
   float depthFade = clamp(v_clipPosition.z * 6.0, 0.0, 1.0);
-  color = mix(u_clearColor, color, line * (1.0 - depthFade));
+  color = mix(u_clearColor, color, line * (1.0 - depthFade) * u_lineOpacity);
 
   gl_FragColor = vec4(color, 1.0);
 }

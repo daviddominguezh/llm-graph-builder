@@ -1,6 +1,10 @@
 import { BriefcaseBusiness, Code, Lightbulb, Users } from 'lucide-react';
 import type { ComponentType } from 'react';
 
+import { SectionHeading } from './SectionHeading';
+
+const CARD_SHADOW = 'shadow-[0_6px_12px_-2px_rgba(50,50,93,0.12),0_3px_7px_-3px_rgba(0,0,0,0.06)]';
+
 interface AudienceCard {
   title: string;
   description: string;
@@ -34,25 +38,26 @@ function AudienceCardItem({ audience }: { audience: AudienceCard }) {
   const Icon = audience.icon;
 
   return (
-    <div className="rounded-xl border border-border bg-background p-6 text-center transition-[transform,border-color] hover:-translate-y-0.5 hover:border-primary/30">
-      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-lg bg-primary/8">
-        <Icon className="h-5 w-5 text-primary" />
+    <div className={`rounded-lg bg-white p-6 ${CARD_SHADOW}`}>
+      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#533afd]/8">
+        <Icon className="h-5 w-5 text-[#533afd]" />
       </div>
-      <h3 className="mt-4 font-heading text-base font-semibold">{audience.title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{audience.description}</p>
+      <h3 className="mt-4 text-base font-medium text-[#061b31]">{audience.title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-[#425466]">{audience.description}</p>
     </div>
   );
 }
 
 export function Audience() {
   return (
-    <section className="px-6 py-16">
-      <div className="mx-auto max-w-6xl">
-        <h2 className="font-heading text-center text-3xl font-semibold leading-tight tracking-tight text-balance sm:text-4xl">
-          Who Is This For
-        </h2>
+    <section className="bg-[#f6f9fc] px-10 py-24">
+      <div className="mx-auto max-w-[1240px]">
+        <SectionHeading
+          lead="Powering agent businesses of every size."
+          rest="From solo agencies shipping their first client to platforms running thousands of tenants."
+        />
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {AUDIENCES.map((audience) => (
             <AudienceCardItem key={audience.title} audience={audience} />
           ))}
