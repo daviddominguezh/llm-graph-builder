@@ -10,6 +10,7 @@ import { useMemo, useRef, useState } from 'react';
 import React from 'react';
 
 import type { McpLibraryState } from '../../hooks/useMcpLibrary';
+import { Scrollable } from '../Scrollable';
 import { McpLibraryCard } from './McpLibraryCard';
 import { useOutsideClose } from './ToolsPanelHelpers';
 
@@ -79,19 +80,21 @@ function LibraryItemsList({ items, loading, installedLibraryIds, onInstall }: Li
   }
 
   return (
-    <div className="flex flex-col overflow-y-auto gap-0 pb-4">
-      {items.map((item, i) => (
-        <React.Fragment key={item.id}>
-          <McpLibraryCard
-            key={`${item.id}-card`}
-            item={item}
-            isInstalled={installedLibraryIds.includes(item.id)}
-            onInstall={onInstall}
-          />
-          {i < items.length - 1 && <Separator />}
-        </React.Fragment>
-      ))}
-    </div>
+    <Scrollable className="flex-1 min-h-0 pb-4">
+      <div className="flex flex-col gap-0">
+        {items.map((item, i) => (
+          <React.Fragment key={item.id}>
+            <McpLibraryCard
+              key={`${item.id}-card`}
+              item={item}
+              isInstalled={installedLibraryIds.includes(item.id)}
+              onInstall={onInstall}
+            />
+            {i < items.length - 1 && <Separator />}
+          </React.Fragment>
+        ))}
+      </div>
+    </Scrollable>
   );
 }
 
