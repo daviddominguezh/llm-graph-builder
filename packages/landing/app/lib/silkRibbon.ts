@@ -49,12 +49,14 @@ const SEGMENTS = 120;
 // Rest pose of the sweep: dominantly vertical so it reads as a curtain
 // falling — enters above the frame left-of-center, S-curves down through the
 // middle, exits below right-of-center.
+const PATH_TOP_Y = 5.5;
+const PATH_BOTTOM_Y = -5.5;
 const BASE_PATH = [
-  new THREE.Vector3(-3.2, 5.5, -1),
+  new THREE.Vector3(-3.2, PATH_TOP_Y, -1),
   new THREE.Vector3(-1.6, 2, 0.8),
   new THREE.Vector3(0.6, -0.4, -0.8),
   new THREE.Vector3(1.8, -2.6, 0.6),
-  new THREE.Vector3(3.2, -5.5, -0.2),
+  new THREE.Vector3(3.2, PATH_BOTTOM_Y, -0.2),
 ];
 
 // Multi-stop palette sampled diagonally: position along the sweep plus
@@ -305,11 +307,16 @@ function updateSheet(
     // Recenter so the pleated sheet stays hanging on the sweep line.
     const centerD = cross.endD / 2;
     const centerR = cross.endR / 2;
+    // Screen-anchored width taper: scale the horizontal footprint around the
+    // sweep line by height, AFTER folds and twist — so the twist phase can't
+    // hide the widening in depth.
+    const yNorm = THREE.MathUtils.clamp((py - PATH_BOTTOM_Y) / (PATH_TOP_Y - PATH_BOTTOM_Y), 0, 1);
+    const screenTaper = 1 + (TAPER_TOP - 1) * yNorm * yNorm;
     for (let s = 0; s < config.strands; s++) {
       const offD = (cross.d[s] ?? 0) - centerD;
       const offR = (cross.r[s] ?? 0) - centerR;
       const idx = (s * (SEGMENTS + 1) + j) * 3;
-      positions[idx] = px + dx * offD + rx * offR;
+      positions[idx] = px + (dx * offD + rx * offR) * screenTaper;
       positions[idx + 1] = py + dy * offD + ry * offR;
       positions[idx + 2] = pz + dz * offD + rz * offR;
       const shade = bright * (FOLD_SHADE_MIN + FOLD_SHADE_SPAN * Math.max(0, cross.facing[s] ?? 1));
