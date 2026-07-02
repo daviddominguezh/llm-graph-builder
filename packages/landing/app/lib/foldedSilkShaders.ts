@@ -1,10 +1,10 @@
 // GLSL for the folded-silk sheet. Technique studied from Stripe's hero wave:
 // a folded plane whose motion lives in the vertex shader (simplex displace +
-// envelope-twisted rotations) and whose entire silk look lives in the
-// fragment shader (palette texture + noise fibers + screen-space-derivative
-// fold glow). Shaders written from scratch on openly licensed building
-// blocks: Gustavson/McEwan simplex noise (MIT), Inigo Quilez shaping
-// functions (MIT).
+// envelope-twisted rotations) and whose look lives in the fragment shader —
+// either a solid surface (palette texture + noise fibers + screen-space-
+// derivative fold glow) or discrete flowing lines on a dark ground. Shaders
+// written from scratch on openly licensed building blocks: Gustavson/McEwan
+// simplex noise (MIT), Inigo Quilez shaping functions (MIT), hue shift (CC0).
 
 const SIMPLEX_2D = /* glsl */ `
 vec3 permute(vec3 x) {
@@ -35,6 +35,26 @@ float snoise(vec2 v) {
 }
 `;
 
+const COLOR_GRADE = /* glsl */ `
+uniform float u_colorContrast;
+uniform float u_colorSaturation;
+uniform float u_colorHueShift;
+
+vec3 hueShift(vec3 color, float shift) {
+  vec3 axis = vec3(0.57735);
+  vec3 projection = axis * dot(axis, color);
+  vec3 U = color - projection;
+  return U * cos(shift) + cross(axis, U) * sin(shift) + projection;
+}
+
+vec3 gradeColor(vec3 color) {
+  color = (color - 0.5) * u_colorContrast + 0.5;
+  vec3 gray = vec3(dot(vec3(0.299, 0.587, 0.114), color));
+  color = mix(gray, color, u_colorSaturation);
+  return hueShift(color, u_colorHueShift);
+}
+`;
+
 export const FOLDED_SILK_VERTEX = /* glsl */ `
 uniform float u_time;
 uniform float u_speed;
@@ -49,6 +69,7 @@ uniform float u_twistPowerY;
 uniform float u_twistPowerZ;
 
 varying vec2 v_uv;
+varying vec4 v_clipPosition;
 
 ${SIMPLEX_2D}
 
@@ -88,7 +109,8 @@ void main() {
   q = q * rotB;
   q = q * rotC;
 
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(q.xyz, 1.0);
+  v_clipPosition = projectionMatrix * modelViewMatrix * vec4(q.xyz, 1.0);
+  gl_Position = v_clipPosition;
 }
 `;
 
@@ -97,14 +119,10 @@ precision highp float;
 
 uniform sampler2D u_paletteTexture;
 uniform vec2 u_resolution;
-uniform float u_colorContrast;
-uniform float u_colorSaturation;
-uniform float u_colorHueShift;
 uniform float u_fiberStrength;
 uniform float u_fiberFrequency;
 uniform float u_fiberColorAttenuation;
 uniform float u_fiberParabolaPower;
-uniform float u_fiberAlpha;
 uniform float u_glowAmount;
 uniform float u_glowPower;
 uniform float u_glowRamp;
@@ -113,19 +131,14 @@ varying vec2 v_uv;
 
 ${SIMPLEX_2D}
 
+${COLOR_GRADE}
+
 float parabola(float x, float k) {
   return pow(4.0 * x * (1.0 - x), k);
 }
 
 float mapLinear(float value, float min1, float max1, float min2, float max2) {
   return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
-}
-
-vec3 hueShift(vec3 color, float shift) {
-  vec3 axis = vec3(0.57735);
-  vec3 projection = axis * dot(axis, color);
-  vec3 U = color - projection;
-  return U * cos(shift) + cross(axis, U) * sin(shift) + projection;
 }
 
 void main() {
@@ -147,20 +160,45 @@ void main() {
   fiber = fiber * 0.5 + 0.5;
   color += fiber * u_fiberStrength * (1.0 - color.b * u_fiberColorAttenuation) * pdy * envelope;
 
-  // Grade.
-  color = (color - 0.5) * u_colorContrast + 0.5;
-  vec3 gray = vec3(dot(vec3(0.299, 0.587, 0.114), color));
-  color = mix(gray, color, u_colorSaturation);
-  color = hueShift(color, u_colorHueShift);
+  color = gradeColor(color);
 
   // Luminous rims where the sheet folds away.
   color += (1.0 - pdy) * 0.25;
 
-  // Fibrous variant: the fiber noise carves the surface into translucent
-  // strands instead of a solid fill (u_fiberAlpha 0 = fully solid).
-  float strandMask = smoothstep(0.2, 0.8, fiber);
-  float alpha = mix(1.0, strandMask, u_fiberAlpha);
+  gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
+}
+`;
 
-  gl_FragColor = vec4(clamp(color, 0.0, 1.0), alpha);
+export const FOLDED_SILK_LINES_FRAGMENT = /* glsl */ `
+precision highp float;
+
+uniform sampler2D u_paletteTexture;
+uniform vec3 u_clearColor;
+uniform float u_lineAmount;
+uniform float u_lineThickness;
+uniform float u_lineDerivativePower;
+uniform float u_maxWidth;
+
+varying vec2 v_uv;
+varying vec4 v_clipPosition;
+
+${COLOR_GRADE}
+
+void main() {
+  vec3 color = gradeColor(texture2D(u_paletteTexture, v_uv).rgb);
+
+  // Discrete strands: anti-aliased zero crossings of a sine across the
+  // sheet. Thickness follows the screen-space UV derivative so lines hold
+  // a near-constant pixel width however the sheet folds.
+  float lineThickness = u_lineThickness * pow(abs(dFdy(v_uv).x * u_maxWidth), u_lineDerivativePower);
+  float line = abs(sin(v_uv.x * u_lineAmount));
+  line = smoothstep(lineThickness, 0.0, line);
+
+  // Non-line pixels mix to the ground color instead of using transparency —
+  // opaque output, no blend-sorting artifacts. Receding folds fade out.
+  float depthFade = clamp(v_clipPosition.z * 6.0, 0.0, 1.0);
+  color = mix(u_clearColor, color, line * (1.0 - depthFade));
+
+  gl_FragColor = vec4(color, 1.0);
 }
 `;

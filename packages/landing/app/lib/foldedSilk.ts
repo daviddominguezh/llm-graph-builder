@@ -3,12 +3,13 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { FilmPass } from 'three/addons/postprocessing/FilmPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { FOLDED_SILK_FRAGMENT, FOLDED_SILK_VERTEX } from './foldedSilkShaders';
+import { FOLDED_SILK_FRAGMENT, FOLDED_SILK_LINES_FRAGMENT, FOLDED_SILK_VERTEX } from './foldedSilkShaders';
 
 // Folded-silk sheet: one opaque plane folded over itself (baked geometry),
 // animated by a vertex shader and painted by a fragment shader. Technique
-// studied from Stripe's hero wave; parameters below start from their tuned
-// light-theme values and are ours to dial.
+// studied from Stripe's hero wave; the variant presets start from their
+// tuned configs — 'solid' from the light hero, 'fibrous' from the dark
+// line-based developers wave — and are ours to dial.
 
 // Sheet in local units before the pixel-space transform.
 const SHEET_SIZE = 400;
@@ -17,46 +18,97 @@ const SUBDIVISIONS_Y = 256;
 // Half-width of the cylindrical crease zone of the fold.
 const FOLD_HALF = 16;
 
-// Pixel-space placement of the sheet in the orthographic frame.
-const MESH_POSITION = new THREE.Vector3(380, -301.7, -11.1);
-const MESH_ROTATION = new THREE.Euler(-0.4496, -0.1176, 1.8744);
-const MESH_SCALE = new THREE.Vector3(9, 8, 5);
-
-const MATERIAL_UNIFORM_VALUES = {
-  speed: 4e-5,
-  timeOffset: 17500,
-  displaceFrequencyX: 0.005831,
-  displaceFrequencyZ: 0.016001,
-  displaceAmount: -7.821,
-  twistFrequencyX: -0.65,
-  twistFrequencyY: 0.41,
-  twistFrequencyZ: -0.58,
-  twistPowerX: 3.63,
-  twistPowerY: 0.7,
-  twistPowerZ: 3.95,
-  glowAmount: 1.98,
-  glowPower: 0.806,
-  glowRamp: 0.834,
-  fiberColorAttenuation: 0.9,
-  fiberParabolaPower: 3,
-  colorContrast: 1,
-  colorSaturation: 1,
-  colorHueShift: 0,
-};
+const SPEED = 4e-5;
+const FILM_GRAIN = 0.14;
 
 // Palette painted onto an offscreen canvas — the sheet samples it by UV.
 const PALETTE_STOPS = ['#9db2ff', '#7c4df0', '#ee3fa8', '#ff8f2e', '#ffd82e'];
 
-// 'solid' = opaque surface with subtle fiber grain; 'fibrous' = the fiber
-// noise carves the sheet into translucent thread strands.
-const FIBER_VARIANTS = {
-  solid: { strength: 0.2, frequency: 600, alpha: 0 },
-  fibrous: { strength: 0.45, frequency: 900, alpha: 0.85 },
-} as const;
+export type FoldedSilkVariant = 'solid' | 'fibrous';
 
-export type FoldedSilkVariant = keyof typeof FIBER_VARIANTS;
+type VariantConfig = {
+  background: string;
+  fragmentShader: string;
+  timeOffset: number;
+  position: readonly [number, number, number];
+  rotation: readonly [number, number, number];
+  scale: readonly [number, number, number];
+  displaceFrequencyX: number;
+  displaceFrequencyZ: number;
+  displaceAmount: number;
+  twistFrequencyX: number;
+  twistFrequencyY: number;
+  twistFrequencyZ: number;
+  twistPowerX: number;
+  twistPowerY: number;
+  twistPowerZ: number;
+  colorContrast: number;
+  colorSaturation: number;
+  colorHueShift: number;
+  // Mode-specific uniforms; a factory so every instance gets fresh objects.
+  extraUniforms: () => Record<string, THREE.IUniform>;
+};
 
-const FILM_GRAIN = 0.14;
+const VARIANTS: Record<FoldedSilkVariant, VariantConfig> = {
+  // Solid opaque silk with noise fibers and fold glow, on white.
+  solid: {
+    background: '#ffffff',
+    fragmentShader: FOLDED_SILK_FRAGMENT,
+    timeOffset: 17500,
+    position: [380, -301.7, -11.1],
+    rotation: [-0.4496, -0.1176, 1.8744],
+    scale: [9, 8, 5],
+    displaceFrequencyX: 0.005831,
+    displaceFrequencyZ: 0.016001,
+    displaceAmount: -7.821,
+    twistFrequencyX: -0.65,
+    twistFrequencyY: 0.41,
+    twistFrequencyZ: -0.58,
+    twistPowerX: 3.63,
+    twistPowerY: 0.7,
+    twistPowerZ: 3.95,
+    colorContrast: 1,
+    colorSaturation: 1,
+    colorHueShift: 0,
+    extraUniforms: () => ({
+      u_glowAmount: { value: 1.98 },
+      u_glowPower: { value: 0.806 },
+      u_glowRamp: { value: 0.834 },
+      u_fiberStrength: { value: 0.2 },
+      u_fiberFrequency: { value: 600 },
+      u_fiberColorAttenuation: { value: 0.9 },
+      u_fiberParabolaPower: { value: 3 },
+    }),
+  },
+  // Discrete flowing strands on dark navy — the line-based dark preset.
+  fibrous: {
+    background: '#0a2540',
+    fragmentShader: FOLDED_SILK_LINES_FRAGMENT,
+    timeOffset: 1150,
+    position: [-24.3, -56.4, -11.1],
+    rotation: [-0.1596, -0.2836, -2.8156],
+    scale: [10, 10, 7],
+    displaceFrequencyX: 0.003234,
+    displaceFrequencyZ: 0.00799,
+    displaceAmount: 6.051,
+    twistFrequencyX: -0.055,
+    twistFrequencyY: 0.077,
+    twistFrequencyZ: -0.518,
+    twistPowerX: 3.95,
+    twistPowerY: 5.85,
+    twistPowerZ: 6.33,
+    colorContrast: 1,
+    colorSaturation: 1.15,
+    colorHueShift: -0.0316,
+    extraUniforms: () => ({
+      u_lineAmount: { value: 425 },
+      u_lineThickness: { value: 1 },
+      u_lineDerivativePower: { value: 0.95 },
+      u_maxWidth: { value: 1232 },
+      u_clearColor: { value: new THREE.Color('#0a2540') },
+    }),
+  },
+};
 
 export type FoldedSilk = {
   start: () => void;
@@ -128,41 +180,29 @@ function createPaletteTexture(): THREE.CanvasTexture {
   return texture;
 }
 
-function createSheetMaterial(palette: THREE.Texture, variant: FoldedSilkVariant): THREE.ShaderMaterial {
-  const c = MATERIAL_UNIFORM_VALUES;
-  const fibers = FIBER_VARIANTS[variant];
+function createSheetMaterial(palette: THREE.Texture, config: VariantConfig): THREE.ShaderMaterial {
   return new THREE.ShaderMaterial({
     vertexShader: FOLDED_SILK_VERTEX,
-    fragmentShader: FOLDED_SILK_FRAGMENT,
+    fragmentShader: config.fragmentShader,
     side: THREE.DoubleSide,
-    transparent: fibers.alpha > 0,
-    // Translucent strands must not occlude the fold's back layer.
-    depthWrite: fibers.alpha === 0,
     uniforms: {
       u_time: { value: 0 },
-      u_speed: { value: c.speed },
+      u_speed: { value: SPEED },
       u_resolution: { value: new THREE.Vector2(1, 1) },
       u_paletteTexture: { value: palette },
-      u_displaceFrequencyX: { value: c.displaceFrequencyX },
-      u_displaceFrequencyZ: { value: c.displaceFrequencyZ },
-      u_displaceAmount: { value: c.displaceAmount },
-      u_twistFrequencyX: { value: c.twistFrequencyX },
-      u_twistFrequencyY: { value: c.twistFrequencyY },
-      u_twistFrequencyZ: { value: c.twistFrequencyZ },
-      u_twistPowerX: { value: c.twistPowerX },
-      u_twistPowerY: { value: c.twistPowerY },
-      u_twistPowerZ: { value: c.twistPowerZ },
-      u_glowAmount: { value: c.glowAmount },
-      u_glowPower: { value: c.glowPower },
-      u_glowRamp: { value: c.glowRamp },
-      u_fiberStrength: { value: fibers.strength },
-      u_fiberFrequency: { value: fibers.frequency },
-      u_fiberAlpha: { value: fibers.alpha },
-      u_fiberColorAttenuation: { value: c.fiberColorAttenuation },
-      u_fiberParabolaPower: { value: c.fiberParabolaPower },
-      u_colorContrast: { value: c.colorContrast },
-      u_colorSaturation: { value: c.colorSaturation },
-      u_colorHueShift: { value: c.colorHueShift },
+      u_displaceFrequencyX: { value: config.displaceFrequencyX },
+      u_displaceFrequencyZ: { value: config.displaceFrequencyZ },
+      u_displaceAmount: { value: config.displaceAmount },
+      u_twistFrequencyX: { value: config.twistFrequencyX },
+      u_twistFrequencyY: { value: config.twistFrequencyY },
+      u_twistFrequencyZ: { value: config.twistFrequencyZ },
+      u_twistPowerX: { value: config.twistPowerX },
+      u_twistPowerY: { value: config.twistPowerY },
+      u_twistPowerZ: { value: config.twistPowerZ },
+      u_colorContrast: { value: config.colorContrast },
+      u_colorSaturation: { value: config.colorSaturation },
+      u_colorHueShift: { value: config.colorHueShift },
+      ...config.extraUniforms(),
     },
   });
 }
@@ -172,8 +212,9 @@ export function createFoldedSilk(
   timeOffset = 0,
   variant: FoldedSilkVariant = 'solid'
 ): FoldedSilk {
+  const config = VARIANTS[variant];
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('white');
+  scene.background = new THREE.Color(config.background);
 
   // Orthographic, pixel-space frustum — the mesh transform is in pixels.
   const camera = new THREE.OrthographicCamera(0, 0, 0, 0, 1, 10000);
@@ -185,12 +226,12 @@ export function createFoldedSilk(
   container.appendChild(renderer.domElement);
 
   const palette = createPaletteTexture();
-  const material = createSheetMaterial(palette, variant);
+  const material = createSheetMaterial(palette, config);
   const geometry = createFoldedSheetGeometry();
   const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.copy(MESH_POSITION);
-  mesh.rotation.copy(MESH_ROTATION);
-  mesh.scale.copy(MESH_SCALE);
+  mesh.position.set(...config.position);
+  mesh.rotation.set(...config.rotation);
+  mesh.scale.set(...config.scale);
   mesh.frustumCulled = false;
   scene.add(mesh);
 
@@ -215,7 +256,7 @@ export function createFoldedSilk(
 
   const update = (t: number) => {
     if (material.uniforms.u_time) {
-      material.uniforms.u_time.value = t + MATERIAL_UNIFORM_VALUES.timeOffset + timeOffset;
+      material.uniforms.u_time.value = t + config.timeOffset + timeOffset;
     }
     composer.render();
   };
