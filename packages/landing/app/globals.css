@@ -45,6 +45,17 @@ body {
   }
 }
 
+/* Hero logo carousel */
+@keyframes logo-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.logo-marquee {
+  animation: logo-marquee 55s linear infinite;
+}
+
 /* Hero abstract graph animation */
 @keyframes node-float {
   0%,
@@ -213,7 +224,8 @@ body {
   }
 
   .hero-node,
-  .hero-edge {
+  .hero-edge,
+  .logo-marquee {
     animation: none;
   }
 }

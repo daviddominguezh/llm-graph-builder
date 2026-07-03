@@ -2,7 +2,7 @@ import Image from 'next/image';
 
 import { SectionHeading } from './SectionHeading';
 
-const CARD_SHADOW = 'shadow-[0_6px_12px_-2px_rgba(50,50,93,0.12),0_3px_7px_-3px_rgba(0,0,0,0.06)]';
+const CARD_BORDER = 'border border-[#e5edf5]';
 
 // Thumbnails from the reference, placed on the equivalent story slots.
 const NEWS = [
@@ -73,7 +73,7 @@ export function Happenings() {
 
         <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {NEWS.map((item) => (
-            <article key={item.title} className={`the-happenings-card overflow-hidden rounded-lg bg-white ${CARD_SHADOW}`}>
+            <article key={item.title} className={`the-happenings-card overflow-hidden rounded-lg bg-white ${CARD_BORDER}`}>
               <Image src={item.image} alt="" width={336} height={350} className="h-auto w-full" />
               <div className="p-5">
                 <h3 className="text-sm font-medium leading-snug text-[#061b31]">{item.title}</h3>

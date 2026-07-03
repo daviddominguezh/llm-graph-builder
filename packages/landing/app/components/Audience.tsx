@@ -3,7 +3,7 @@ import type { ComponentType } from 'react';
 
 import { SectionHeading } from './SectionHeading';
 
-const CARD_SHADOW = 'shadow-[0_6px_12px_-2px_rgba(50,50,93,0.12),0_3px_7px_-3px_rgba(0,0,0,0.06)]';
+const CARD_BORDER = 'border border-[#e5edf5]';
 
 interface AudienceCard {
   title: string;
@@ -38,7 +38,7 @@ function AudienceCardItem({ audience }: { audience: AudienceCard }) {
   const Icon = audience.icon;
 
   return (
-    <div className={`rounded-lg bg-white p-6 ${CARD_SHADOW}`}>
+    <div className={`rounded-md bg-white p-6 ${CARD_BORDER}`}>
       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#533afd]/8">
         <Icon className="h-5 w-5 text-[#533afd]" />
       </div>

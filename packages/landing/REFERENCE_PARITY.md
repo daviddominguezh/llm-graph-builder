@@ -9,12 +9,19 @@ length-matched equivalent copy so rendered boxes measure the same.
 
 ## Layout system
 
+Note: wave palette now uses the reference's actual 480x480 texture asset
+(/reference/palette.png) with the sampled grid as instant-on placeholder.
+
 | Element | Reference | Ours | Status |
 | --- | --- | --- | --- |
 | Content rail | 1232px max | 1232px max | ✅ |
 | Guide hairlines | full-page, near edges | full-page overlay, 1280, painted under wave | ✅ |
 | Font stack | sohne-var → SF Pro fallback | same stack (renders SF Pro) | ✅ |
-| Grain + glow post | angular blur of center-zoomed UV, mix 25% + grain | exact recipe (zoomed UV — no white wash) | ✅ |
+| Grain + glow post | hero recipe: 0.02-rad blur, vertical band mask (sharp mid-band), grain 1.1, scene alpha kept | exact port (was wrongly using the card-composite recipe) | ✅ |
+| Runtime loop | intro ramp (+0.016/frame to 1), every-2nd-frame cadence, pause bookkeeping, off-viewport pause (IO, 20px margin), mouse uniform | exact port | ✅ |
+| Material blend (light) | CustomBlending: out = src x src (SrcColorFactor/ZeroFactor) — squares the pastel palette into deep saturated silk | exact port (decoded from minified constants: Xaj=5, bGH=100, KhW=202, c8b=200) | ✅ |
+| Color pipeline | raw sRGB, no conversion pass | OutputPass removed, palette NoColorSpace, linear passthrough output | ✅ |
+| Palette texture | authored 480x480 asset | same asset file, grid placeholder while loading | ✅ |
 
 ## Navbar
 

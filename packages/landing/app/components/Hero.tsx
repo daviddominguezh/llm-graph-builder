@@ -33,7 +33,7 @@ function GitHubIcon() {
 
 function HeroCtas() {
   return (
-    <div className="mt-[66px] flex flex-wrap items-center gap-4">
+    <div className="my-[66px] flex flex-wrap items-center gap-4">
       <a
         href={GITHUB_URL}
         target="_blank"
@@ -56,17 +56,28 @@ function HeroCtas() {
   );
 }
 
+function LogoTiles({ hidden }: { hidden?: boolean }) {
+  return (
+    <div className="flex shrink-0 items-center" aria-hidden={hidden === true ? 'true' : undefined}>
+      {LOGO_BAR.map((logo) => (
+        <span key={logo.name} className="flex h-[72px] w-[172px] shrink-0 items-center justify-center">
+          <span className={logo.className}>{logo.name}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+// Continuously scrolling logo carousel: the track holds the tile set twice
+// and slides half its width per cycle for a seamless loop.
 function LogoBar() {
   return (
     <div className="border-y border-[#0a2540]/10">
-      {/* Fixed tile boxes on the reference's logo-carousel dimensions,
-          scaled from its 172x72 at the 1232 rail to our 1080 (~151x63). */}
-      <div className="mx-auto flex max-w-[1232px] items-center justify-between py-4">
-        {LOGO_BAR.map((logo) => (
-          <span key={logo.name} className="flex h-[72px] w-[172px] items-center justify-center">
-            <span className={logo.className}>{logo.name}</span>
-          </span>
-        ))}
+      <div className="mx-auto max-w-[1280px] overflow-hidden py-0">
+        <div className="logo-marquee relative -z-[1] flex w-max">
+          <LogoTiles />
+          <LogoTiles hidden />
+        </div>
       </div>
     </div>
   );
@@ -74,16 +85,19 @@ function LogoBar() {
 
 export function Hero() {
   return (
-    <section className="hero-wave-animation relative overflow-hidden bg-white">
+    <section className="hero-wave-animation relative isolate overflow-hidden bg-white">
+      {/* Hero-local guide rails: the section is isolated (for the marquee
+          stacking), which paints it atomically above the page-level guides —
+          so the rails are re-drawn here, under the silk. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-[#061b31]/6 lg:block"
+      />
       {/* Canvas spans the full section so the silk flows continuously behind
           the logo bar (which paints above it), like the reference. */}
       <FoldedSilkCanvas className="hero-wave-animation__canvas absolute inset-0" />
 
       <div className="relative mx-auto w-full max-w-[994px] px-6 pt-[147px] pb-6 lg:px-0">
-        <p className="text-base font-semibold text-black">
-          Share of customer conversations running on OpenFlow: <TrafficCounter />
-        </p>
-
         <h1 className="mt-[18px] max-w-[961px] text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]">
           <em className="font-normal not-italic text-[#061b31]">
             Agent infrastructure to power your SaaS.

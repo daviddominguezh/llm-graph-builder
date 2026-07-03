@@ -2,7 +2,7 @@ import Image from 'next/image';
 
 import { SectionHeading } from './SectionHeading';
 
-const CARD_SHADOW = 'shadow-[0_6px_12px_-2px_rgba(50,50,93,0.12),0_3px_7px_-3px_rgba(0,0,0,0.06)]';
+const CARD_BORDER = 'border border-[#e5edf5]';
 
 // Customer-story rows with the reference's accordion media slots.
 const MINI_CASES = [
@@ -35,7 +35,7 @@ const CAROUSEL = [
 // Horizontal card with portrait media, on the reference's 332x448 ratio.
 function FeaturedCase() {
   return (
-    <div className={`flex overflow-hidden lg:aspect-[608/448] rounded-lg bg-white ${CARD_SHADOW}`}>
+    <div className={`flex overflow-hidden rounded-md lg:aspect-[608/448] bg-white ${CARD_BORDER}`}>
       <div className="case-study-card__media relative w-[45%] shrink-0">
         <Image
           src="/reference/enterprise-accordion-hertz.png"
@@ -63,7 +63,7 @@ function CustomerCarousel() {
   return (
     <div className="mt-16 grid grid-cols-2 gap-4 sm:grid-cols-4">
       {CAROUSEL.map((customer) => (
-        <div key={customer.name} className={`overflow-hidden rounded-lg ${CARD_SHADOW}`}>
+        <div key={customer.name} className={`overflow-hidden rounded-md ${CARD_BORDER}`}>
           <Image src={customer.image} alt={customer.name} width={432} height={421} className="h-auto w-full" />
         </div>
       ))}
@@ -109,7 +109,7 @@ function PlatformFeatureRows() {
       {PLATFORM_FEATURES.map((feature) => (
         <div
           key={feature.title}
-          className={`platform-graphic__feature-card rounded-lg bg-white p-5 lg:aspect-[356/104] ${CARD_SHADOW}`}
+          className={`platform-graphic__feature-card rounded-lg bg-white p-5 lg:aspect-[356/104] ${CARD_BORDER}`}
         >
           <h4 className="text-sm font-semibold text-[#061b31]">{feature.title}</h4>
           <p className="mt-1 text-xs leading-relaxed text-[#425466]">{feature.text}</p>

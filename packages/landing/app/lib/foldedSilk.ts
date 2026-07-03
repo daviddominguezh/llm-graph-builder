@@ -74,7 +74,7 @@ const VARIANTS: Record<FoldedSilkVariant, VariantConfig> = {
     background: null,
     fragmentShader: FOLDED_SILK_FRAGMENT,
     timeOffset: 17500,
-    position: [520, -301.7, -11.1],
+    position: [640, -301.7, -11.1],
     rotation: [-0.4496, -0.1176, 1.8744],
     scale: [9, 8, 5],
     displaceFrequencyX: 0.005831,

@@ -4,13 +4,16 @@ import { BentoCard } from './BentoCard';
 import { ParticleFieldCanvas } from './ParticleFieldCanvas';
 import { SectionHeading } from './SectionHeading';
 
-const CARD_SHADOW = 'shadow-[0_6px_12px_-2px_rgba(50,50,93,0.12),0_3px_7px_-3px_rgba(0,0,0,0.06)]';
+const CARD_BORDER = 'border border-[#e5edf5]';
 
-// Chat-agent mockup inside a browser-window frame (the reference's
-// browser-graphic, 630x580 ratio), over its bento backdrop.
+// Chat-agent mockup inside a browser-window frame matching the reference's
+// browser-graphic CSS: translucent #f8fafd window, 6px radius, soft 15/35
+// shadow; top bar is a grid with a single left-aligned translucent URL pill
+// (no colored traffic-light dots — the reference has none). Fills the card's
+// leftover height and bleeds off the bottom, clipped.
 function ChatMockup() {
   return (
-    <div className="relative mt-8 overflow-hidden rounded-t-lg p-6 lg:aspect-[630/580]">
+    <div className="relative mt-8 min-h-0 flex-1 overflow-hidden p-1">
       <Image
         src="/reference/payment-bento-background.jpg"
         alt=""
@@ -18,16 +21,13 @@ function ChatMockup() {
         height={712}
         className="absolute inset-0 h-full w-full object-cover opacity-60"
       />
-      <div className="browser-graphic__window relative flex h-full flex-col overflow-hidden rounded-lg bg-white shadow-[0_10px_24px_-8px_rgba(50,50,93,0.25)]">
-        <div className="flex items-center gap-2 border-b border-[#061b31]/8 bg-[#f6f9fc] px-4 py-2.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-[#e4573d]/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-[#f5b62e]/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-[#2ec46e]/70" />
-          <span className="ml-3 flex-1 rounded-md bg-white px-3 py-1 text-center text-[11px] text-[#425466]">
+      <div className="browser-graphic__window relative flex h-full flex-col overflow-hidden rounded-md bg-[#f8fafd]/45 shadow-[0_15px_35px_rgba(23,23,23,0.08)]">
+        <div className="browser-graphic__window-top-bar grid grid-cols-[1fr] items-center px-5 py-0.5">
+          <span className="browser-graphic__url-box justify-self-start rounded-2xl bg-white/40 px-2 py-0.5 text-[11px] text-[#425466]">
             acme-travel.openflow.app
           </span>
         </div>
-        <div className="p-5">
+        <div className="min-h-0 flex-1 overflow-hidden bg-white/70 p-5">
           <ChatMockupBody />
         </div>
       </div>
@@ -62,7 +62,7 @@ function BillingMockup() {
   const bars = [18, 26, 22, 34, 30, 42, 38, 52, 46, 60, 55, 70];
   return (
     <div className="mt-8 space-y-4">
-      <div className={`rounded-lg bg-white p-5 ${CARD_SHADOW}`}>
+      <div className={`rounded-md bg-white p-5 ${CARD_BORDER}`}>
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#533afd]/10 text-sm font-semibold text-[#533afd]">
             P
@@ -72,14 +72,16 @@ function BillingMockup() {
             <p className="text-xs text-[#425466]">Monthly billing</p>
           </div>
         </div>
-        <p className="mt-4 text-xs font-semibold text-[#061b31]">Tokens</p>
+        {/* Audited off billing-plan-graphic: label 12px/400, meter track
+            14px tall / 4px radius / #f8fafd, fill 3px radius. */}
+        <p className="mt-4 text-xs font-normal text-[#061b31]">Tokens</p>
         <p className="text-xs text-[#425466]">USD 0.01 per 1,000 units</p>
         <p className="mt-3 text-xs text-[#425466]">◔ Usage meter</p>
-        <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#061b31]/6">
-          <div className="h-full w-2/5 rounded-full bg-gradient-to-r from-[#533afd] via-[#a05df0] to-[#f06bb3]" />
+        <div className="billing-plan-graphic__usage-bar mt-1.5 h-[14px] overflow-hidden rounded bg-[#f8fafd]">
+          <div className="h-full w-[45%] rounded-[3px] bg-gradient-to-r from-[#533afd] via-[#a05df0] to-[#f06bb3]" />
         </div>
       </div>
-      <div className={`rounded-lg bg-white p-5 ${CARD_SHADOW}`}>
+      <div className={`rounded-md bg-white p-5 ${CARD_BORDER}`}>
         <p className="text-xs text-[#425466]">Tokens used in the last 30 days</p>
         <p className="mt-1 text-sm font-semibold text-[#061b31]">1,757,267,878</p>
         <div className="mt-3 flex h-16 items-end gap-1.5">
@@ -138,7 +140,7 @@ function ProductCards() {
   return (
     <div className="agentic-commerce-graphic__products mx-auto mt-6 grid max-w-[276px] grid-cols-2 gap-3">
       {PRODUCTS.map((product) => (
-        <div key={product.name} className={`rounded-lg bg-white p-3 ${CARD_SHADOW}`}>
+        <div key={product.name} className={`rounded-md bg-white p-3 ${CARD_BORDER}`}>
           <div className="flex items-center justify-center rounded-md bg-[#eef2f7] p-3">
             <Image src={product.image} alt="" width={160} height={160} className="h-auto w-full max-w-[96px]" />
           </div>
@@ -173,26 +175,30 @@ export function SolutionsBento() {
           rest="Grow your company with a complete set of agent and monetization tools designed to work individually or together."
         />
 
-        {/* Reference proportions scaled from its 1232 rail to our 1080:
-            big card 2/3 x ~600, tall side cards 1/3 x ~605, wide full-rail
-            card ~400 tall. */}
-        <div className="mt-14 grid gap-2 lg:grid-cols-[828fr_409fr]">
+        {/* Exact reference layout: ONE flex-wrap container, gap 16px. Cards
+            size via flex-basis(calc %) + max-width + grow, and wrap into
+            rows (66.6+33.3, 33.3x3, 100%). Flex align-stretch gives cards in
+            the same row equal height; the graphic-heavy cards carry an
+            aspect ratio as their intrinsic height source (our content differs
+            from the reference's fixed-size graphics). */}
+        <div className="mt-14 flex flex-wrap gap-4">
           <BentoCard
             title="Deploy agents across every channel, in every tenant"
-            className="lg:aspect-[828/686]"
+            className="grow basis-[calc(66.666%-8px)] lg:aspect-[816/686]"
           >
             <ChatMockup />
           </BentoCard>
-          <BentoCard title="Enable any billing model" className="lg:aspect-[409/690]">
+          <BentoCard
+            title="Enable any billing model"
+            className="grow basis-[calc(33.333%-8px)] lg:max-w-[400px]"
+          >
             <BillingMockup />
           </BentoCard>
-        </div>
 
-        <div className="mt-2 grid gap-2 lg:grid-cols-3">
           <BentoCard
             title="Monetize agent commerce"
             description="Charge per plan, per seat, or per token — pricing that follows your agents."
-            className="lg:aspect-[409/690]"
+            className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px] lg:aspect-[400/690]"
           >
             <ParticleFieldCanvas mode="scatter" />
             <div className="relative">
@@ -202,27 +208,25 @@ export function SolutionsBento() {
           <BentoCard
             title="Create per-tenant channels"
             description="Every customer gets their own numbers, workspaces, and identities."
-            className="lg:aspect-[409/690]"
+            className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px]"
           >
             <ChannelChips />
           </BentoCard>
           <BentoCard
             title="Access usage-based revenue"
             description="Meter every conversation and turn agent traffic into recurring revenue."
-            className="lg:aspect-[409/690]"
+            className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px]"
           >
             <ParticleFieldCanvas mode="globe" />
             <div className="relative">
               <RevenueSparkline />
             </div>
           </BentoCard>
-        </div>
 
-        <div className="mt-2">
           <BentoCard
             title="Integrate agents into your platform"
             description="A single API call provisions an isolated tenant with channels, memory, and billing."
-            className="lg:aspect-[1245/456]"
+            className="grow basis-full lg:aspect-[1232/456]"
           >
             <div className="flex items-start gap-8">
               <div className="min-w-0 flex-1">

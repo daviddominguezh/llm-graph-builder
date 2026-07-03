@@ -2,13 +2,13 @@ import type { Feature } from './features-data';
 import { FEATURES } from './features-data';
 import { SectionHeading } from './SectionHeading';
 
-const CARD_SHADOW = 'shadow-[0_6px_12px_-2px_rgba(50,50,93,0.12),0_3px_7px_-3px_rgba(0,0,0,0.06)]';
+const CARD_BORDER = 'border border-[#e5edf5]';
 
 function LargeFeatureCard({ feature }: { feature: Feature }) {
   const Icon = feature.icon;
 
   return (
-    <div className={`rounded-lg bg-white p-8 ${CARD_SHADOW}`}>
+    <div className={`rounded-md bg-white p-8 ${CARD_BORDER}`}>
       <Icon className="h-7 w-7 text-[#533afd]" />
       <h3 className="mt-5 text-lg font-medium text-[#061b31]">{feature.title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-[#425466]">{feature.description}</p>
@@ -20,7 +20,7 @@ function SmallFeatureCard({ feature }: { feature: Feature }) {
   const Icon = feature.icon;
 
   return (
-    <div className={`rounded-lg bg-white p-6 ${CARD_SHADOW}`}>
+    <div className={`rounded-md bg-white p-6 ${CARD_BORDER}`}>
       <Icon className="h-5 w-5 text-[#533afd]" />
       <h3 className="mt-3 text-base font-medium text-[#061b31]">{feature.title}</h3>
       <p className="mt-1.5 text-sm leading-relaxed text-[#425466]">{feature.description}</p>
