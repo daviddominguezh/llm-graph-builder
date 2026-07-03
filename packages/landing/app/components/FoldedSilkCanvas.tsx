@@ -27,8 +27,6 @@ export function FoldedSilkCanvas({ className, timeOffset = 0, variant = 'solid' 
 
     if (reduced) {
       silk.renderStill();
-    } else {
-      silk.start();
     }
 
     const observer = new ResizeObserver(() => {
@@ -37,8 +35,23 @@ export function FoldedSilkCanvas({ className, timeOffset = 0, variant = 'solid' 
     });
     observer.observe(container);
 
+    // Pause off-viewport, like the reference's controller.
+    const intersection = new IntersectionObserver(
+      (entries) => {
+        if (reduced) return;
+        if (entries.some((entry) => entry.isIntersecting)) {
+          silk.start();
+        } else {
+          silk.pause();
+        }
+      },
+      { threshold: 0, rootMargin: '20px 0px' }
+    );
+    intersection.observe(container);
+
     return () => {
       observer.disconnect();
+      intersection.disconnect();
       silk.dispose();
     };
   }, [timeOffset, variant]);

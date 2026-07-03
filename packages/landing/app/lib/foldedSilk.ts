@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import {
@@ -63,6 +62,8 @@ type VariantConfig = {
   colorContrast: number;
   colorSaturation: number;
   colorHueShift: number;
+  // Reference light material squares its output via custom blending.
+  squareBlend: boolean;
   // Mode-specific uniforms; a factory so every instance gets fresh objects.
   extraUniforms: () => Record<string, THREE.IUniform>;
 };
@@ -88,6 +89,7 @@ const VARIANTS: Record<FoldedSilkVariant, VariantConfig> = {
     colorContrast: 1,
     colorSaturation: 1.08,
     colorHueShift: 0,
+    squareBlend: true,
     extraUniforms: () => ({
       u_glowAmount: { value: 1.98 },
       u_glowPower: { value: 0.806 },
@@ -118,6 +120,7 @@ const VARIANTS: Record<FoldedSilkVariant, VariantConfig> = {
     colorContrast: 1,
     colorSaturation: 0.8,
     colorHueShift: -0.0316,
+    squareBlend: false,
     extraUniforms: () => ({
       u_lineAmount: { value: 425 },
       u_lineThickness: { value: 1 },
@@ -132,6 +135,7 @@ const VARIANTS: Record<FoldedSilkVariant, VariantConfig> = {
 
 export type FoldedSilk = {
   start: () => void;
+  pause: () => void;
   renderStill: () => void;
   resize: () => void;
   dispose: () => void;
@@ -208,10 +212,23 @@ function createSheetMaterial(palette: THREE.Texture, config: VariantConfig): THR
     vertexShader: FOLDED_SILK_VERTEX,
     fragmentShader: config.fragmentShader,
     side: THREE.DoubleSide,
+    // Reference light-theme blend: out = src * src (SrcColor, Zero) — the
+    // squaring is what turns the pastel palette into the deep saturated
+    // silk. Decoded from their material constants (CustomBlending,
+    // AddEquation, SrcColorFactor, ZeroFactor).
+    ...(config.squareBlend
+      ? {
+          blending: THREE.CustomBlending,
+          blendEquation: THREE.AddEquation,
+          blendSrc: THREE.SrcColorFactor,
+          blendDst: THREE.ZeroFactor,
+        }
+      : {}),
     uniforms: {
       u_time: { value: 0 },
       u_speed: { value: SPEED },
       u_resolution: { value: new THREE.Vector2(1, 1) },
+      u_mousePosition: { value: new THREE.Vector2(0, 0) },
       u_paletteTexture: { value: palette },
       u_displaceFrequencyX: { value: config.displaceFrequencyX },
       u_displaceFrequencyZ: { value: config.displaceFrequencyZ },
@@ -252,8 +269,24 @@ export function createFoldedSilk(
   renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(renderer.domElement);
 
+  // Raw sRGB pipeline like the reference (no color-space conversions):
+  // palette texels pass through untransformed and shader constants operate
+  // in the same space as theirs.
+  renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
+
   const palette = createPaletteTexture();
+  palette.colorSpace = THREE.NoColorSpace;
   const material = createSheetMaterial(palette, config);
+  // Upgrade to the full-detail palette asset once loaded (the coarse grid
+  // renders instantly in the meantime).
+  new THREE.TextureLoader().load('/reference/palette.png', (texture) => {
+    texture.colorSpace = THREE.NoColorSpace;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    if (material.uniforms.u_paletteTexture) {
+      material.uniforms.u_paletteTexture.value = texture;
+    }
+  });
   const geometry = createFoldedSheetGeometry();
   const mesh = new THREE.Mesh(geometry, material);
   mesh.position.set(...config.position);
@@ -262,6 +295,8 @@ export function createFoldedSilk(
   mesh.frustumCulled = false;
   scene.add(mesh);
 
+  // Two passes only, like the reference (scene target -> post to screen);
+  // no output color-space conversion pass.
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
   composer.addPass(
@@ -271,7 +306,6 @@ export function createFoldedSilk(
       fragmentShader: GLOW_GRAIN_FRAGMENT,
     })
   );
-  composer.addPass(new OutputPass());
 
   const resize = () => {
     const width = container.clientWidth;
@@ -287,19 +321,64 @@ export function createFoldedSilk(
   };
   resize();
 
-  const update = (t: number) => {
+  // Mouse tracking (normalized, y flipped) feeding the shader uniform.
+  const onMouseMove = (event: MouseEvent) => {
+    material.uniforms.u_mousePosition?.value.set(
+      event.offsetX / container.clientWidth,
+      1 - event.offsetY / container.clientHeight
+    );
+  };
+  container.addEventListener('mousemove', onMouseMove);
+
+  const renderFrame = (time: number) => {
     if (material.uniforms.u_time) {
-      material.uniforms.u_time.value = t + config.timeOffset + timeOffset;
+      material.uniforms.u_time.value = time + config.timeOffset + timeOffset;
     }
     composer.render();
   };
 
+  // Reference runtime: the animation clock eases in (ramp += 0.016 per
+  // rendered frame, capped at 1), renders every 2nd RAF tick, and pauses
+  // account for elapsed time so resuming never jumps the clock.
+  let introTimeRamp = 0;
+  let firstDrawTime: number | null = null;
+  let pausedTime = 0;
+  let pausedAt: number | null = null;
+  let running = false;
+  let frame = 0;
+
+  const update = (t: number) => {
+    frame += 1;
+    if (frame % 2 !== 0) return;
+    if (firstDrawTime === null) firstDrawTime = t;
+    renderFrame((t - firstDrawTime - pausedTime) * introTimeRamp);
+    introTimeRamp = Math.min(introTimeRamp + 0.016, 1);
+  };
+
   return {
-    start: () => renderer.setAnimationLoop(update),
-    renderStill: () => update(0),
+    start: () => {
+      if (running) return;
+      running = true;
+      if (pausedAt !== null) {
+        pausedTime += performance.now() - pausedAt;
+        pausedAt = null;
+      }
+      renderer.setAnimationLoop(update);
+    },
+    pause: () => {
+      if (!running) return;
+      running = false;
+      pausedAt = performance.now();
+      renderer.setAnimationLoop(null);
+    },
+    renderStill: () => {
+      introTimeRamp = 1;
+      renderFrame(0);
+    },
     resize,
     dispose: () => {
       renderer.setAnimationLoop(null);
+      container.removeEventListener('mousemove', onMouseMove);
       renderer.domElement.remove();
       geometry.dispose();
       material.dispose();
