@@ -98,7 +98,7 @@ export function Hero() {
       <FoldedSilkCanvas className="hero-wave-animation__canvas absolute inset-0" />
 
       <div className="relative mx-auto w-full max-w-[994px] px-6 pt-[147px] pb-6 lg:px-0">
-        <h1 className="mt-[18px] max-w-[961px] text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]">
+        <h1 className="mt-[32px] max-w-[961px] text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]">
           <em className="font-normal not-italic text-[#061b31]">
             Agent infrastructure to power your SaaS.
           </em>{' '}
