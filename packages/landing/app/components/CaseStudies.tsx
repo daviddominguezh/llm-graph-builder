@@ -32,17 +32,20 @@ const CAROUSEL = [
   { name: 'Lovable', image: '/reference/lovable.png' },
 ] as const;
 
+// Horizontal card with portrait media, on the reference's 332x448 ratio.
 function FeaturedCase() {
   return (
-    <div className={`overflow-hidden rounded-lg bg-white ${CARD_SHADOW}`}>
-      <Image
-        src="/reference/enterprise-accordion-hertz.png"
-        alt=""
-        width={296}
-        height={128}
-        className="h-auto w-full"
-      />
-      <div className="p-8">
+    <div className={`flex overflow-hidden lg:aspect-[608/448] rounded-lg bg-white ${CARD_SHADOW}`}>
+      <div className="case-study-card__media relative w-[45%] shrink-0">
+        <Image
+          src="/reference/enterprise-accordion-hertz.png"
+          alt=""
+          width={296}
+          height={128}
+          className="h-full w-full object-cover"
+        />
+      </div>
+      <div className="flex flex-col justify-center p-8">
         <h3 className="text-lg font-medium text-[#061b31]">
           A global fleet unifies customer conversations with OpenFlow.
         </h3>
@@ -58,7 +61,7 @@ function FeaturedCase() {
 
 function CustomerCarousel() {
   return (
-    <div className="mt-16 grid grid-cols-2 gap-6 sm:grid-cols-4">
+    <div className="mt-16 grid grid-cols-2 gap-4 sm:grid-cols-4">
       {CAROUSEL.map((customer) => (
         <div key={customer.name} className={`overflow-hidden rounded-lg ${CARD_SHADOW}`}>
           <Image src={customer.image} alt={customer.name} width={432} height={421} className="h-auto w-full" />
@@ -70,7 +73,7 @@ function CustomerCarousel() {
 
 function StartupBlock() {
   return (
-    <div className="mt-20 grid items-center gap-10 border-t border-[#061b31]/8 pt-16 lg:grid-cols-2">
+    <div className="mt-20 grid items-center gap-4 border-t border-[#061b31]/8 pt-16 lg:grid-cols-2">
       <div>
         <h3 className="max-w-[480px] text-xl font-medium leading-snug text-[#061b31]">
           Build a foundation for your startup that enables faster growth.
@@ -86,15 +89,39 @@ function StartupBlock() {
         alt=""
         width={585}
         height={236}
-        className="h-auto w-full rounded-lg"
+        className="startups__startups-graphic h-auto w-full rounded-lg"
       />
+    </div>
+  );
+}
+
+// Feature rows on the reference's 356x104 card dimensions.
+const PLATFORM_FEATURES = [
+  { title: 'Tenant provisioning', text: 'Spin up isolated customer instances in one call.' },
+  { title: 'Channel management', text: 'Numbers, workspaces, and identities per tenant.' },
+  { title: 'Usage metering', text: 'Track every conversation for billing.' },
+  { title: 'White-label controls', text: 'Your brand, your margins, our runtime.' },
+] as const;
+
+function PlatformFeatureRows() {
+  return (
+    <div className="mt-10 grid max-w-[728px] gap-4 sm:grid-cols-2">
+      {PLATFORM_FEATURES.map((feature) => (
+        <div
+          key={feature.title}
+          className={`platform-graphic__feature-card rounded-lg bg-white p-5 lg:aspect-[356/104] ${CARD_SHADOW}`}
+        >
+          <h4 className="text-sm font-semibold text-[#061b31]">{feature.title}</h4>
+          <p className="mt-1 text-xs leading-relaxed text-[#425466]">{feature.text}</p>
+        </div>
+      ))}
     </div>
   );
 }
 
 function PlatformBlock() {
   return (
-    <div className="mt-16 grid items-center gap-10 border-t border-[#061b31]/8 pt-16 lg:grid-cols-2">
+    <div className="platform-graphic mt-16 grid items-center gap-4 border-t border-[#061b31]/8 pt-16 lg:grid-cols-2">
       <Image
         src="/reference/platform-graphic-background_2x.png"
         alt=""
@@ -112,6 +139,9 @@ function PlatformBlock() {
         </p>
         <span className="mt-4 inline-block text-sm font-medium text-[#533afd]">Explore platforms ›</span>
       </div>
+      <div className="lg:col-span-2">
+        <PlatformFeatureRows />
+      </div>
     </div>
   );
 }
@@ -119,13 +149,13 @@ function PlatformBlock() {
 export function CaseStudies() {
   return (
     <section className="bg-[#f6f9fc] px-10 py-24">
-      <div className="mx-auto max-w-[1080px]">
+      <div className="mx-auto max-w-[1232px]">
         <SectionHeading
           lead="We power agent businesses of all sizes."
           rest="Transform your company with agent infrastructure that grows from your first client to your thousandth."
         />
 
-        <div className="mt-14 grid gap-10 lg:grid-cols-2">
+        <div className="mt-14 grid gap-4 lg:grid-cols-2">
           <FeaturedCase />
           <ul className="space-y-6">
             {MINI_CASES.map((item) => (

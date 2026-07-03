@@ -30,7 +30,7 @@ function Stat({ value, label, gradient }: (typeof STATS)[number]) {
       >
         {value}
       </div>
-      <p className="mt-4 text-sm text-white">{label}</p>
+      <p className="mt-2 text-sm text-white">{label}</p>
     </div>
   );
 }
@@ -94,9 +94,9 @@ function IntegrationPaths() {
           option for your business.
         </span>
       </h2>
-      <div className="mt-10 grid gap-6 sm:grid-cols-3">
+      <div className="mt-10 grid gap-4 sm:grid-cols-3">
         {INTEGRATION_PATHS.map((path) => (
-          <div key={path.title} className="rounded-lg border border-white/10 bg-white/4 p-6">
+          <div key={path.title} className="rounded-lg border border-white/10 bg-white/4 p-6 lg:aspect-[400/294]">
             <h3 className="text-base font-medium text-white">{path.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-[#7d90b8]">{path.description}</p>
             <span className="mt-3 inline-block text-sm font-medium text-[#8b9df7]">Learn more ›</span>
@@ -109,12 +109,12 @@ function IntegrationPaths() {
 
 export function DevelopersBand() {
   return (
-    <section className="relative overflow-hidden bg-[#0e1a38]">
-      <FoldedSilkCanvas className="absolute inset-0" timeOffset={90000} variant="fibrous" />
+    <section className="stats-section relative overflow-hidden bg-[#0e1a38]">
+      <FoldedSilkCanvas className="developers-wave-animation__canvas absolute inset-0" timeOffset={90000} variant="fibrous" />
 
-      <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1240px] -translate-x-1/2 border-x border-white/8 lg:block" />
+      <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-white/8 lg:block" />
 
-      <div className="relative mx-auto w-full max-w-[1080px] px-0 pt-24 pb-24">
+      <div className="relative mx-auto w-full max-w-[1232px] px-0 pt-24 pb-24">
         <ConnectBlock />
 
         <h2 className="mt-20 max-w-2xl text-2xl leading-snug tracking-[-0.01em]">
@@ -125,7 +125,7 @@ export function DevelopersBand() {
           </span>
         </h2>
 
-        <div className="mt-[360px] grid gap-x-10 gap-y-12 sm:grid-cols-3">
+        <div className="mt-[360px] grid gap-x-4 gap-y-12 sm:grid-cols-3">
           {STATS.map((stat) => (
             <Stat key={stat.label} {...stat} />
           ))}

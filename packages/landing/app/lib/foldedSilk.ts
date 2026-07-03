@@ -44,7 +44,8 @@ const PALETTE_GRID: readonly (readonly string[])[] = [
 export type FoldedSilkVariant = 'solid' | 'fibrous';
 
 type VariantConfig = {
-  background: string;
+  // null = transparent canvas (page background shows through).
+  background: string | null;
   fragmentShader: string;
   timeOffset: number;
   position: readonly [number, number, number];
@@ -69,10 +70,10 @@ type VariantConfig = {
 const VARIANTS: Record<FoldedSilkVariant, VariantConfig> = {
   // Solid opaque silk with noise fibers and fold glow, on white.
   solid: {
-    background: '#ffffff',
+    background: null,
     fragmentShader: FOLDED_SILK_FRAGMENT,
     timeOffset: 17500,
-    position: [640, -301.7, -11.1],
+    position: [520, -301.7, -11.1],
     rotation: [-0.4496, -0.1176, 1.8744],
     scale: [9, 8, 5],
     displaceFrequencyX: 0.005831,
@@ -85,7 +86,7 @@ const VARIANTS: Record<FoldedSilkVariant, VariantConfig> = {
     twistPowerY: 0.7,
     twistPowerZ: 3.95,
     colorContrast: 1,
-    colorSaturation: 1,
+    colorSaturation: 1.08,
     colorHueShift: 0,
     extraUniforms: () => ({
       u_glowAmount: { value: 1.98 },
@@ -236,14 +237,18 @@ export function createFoldedSilk(
 ): FoldedSilk {
   const config = VARIANTS[variant];
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(config.background);
+  scene.background = config.background === null ? null : new THREE.Color(config.background);
 
   // Orthographic, pixel-space frustum — the mesh transform is in pixels.
   const camera = new THREE.OrthographicCamera(0, 0, 0, 0, 1, 10000);
   camera.position.set(100, 0, 5000);
   camera.lookAt(0, 0, 0);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  // Alpha canvas like the reference's hero: only the silk is painted, so
+  // content stacked below the canvas (logo bar, guides) stays visible where
+  // there is no wave.
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setClearColor(0x000000, 0);
   renderer.setPixelRatio(window.devicePixelRatio);
   container.appendChild(renderer.domElement);
 

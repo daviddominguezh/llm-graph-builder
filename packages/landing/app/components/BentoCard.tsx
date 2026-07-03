@@ -47,7 +47,7 @@ export function BentoCard({ title, description, children, className = '' }: Bent
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className={`group relative block w-full cursor-pointer overflow-hidden rounded-lg bg-white p-8 text-left transition-transform duration-200 hover:scale-[1.008] ${CARD_SHADOW} ${className}`}
+        className={`modular-solutions-bento-card group relative block w-full cursor-pointer overflow-hidden rounded-lg bg-white p-8 text-left transition-transform duration-200 hover:scale-[1.008] ${CARD_SHADOW} ${className}`}
       >
         <span className="absolute top-5 right-5 rounded-full p-2 text-[#533afd]/60 transition-colors duration-200 group-hover:bg-[#533afd] group-hover:text-white">
           <Maximize2 className="h-4 w-4" />

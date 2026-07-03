@@ -42,7 +42,7 @@ const NEWS = [
 
 function BookOfTheWeek() {
   return (
-    <div className="mt-16 grid items-center gap-10 border-t border-[#061b31]/8 pt-14 lg:grid-cols-[220px_1fr]">
+    <div className="book-of-the-week mt-16 grid items-center gap-10 border-t border-[#061b31]/8 pt-14 lg:grid-cols-[220px_1fr]">
       <Image
         src="/reference/Reminiscences_of_a_Stock_Operator.png"
         alt="Book of the week cover"
@@ -64,16 +64,16 @@ function BookOfTheWeek() {
 
 export function Happenings() {
   return (
-    <section className="bg-white px-10 py-24">
-      <div className="mx-auto max-w-[1080px]">
+    <section className="the-happenings bg-white px-10 py-24">
+      <div className="mx-auto max-w-[1232px]">
         <SectionHeading
           lead="What's happening?"
           rest="Product updates, milestones, and stories from the OpenFlow ecosystem."
         />
 
-        <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {NEWS.map((item) => (
-            <article key={item.title} className={`overflow-hidden rounded-lg bg-white ${CARD_SHADOW}`}>
+            <article key={item.title} className={`the-happenings-card overflow-hidden rounded-lg bg-white ${CARD_SHADOW}`}>
               <Image src={item.image} alt="" width={336} height={350} className="h-auto w-full" />
               <div className="p-5">
                 <h3 className="text-sm font-medium leading-snug text-[#061b31]">{item.title}</h3>

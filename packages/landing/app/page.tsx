@@ -10,6 +10,12 @@ import { SolutionsBento } from './components/SolutionsBento';
 export default function Home() {
   return (
     <div className="relative">
+      {/* Full-page layout guides. Painted before main so the hero wave
+          (positioned, later in DOM) passes over them. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-[#061b31]/6 lg:block"
+      />
       {/* Section sequence mirrors the reference 1:1: hero → solutions bento →
           global backbone → businesses of all sizes → developers → happenings.
           Our product sections (Problem/Features/Comparison/Audience/FinalCta)
@@ -27,12 +33,6 @@ export default function Home() {
           stacking context would isolate the nav's blend-mode knockout text
           from the wave canvas behind it. */}
       <Navbar />
-      {/* Layout guides running the full height of the page, like the
-          reference's persistent column hairlines. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1240px] -translate-x-1/2 border-x border-[#061b31]/6 lg:block"
-      />
     </div>
   );
 }

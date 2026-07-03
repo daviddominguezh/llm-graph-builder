@@ -24,28 +24,32 @@ function NavLinks() {
         <a
           key={link.href}
           href={link.href}
-          className="text-sm text-[#061b31] transition-opacity hover:opacity-60"
+          className="flex items-center gap-1 text-sm text-[#061b31] transition-opacity hover:opacity-60"
         >
           {link.label}
+          <svg className="h-2.5 w-2.5 opacity-60" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+            <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
         </a>
       ))}
     </div>
   );
 }
 
-// Reference CSS verbatim: transparent bg, 1px white border, 4px radius,
-// purple text. The difference blend lets the wave color the glyphs — the
-// backdrop shows through the letters (nav has no z-index, so the blend
-// reaches the hero canvas).
+// Knockout text: with `lighten`, the white pill stays white (max with white
+// wins) while the black glyphs resolve to the backdrop — the wave shows
+// through the letters as if they were transparent. Works because neither the
+// nav nor its ancestors create a stacking context that would isolate the
+// blend from the hero canvas.
 function SignInButton() {
   return (
     <a
       href={GITHUB_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex h-10 items-center rounded-[4px] border border-white bg-transparent px-5 text-sm"
+      className="inline-flex h-10 items-center rounded-[4px] bg-white px-5 text-sm font-medium text-black mix-blend-lighten"
     >
-      <span className="text-[#533afd] mix-blend-difference">Sign in with GitHub</span>
+      Sign in with GitHub
     </a>
   );
 }

@@ -38,7 +38,7 @@ function HeroCtas() {
         href={GITHUB_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex h-12 items-center gap-2 rounded-[4px] bg-[#533afd] px-6 text-base text-white transition-colors hover:bg-[#4430d4]"
+        className="inline-flex h-12 min-w-[172px] items-center justify-center gap-2 rounded-[4px] bg-[#533afd] px-6 text-base text-white transition-colors hover:bg-[#4430d4]"
       >
         Get started
         <ArrowIcon />
@@ -47,7 +47,7 @@ function HeroCtas() {
         href={GITHUB_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex h-12 items-center gap-2 rounded-[4px] border border-[#b9b9f9] bg-white/65 px-6 text-base text-[#533afd] transition-colors hover:bg-white"
+        className="inline-flex h-12 min-w-[247px] items-center justify-center gap-2 rounded-[4px] border border-[#b9b9f9] bg-white/65 px-6 text-base text-[#533afd] transition-colors hover:bg-white"
       >
         <GitHubIcon />
         View on GitHub
@@ -58,11 +58,13 @@ function HeroCtas() {
 
 function LogoBar() {
   return (
-    <div className="relative border-t border-[#0a2540]/10">
-      <div className="mx-auto flex max-w-[1080px] flex-wrap items-center justify-between gap-x-8 gap-y-4 px-10 py-8">
+    <div className="border-y border-[#0a2540]/10">
+      {/* Fixed tile boxes on the reference's logo-carousel dimensions,
+          scaled from its 172x72 at the 1232 rail to our 1080 (~151x63). */}
+      <div className="mx-auto flex max-w-[1232px] items-center justify-between py-4">
         {LOGO_BAR.map((logo) => (
-          <span key={logo.name} className={logo.className}>
-            {logo.name}
+          <span key={logo.name} className="flex h-[72px] w-[172px] items-center justify-center">
+            <span className={logo.className}>{logo.name}</span>
           </span>
         ))}
       </div>
@@ -72,31 +74,30 @@ function LogoBar() {
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden bg-white">
-      {/* The wave lives only in the upper hero area — the logo bar below
-          stays clear of it. The absolute navbar overlays its top. */}
-      <div className="relative">
-        <FoldedSilkCanvas className="absolute inset-0" />
+    <section className="hero-wave-animation relative overflow-hidden bg-white">
+      {/* Canvas spans the full section so the silk flows continuously behind
+          the logo bar (which paints above it), like the reference. */}
+      <FoldedSilkCanvas className="hero-wave-animation__canvas absolute inset-0" />
 
-        <div className="relative mx-auto w-full max-w-[994px] px-6 pt-[147px] pb-14 lg:px-0">
-          <p className="text-base text-black">
-            Share of customer conversations running on OpenFlow: <TrafficCounter />
-          </p>
+      <div className="relative mx-auto w-full max-w-[994px] px-6 pt-[147px] pb-6 lg:px-0">
+        <p className="text-base font-semibold text-black">
+          Share of customer conversations running on OpenFlow: <TrafficCounter />
+        </p>
 
-          <h1 className="mt-[18px] max-w-[961px] text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]">
-            <em className="font-normal not-italic text-[#061b31]">
-              Agent infrastructure to power your SaaS.
-            </em>{' '}
-            {/* Yellow + difference blend: white backdrop turns it blue-violet
-                and the silk shows through the glyphs as inverted color. */}
-            <span className="text-[#ddd600] mix-blend-difference">
-              Build an AI agent, connect WhatsApp, Slack, or a chatbot, and give every customer their own
-              isolated instance, from your first tenant to your last.
-            </span>
-          </h1>
+        <h1 className="mt-[18px] max-w-[961px] text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]">
+          <em className="font-normal not-italic text-[#061b31]">
+            Agent infrastructure to power your SaaS.
+          </em>{' '}
+          {/* Complement color + difference blend: white backdrop resolves to
+              the reference's muted slate, and the silk still recolors the
+              glyphs where it passes behind them. */}
+          <span className="text-[#a4916b] mix-blend-difference">
+            Build an AI agent, connect WhatsApp, Slack, or a chatbot, and give every customer their own
+            isolated instance, from your first tenant to your last.
+          </span>
+        </h1>
 
-          <HeroCtas />
-        </div>
+        <HeroCtas />
       </div>
 
       <LogoBar />

@@ -11,7 +11,7 @@ const SCALE_POINTS = [
 // CSS globe: layered radial gradients with orbit arcs.
 function Globe() {
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[420px]" aria-hidden="true">
+    <div className="relative mx-auto aspect-square w-full max-w-[448px]" aria-hidden="true">
       <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_35%_30%,#f6e3ff_0%,#c9b4f7_35%,#533afd_80%,#2a1a8f_100%)] opacity-90" />
       <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_65%_70%,transparent_55%,rgba(255,255,255,0.25)_75%,transparent_90%)]" />
       <div className="absolute inset-[8%] rounded-full border border-white/25" />
@@ -23,8 +23,8 @@ function Globe() {
 
 export function GlobalScale() {
   return (
-    <section className="bg-white px-10 py-24">
-      <div className="mx-auto grid max-w-[1080px] items-center gap-14 lg:grid-cols-2">
+    <section className="stats-section__globe-host bg-white px-10 py-40">
+      <div className="mx-auto grid max-w-[1232px] items-center gap-14 lg:grid-cols-2">
         <div>
           <SectionHeading
             lead="The backbone of global agent commerce."

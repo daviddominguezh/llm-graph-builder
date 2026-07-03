@@ -1,15 +1,16 @@
 import Image from 'next/image';
 
 import { BentoCard } from './BentoCard';
+import { ParticleFieldCanvas } from './ParticleFieldCanvas';
 import { SectionHeading } from './SectionHeading';
 
 const CARD_SHADOW = 'shadow-[0_6px_12px_-2px_rgba(50,50,93,0.12),0_3px_7px_-3px_rgba(0,0,0,0.06)]';
 
-// Chat-agent mockup: a tenant's WhatsApp-style conversation with the agent,
-// sitting over the reference's bento backdrop.
+// Chat-agent mockup inside a browser-window frame (the reference's
+// browser-graphic, 630x580 ratio), over its bento backdrop.
 function ChatMockup() {
   return (
-    <div className="relative mt-8 overflow-hidden rounded-t-lg border border-b-0 border-[#061b31]/8 p-5">
+    <div className="relative mt-8 overflow-hidden rounded-t-lg p-6 lg:aspect-[630/580]">
       <Image
         src="/reference/payment-bento-background.jpg"
         alt=""
@@ -17,7 +18,19 @@ function ChatMockup() {
         height={712}
         className="absolute inset-0 h-full w-full object-cover opacity-60"
       />
-      <ChatMockupBody />
+      <div className="browser-graphic__window relative flex h-full flex-col overflow-hidden rounded-lg bg-white shadow-[0_10px_24px_-8px_rgba(50,50,93,0.25)]">
+        <div className="flex items-center gap-2 border-b border-[#061b31]/8 bg-[#f6f9fc] px-4 py-2.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-[#e4573d]/70" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#f5b62e]/70" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#2ec46e]/70" />
+          <span className="ml-3 flex-1 rounded-md bg-white px-3 py-1 text-center text-[11px] text-[#425466]">
+            acme-travel.openflow.app
+          </span>
+        </div>
+        <div className="p-5">
+          <ChatMockupBody />
+        </div>
+      </div>
     </div>
   );
 }
@@ -109,17 +122,30 @@ function RevenueSparkline() {
   );
 }
 
-function PriceRows() {
+// Agent-recommended product cards, on the reference's agentic-commerce
+// layout with its product imagery.
+const PRODUCTS = [
+  { name: 'Deluxe shirt', variant: 'Blue: medium', price: 'USD 26.00', image: '/reference/shirt-blue.png' },
+  {
+    name: 'Essential hoodie',
+    variant: 'Navy: medium',
+    price: 'USD 48.00',
+    image: '/reference/hoodie-navy.png',
+  },
+] as const;
+
+function ProductCards() {
   return (
-    <div className="mt-6 space-y-2">
-      {[
-        ['Starter agent', '$49/mo'],
-        ['Pro agent', '$199/mo'],
-        ['Usage overage', '$0.01/1k'],
-      ].map(([label, price]) => (
-        <div key={label} className="flex justify-between rounded-md bg-[#f6f9fc] px-3 py-2 text-xs">
-          <span className="text-[#425466]">{label}</span>
-          <span className="font-semibold text-[#061b31]">{price}</span>
+    <div className="agentic-commerce-graphic__products mx-auto mt-6 grid max-w-[276px] grid-cols-2 gap-3">
+      {PRODUCTS.map((product) => (
+        <div key={product.name} className={`rounded-lg bg-white p-3 ${CARD_SHADOW}`}>
+          <div className="flex items-center justify-center rounded-md bg-[#eef2f7] p-3">
+            <Image src={product.image} alt="" width={160} height={160} className="h-auto w-full max-w-[96px]" />
+          </div>
+          <p className="mt-2 text-xs font-semibold text-[#061b31]">{product.name}</p>
+          <p className="text-[11px] text-[#7a8bb0]">{product.variant}</p>
+          <p className="mt-1 text-xs font-semibold text-[#061b31]">{product.price}</p>
+          <p className="text-[11px] text-[#425466]">Cartsy</p>
         </div>
       ))}
     </div>
@@ -140,49 +166,76 @@ function CodeSnippet() {
 
 export function SolutionsBento() {
   return (
-    <section className="bg-[#f6f9fc] px-10 py-24">
-      <div className="mx-auto max-w-[1080px]">
+    <section className="modular-solutions bg-[#f6f9fc] px-10 py-24">
+      <div className="mx-auto max-w-[1232px]">
         <SectionHeading
           lead="Flexible solutions for every agent business."
           rest="Grow your company with a complete set of agent and monetization tools designed to work individually or together."
         />
 
-        <div className="mt-14 grid gap-6 lg:grid-cols-2">
-          <BentoCard title="Deploy agents across every channel, in every tenant">
+        {/* Reference proportions scaled from its 1232 rail to our 1080:
+            big card 2/3 x ~600, tall side cards 1/3 x ~605, wide full-rail
+            card ~400 tall. */}
+        <div className="mt-14 grid gap-2 lg:grid-cols-[828fr_409fr]">
+          <BentoCard
+            title="Deploy agents across every channel, in every tenant"
+            className="lg:aspect-[828/686]"
+          >
             <ChatMockup />
           </BentoCard>
-          <BentoCard title="Enable any billing model">
+          <BentoCard title="Enable any billing model" className="lg:aspect-[409/690]">
             <BillingMockup />
           </BentoCard>
         </div>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-3">
+        <div className="mt-2 grid gap-2 lg:grid-cols-3">
           <BentoCard
             title="Monetize agent commerce"
             description="Charge per plan, per seat, or per token — pricing that follows your agents."
+            className="lg:aspect-[409/690]"
           >
-            <PriceRows />
+            <ParticleFieldCanvas mode="scatter" />
+            <div className="relative">
+              <ProductCards />
+            </div>
           </BentoCard>
           <BentoCard
             title="Create per-tenant channels"
             description="Every customer gets their own numbers, workspaces, and identities."
+            className="lg:aspect-[409/690]"
           >
             <ChannelChips />
           </BentoCard>
           <BentoCard
             title="Access usage-based revenue"
             description="Meter every conversation and turn agent traffic into recurring revenue."
+            className="lg:aspect-[409/690]"
           >
-            <RevenueSparkline />
+            <ParticleFieldCanvas mode="globe" />
+            <div className="relative">
+              <RevenueSparkline />
+            </div>
           </BentoCard>
         </div>
 
-        <div className="mt-6">
+        <div className="mt-2">
           <BentoCard
             title="Integrate agents into your platform"
             description="A single API call provisions an isolated tenant with channels, memory, and billing."
+            className="lg:aspect-[1245/456]"
           >
-            <CodeSnippet />
+            <div className="flex items-start gap-8">
+              <div className="min-w-0 flex-1">
+                <CodeSnippet />
+              </div>
+              <Image
+                src="/reference/bento-terminal.png"
+                alt=""
+                width={308}
+                height={525}
+                className="mt-6 hidden w-[240px] shrink-0 rounded-lg lg:block"
+              />
+            </div>
           </BentoCard>
         </div>
       </div>

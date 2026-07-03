@@ -205,9 +205,13 @@ vec4 blurAngular(sampler2D tex, vec2 uv, float angle, int samples) {
 
 void main() {
   vec4 raw = texture2D(tDiffuse, vUv);
-  vec4 blurred = blurAngular(tDiffuse, vUv, 0.14, 16);
+  // Blur a center-zoomed UV (reference recipe): samples come from the
+  // colorful interior, so the glow never drags edge white into the silk.
+  vec2 zoomedUv = clamp(vec2(0.5) + (vUv - 0.5) / 1.5, 0.0, 1.0);
+  vec4 blurred = blurAngular(tDiffuse, zoomedUv, 0.14, 16);
   vec4 color = mix(raw, blurred, 0.25);
-  color.rgb = grain(color.rgb, u_grainAmount);
+  // Gate grain by coverage so fully transparent pixels stay clean.
+  color.rgb = grain(color.rgb, u_grainAmount * color.a);
   gl_FragColor = color;
 }
 `;
