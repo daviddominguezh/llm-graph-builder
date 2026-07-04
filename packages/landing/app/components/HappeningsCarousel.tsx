@@ -22,19 +22,22 @@ const GAP = 16;
 const SLIVER_BASE = 200;
 const SLIVER_RATIO = 0.5;
 const SLIVER_MIN = 18;
+const HOVER_BONUS = 40; // a hovered sliver widens by this much (the "peek")
 const DUR = '0.6s';
 const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
-// Width for every card given the active index; the active card absorbs the
-// remainder so the row always fills the container exactly.
-function computeWidths(containerWidth: number, n: number, active: number): number[] {
+// Width for every card given the active (and optionally hovered) index; the
+// active card absorbs the remainder so the row always fills the container.
+function computeWidths(containerWidth: number, n: number, active: number, hovered: number): number[] {
   const available = Math.max(0, containerWidth - (n - 1) * GAP);
   const widths = new Array<number>(n).fill(0);
   let sum = 0;
   for (let i = 0; i < n; i++) {
     if (i === active) continue;
-    widths[i] = i < active ? SLIVER_MIN : Math.max(SLIVER_MIN, Math.round(SLIVER_BASE * SLIVER_RATIO ** (i - active - 1)));
-    sum += widths[i];
+    let w = i < active ? SLIVER_MIN : Math.max(SLIVER_MIN, Math.round(SLIVER_BASE * SLIVER_RATIO ** (i - active - 1)));
+    if (i === hovered) w += HOVER_BONUS;
+    widths[i] = w;
+    sum += w;
   }
   widths[active] = Math.max(SLIVER_MIN, available - sum);
   return widths;
@@ -70,6 +73,7 @@ function NavButton({ dir, onClick, label }: { dir: 'left' | 'right'; onClick: ()
 export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] }) {
   const n = items.length;
   const [active, setActive] = useState(0);
+  const [hovered, setHovered] = useState(-1);
   const [containerWidth, setContainerWidth] = useState(1232);
   const rowRef = useRef<HTMLDivElement>(null);
 
@@ -82,11 +86,18 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
     return () => ro.disconnect();
   }, []);
 
-  const widths = computeWidths(containerWidth, n, active);
+  const widths = computeWidths(containerWidth, n, active, hovered);
+  // Fixed image window width (the expanded size) — the card clips it, so the
+  // image never rescales as the card squeezes; a sliver shows its centre strip.
+  const imageWidth = computeWidths(containerWidth, n, 0, -1)[0] as number;
 
   return (
     <div className="squeezy-carousel mt-14">
-      <div ref={rowRef} className="squeezy-carousel__canvas flex h-[460px] gap-4 overflow-hidden">
+      <div
+        ref={rowRef}
+        onMouseLeave={() => setHovered(-1)}
+        className="squeezy-carousel__canvas flex h-[460px] gap-4 overflow-hidden"
+      >
         {items.map((item, i) => {
           const expanded = i === active;
           return (
@@ -94,15 +105,19 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
               key={item.id}
               type="button"
               onClick={() => setActive(i)}
+              onMouseEnter={() => setHovered(i)}
               aria-label={item.title}
               style={{ flexBasis: `${widths[i]}px`, transition: `flex-basis ${DUR} ${EASE}` }}
               className="relative h-full min-w-0 shrink-0 grow-0 cursor-pointer overflow-hidden rounded-xl"
             >
-              <Image src={item.image} alt="" fill sizes="840px" className="object-cover" />
-              <span
-                className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-6 text-left text-lg font-medium whitespace-nowrap text-white transition-opacity duration-200 ${expanded ? 'opacity-100 delay-200' : 'opacity-0'}`}
-              >
-                {item.title}
+              {/* Fixed-size, centred image window: card clips it, no rescale. */}
+              <span className="absolute top-0 left-1/2 h-full -translate-x-1/2" style={{ width: `${imageWidth}px` }}>
+                <Image src={item.image} alt="" fill sizes="840px" className="object-cover" />
+                <span
+                  className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-6 text-left text-lg font-medium whitespace-nowrap text-white transition-opacity duration-200 ${expanded ? 'opacity-100 delay-200' : 'opacity-0'}`}
+                >
+                  {item.title}
+                </span>
               </span>
             </button>
           );
