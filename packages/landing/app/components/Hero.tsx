@@ -1,5 +1,4 @@
 import { FoldedSilkCanvas } from './FoldedSilkCanvas';
-import { TrafficCounter } from './TrafficCounter';
 
 const GITHUB_URL = 'https://github.com/daviddominguezh/llm-graph-builder';
 
@@ -83,6 +82,36 @@ function LogoBar() {
   );
 }
 
+const HEADING_LEAD = 'Agent infrastructure to power your SaaS.';
+const HEADING_REST =
+  ' Build an AI agent, connect WhatsApp, Slack, or a chatbot, and give every customer their own isolated instance, from your first tenant to your last.';
+const HEADING_BASE =
+  'max-w-[961px] text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]';
+
+// Reference title color-blend (exact CSS + stacking): TWO stacked copies with
+// the wave canvas sandwiched between them by z-index.
+//   - background copy (z-0): navy lead + yellow (#ddd600) rest, BELOW the wave
+//   - wave canvas (z-1): painted over the background copy
+//   - foreground copy (z-2): mix-blend-mode hard-light, #2d2564 lead +
+//     rgba(0,14,255,.5) rest, ON TOP — so it hard-lights against the WAVE,
+//     which is what makes the glyph color track the silk as it passes.
+// The wrapper stays z-auto (no stacking context) so all three resolve in the
+// hero's isolated context.
+function HeroHeading() {
+  return (
+    <div className="relative mt-[32px]">
+      <div className={`${HEADING_BASE} relative z-0`} aria-hidden="true">
+        <em className="font-normal not-italic text-[#061b31]">{HEADING_LEAD}</em>
+        <span className="text-[#ddd600]">{HEADING_REST}</span>
+      </div>
+      <h1 className={`${HEADING_BASE} absolute inset-0 z-[2] mix-blend-hard-light`}>
+        <em className="font-normal not-italic text-[#2d2564]">{HEADING_LEAD}</em>
+        <span className="text-[rgba(0,14,255,0.5)]">{HEADING_REST}</span>
+      </h1>
+    </div>
+  );
+}
+
 export function Hero() {
   return (
     <section className="hero-wave-animation relative isolate overflow-hidden bg-white">
@@ -93,25 +122,18 @@ export function Hero() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-[#061b31]/6 lg:block"
       />
-      {/* Canvas spans the full section so the silk flows continuously behind
-          the logo bar (which paints above it), like the reference. */}
-      <FoldedSilkCanvas className="hero-wave-animation__canvas absolute inset-0" />
+      {/* Wave at z-1: sits ABOVE the background title copy (z-0) and BELOW the
+          foreground copy (z-2), so the hard-light foreground blends against
+          the silk. Also passes over the logo bar. */}
+      <FoldedSilkCanvas className="hero-wave-animation__canvas absolute inset-0 z-[1]" />
 
-      <div className="relative mx-auto w-full max-w-[994px] px-6 pt-[147px] pb-6 lg:px-0">
-        <h1 className="mt-[32px] max-w-[961px] text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]">
-          <em className="font-normal not-italic text-[#061b31]">
-            Agent infrastructure to power your SaaS.
-          </em>{' '}
-          {/* Complement color + difference blend: white backdrop resolves to
-              the reference's muted slate, and the silk still recolors the
-              glyphs where it passes behind them. */}
-          <span className="text-[#a4916b] mix-blend-difference">
-            Build an AI agent, connect WhatsApp, Slack, or a chatbot, and give every customer their own
-            isolated instance, from your first tenant to your last.
-          </span>
-        </h1>
-
-        <HeroCtas />
+      {/* Content column stays z-auto (no stacking context) so the heading's
+          two copies resolve around the wave. CTAs get z-2 to sit above it. */}
+      <div className="relative mx-auto w-full max-w-[994px] px-6 pt-[155px] pb-0 lg:px-0">
+        <HeroHeading />
+        <div className="relative z-[2]">
+          <HeroCtas />
+        </div>
       </div>
 
       <LogoBar />

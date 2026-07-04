@@ -1,6 +1,7 @@
 import Image from 'next/image';
 
 import { BentoCard } from './BentoCard';
+import { ScrollFadeSection } from './ScrollFadeSection';
 import { ParticleFieldCanvas } from './ParticleFieldCanvas';
 import { SectionHeading } from './SectionHeading';
 
@@ -168,7 +169,7 @@ function CodeSnippet() {
 
 export function SolutionsBento() {
   return (
-    <section className="modular-solutions bg-[#f6f9fc] px-10 py-24">
+    <ScrollFadeSection from="#ffffff" to="#f6f9fc" className="modular-solutions px-10 py-24">
       <div className="mx-auto max-w-[1232px]">
         <SectionHeading
           lead="Flexible solutions for every agent business."
@@ -243,6 +244,6 @@ export function SolutionsBento() {
           </BentoCard>
         </div>
       </div>
-    </section>
+    </ScrollFadeSection>
   );
 }

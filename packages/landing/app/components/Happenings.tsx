@@ -1,44 +1,75 @@
 import Image from 'next/image';
 
+import { HappeningsCarousel, type HappeningItem } from './HappeningsCarousel';
 import { SectionHeading } from './SectionHeading';
 
-const CARD_BORDER = 'border border-[#e5edf5]';
-
-// Thumbnails from the reference, placed on the equivalent story slots.
-const NEWS = [
+// OpenFlow story slots reusing the reference's imagery.
+const NEWS: HappeningItem[] = [
   {
+    id: 'annual',
     title: 'Agents on OpenFlow handled 1.9 B conversations in 2025.',
+    description:
+      "Our annual letter breaks down a record year for agent traffic and what it signals for the businesses building on OpenFlow.",
+    cta: 'Read the letter',
     image: '/reference/annual-letter-mobile.png',
   },
   {
+    id: 'channels',
     title: 'New tools for taking agents beyond chat: voice and email.',
+    description:
+      'Every tenant can now run the same agent across voice and email, with unified history and per-channel billing.',
+    cta: 'Explore channels',
     image: '/reference/the-happenings-payment-processing-mobile.png',
   },
   {
+    id: 'agentic',
     title: 'Make your agents discoverable through AI platforms.',
+    description:
+      'Publish an agent once and let it show up wherever your customers already ask questions.',
+    cta: 'Learn more',
     image: '/reference/the-happenings-agentic-mobile.png',
   },
   {
+    id: 'agencies',
     title: 'How leading agencies unify tenant experiences.',
+    description:
+      'See how agencies configure isolated instances per client and ship them in minutes instead of months.',
+    cta: 'Read the story',
     image: '/reference/the-happenings-payment-retailers-mobile.png',
   },
   {
+    id: 'bfcm',
     title: 'Tenants with 150k+ users have their best days on OpenFlow.',
+    description:
+      'Through peak traffic, agents kept answering at consistent speed while uptime held at 99.999%.',
+    cta: 'See the numbers',
     image: '/reference/the-happenings-bfcm-mobile.png',
   },
   {
+    id: 'tidemark',
     title: 'The vertical SaaS agent benchmark report.',
+    description:
+      'What drives agent adoption in vertical SaaS: product breadth, embedded billing, and AI woven into the core.',
+    cta: 'Get the data',
     image: '/reference/the-happenings-tidemark-mobile.png',
   },
   {
+    id: 'founders',
     title: 'A conversation on agent infrastructure with our founders.',
+    description:
+      'A candid look at why multi-tenant agent infrastructure is the platform the next wave of SaaS is built on.',
+    cta: 'Watch',
     image: '/reference/the-happenings-cheeky-pint-mobile.png',
   },
   {
+    id: 'crypto',
     title: 'Crypto-native billing lands for agent platforms.',
+    description:
+      'Meter agent usage and settle in stablecoins or traditional rails — the choice is per tenant.',
+    cta: 'Read more',
     image: '/reference/the-happenings-crypto-mobile.png',
   },
-] as const;
+];
 
 function BookOfTheWeek() {
   return (
@@ -71,17 +102,7 @@ export function Happenings() {
           rest="Product updates, milestones, and stories from the OpenFlow ecosystem."
         />
 
-        <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {NEWS.map((item) => (
-            <article key={item.title} className={`the-happenings-card overflow-hidden rounded-lg bg-white ${CARD_BORDER}`}>
-              <Image src={item.image} alt="" width={336} height={350} className="h-auto w-full" />
-              <div className="p-5">
-                <h3 className="text-sm font-medium leading-snug text-[#061b31]">{item.title}</h3>
-                <span className="mt-2 inline-block text-sm font-medium text-[#533afd]">Read more ›</span>
-              </div>
-            </article>
-          ))}
-        </div>
+        <HappeningsCarousel items={NEWS} />
 
         <BookOfTheWeek />
       </div>
