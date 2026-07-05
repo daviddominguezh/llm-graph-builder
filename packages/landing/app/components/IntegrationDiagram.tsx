@@ -23,6 +23,11 @@ const ICONS: Record<string, string | LucideIcon> = {
   Subroutines: 'subroutines.svg',
   CRONs: 'crons.svg',
   Webhooks: 'webhooks.svg',
+  GitHub: 'github.svg',
+  Notion: 'notion.svg',
+  Zapier: 'zapier.svg',
+  Stripe: 'stripe.svg',
+  HubSpot: 'hubspot.svg',
 };
 
 // OpenFlow integration map, node-graph style: OpenFlow in the center with
@@ -60,7 +65,7 @@ const MID_H = Math.max(zoneH(LEFT), zoneH(RIGHT));
 const VH = 420 + MID_H;
 const CY = VH / 2;
 
-type Node = { label: string; x: number; y: number; kind: 'center' | 'cat' | 'item' };
+type Node = { label: string; x: number; y: number; kind: 'center' | 'cat' | 'item'; cat?: string; centered?: boolean };
 
 function roundedPath(pts: number[][], r: number): string {
   let d = `M ${pts[0]![0]} ${pts[0]![1]}`;
@@ -82,9 +87,9 @@ function buildSideZone(cats: Category[], dir: -1 | 1) {
   const itemX = dir < 0 ? 90 : 1310;
   const catX = dir < 0 ? 300 : 1100;
   const centerEdge = CX + dir * 66;
-  const catIn = catX - dir * 78;
-  const catOut = catX + dir * 78;
-  const itemIn = itemX - dir * 58; // half of the 115px leaf width
+  const catIn = catX - dir * 85;
+  const catOut = catX + dir * 85;
+  const itemIn = itemX - dir * 61; // half of the 122px leaf width
   const midCC = (centerEdge + catIn) / 2;
   const midCI = (catOut + itemIn) / 2;
   const nodes: Node[] = [];
@@ -96,7 +101,7 @@ function buildSideZone(cats: Category[], dir: -1 | 1) {
     paths.push(roundedPath([[centerEdge, CY], [midCC, CY], [midCC, catY], [catIn, catY]], 12));
     cat.items.forEach((label, i) => {
       const iy = y + i * ITEM_H + ITEM_H / 2;
-      nodes.push({ label, x: itemX, y: iy, kind: 'item' });
+      nodes.push({ label, x: itemX, y: iy, kind: 'item', cat: cat.name });
       paths.push(roundedPath([[catOut, catY], [midCI, catY], [midCI, iy], [itemIn, iy]], 12));
     });
     y += cat.items.length * ITEM_H + CAT_GAP;
@@ -107,7 +112,7 @@ function buildSideZone(cats: Category[], dir: -1 | 1) {
 function buildStackZone(cat: Category, dir: -1 | 1) {
   const catY = dir < 0 ? 175 : VH - 175;
   const itemY = dir < 0 ? 62 : VH - 62;
-  const centerEdge = CY + dir * 66;
+  const centerEdge = CY + dir * 34;
   const catIn = catY - dir * 22;
   const catOut = catY + dir * 22;
   const itemIn = itemY - dir * 16;
@@ -118,7 +123,7 @@ function buildStackZone(cat: Category, dir: -1 | 1) {
   const paths: string[] = [roundedPath([[CX, centerEdge], [CX, catIn]], 12)];
   cat.items.forEach((label, i) => {
     const ix = startX + i * spacing;
-    nodes.push({ label, x: ix, y: itemY, kind: 'item' });
+    nodes.push({ label, x: ix, y: itemY, kind: 'item', cat: cat.name, centered: true });
     paths.push(roundedPath([[CX, catOut], [CX, midY], [ix, midY], [ix, itemIn]], 12));
   });
   return { nodes, paths };
@@ -132,14 +137,16 @@ function NodeBox({ node }: { node: Node }) {
   const style = { left: `${(node.x / VW) * 100}%`, top: `${(node.y / VH) * 100}%` };
   if (node.kind === 'item') {
     const icon = ICONS[node.label];
-    const Icon = typeof icon === 'function' ? icon : null;
+    const Icon = icon && typeof icon !== 'string' ? icon : null;
     return (
       <div className="absolute -translate-x-1/2 -translate-y-1/2" style={style}>
-        <div className="flex w-[115px] items-center justify-center gap-1.5 rounded-md border border-white/10 bg-[#141d3a] px-1.5 py-1.5 text-[11px] whitespace-nowrap text-white/85">
+        <div
+          className={`flex w-[122px] items-center gap-1.5 rounded-md border border-white/10 bg-[#141d3a] px-2 py-1.5 text-[11px] whitespace-nowrap text-white/85 ${node.centered ? 'justify-center' : 'justify-start'}`}
+        >
           {typeof icon === 'string' && (
-            <Image src={`/icons/${icon}`} alt="" width={14} height={14} className="h-3.5 w-3.5 shrink-0 object-contain" />
+            <Image src={`/icons/${icon}`} alt="" width={17} height={17} className="h-[17px] w-[17px] shrink-0 object-contain" />
           )}
-          {Icon && <Icon className="h-3.5 w-3.5 shrink-0 text-[#c7d2fe]" strokeWidth={1.6} />}
+          {Icon && <Icon className="h-[17px] w-[17px] shrink-0 text-[#c7d2fe]" strokeWidth={1.6} />}
           {node.label}
         </div>
       </div>
@@ -148,7 +155,7 @@ function NodeBox({ node }: { node: Node }) {
   const cls =
     node.kind === 'center'
       ? 'rounded-xl border border-white/15 bg-[#141d3a] px-7 py-5 text-base font-semibold text-white shadow-[0_8px_30px_rgba(0,0,0,0.45)]'
-      : 'rounded-lg bg-[#533afd] px-3.5 py-2 text-sm font-medium text-white';
+      : 'w-[170px] rounded-lg bg-[#533afd] px-3.5 py-2 text-center text-sm font-medium text-white';
   return (
     <div className="absolute -translate-x-1/2 -translate-y-1/2" style={style}>
       <span className={`block whitespace-nowrap ${cls}`}>{node.label}</span>
