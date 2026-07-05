@@ -146,7 +146,7 @@ function NodeBox({ node }: { node: Node }) {
           className={`flex w-[125px] items-center gap-1.5 rounded-md border border-white/10 bg-[#1c1e26] px-2 py-1.5 text-[11px] whitespace-nowrap text-white/85 ${node.centered ? 'justify-center' : 'justify-start'}`}
         >
           {typeof icon === 'string' && (
-            <Image src={`/icons/${icon}`} alt="" width={17} height={17} className="h-[17px] w-[17px] shrink-0 object-contain grayscale" />
+            <Image src={`/icons/${icon}`} alt="" width={17} height={17} className="h-[17px] w-[17px] shrink-0 object-contain" />
           )}
           {Icon && <Icon className="h-[17px] w-[17px] shrink-0 text-[#d0d3da]" strokeWidth={1.6} />}
           {node.label}
