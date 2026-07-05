@@ -1,6 +1,5 @@
-import Image from 'next/image';
-
 import { FoldedSilkCanvas } from './FoldedSilkCanvas';
+import { IntegrationDiagram } from './IntegrationDiagram';
 
 // Dark stats band: dim line-silk flowing behind a two-tone heading and three
 // giant gradient stats, mirroring the reference's developers section.
@@ -35,8 +34,6 @@ function Stat({ value, label, gradient }: (typeof STATS)[number]) {
   );
 }
 
-const INTEGRATIONS = ['Salesforce', 'HubSpot', 'Zendesk', 'Slack', 'Twilio', 'Shopify', 'Notion', 'Stripe'] as const;
-
 const INTEGRATION_PATHS = [
   {
     title: 'No-code',
@@ -61,24 +58,8 @@ function ConnectBlock() {
           Your agents plug into the tools your customers already run on.
         </span>
       </h2>
-      <div className="relative mt-10 overflow-hidden rounded-lg">
-        <Image
-          src="/reference/ConnectBentoBackground.webp"
-          alt=""
-          width={1242}
-          height={454}
-          className="h-auto w-full"
-        />
-        <div className="absolute inset-0 flex flex-wrap content-center items-center justify-center gap-3 px-8">
-          {INTEGRATIONS.map((name) => (
-            <span
-              key={name}
-              className="rounded-full border border-white/20 bg-[#0e1a38]/60 px-4 py-1.5 text-sm text-white backdrop-blur-sm"
-            >
-              {name}
-            </span>
-          ))}
-        </div>
+      <div className="mt-10">
+        <IntegrationDiagram />
       </div>
     </div>
   );
