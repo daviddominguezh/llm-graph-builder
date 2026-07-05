@@ -143,12 +143,12 @@ function NodeBox({ node }: { node: Node }) {
     return (
       <div className="absolute -translate-x-1/2 -translate-y-1/2" style={style}>
         <div
-          className={`flex w-[125px] items-center gap-1.5 rounded-md border border-white/10 bg-[#141d3a] px-2 py-1.5 text-[11px] whitespace-nowrap text-white/85 ${node.centered ? 'justify-center' : 'justify-start'}`}
+          className={`flex w-[125px] items-center gap-1.5 rounded-md border border-white/10 bg-[#1c1e26] px-2 py-1.5 text-[11px] whitespace-nowrap text-white/85 ${node.centered ? 'justify-center' : 'justify-start'}`}
         >
           {typeof icon === 'string' && (
-            <Image src={`/icons/${icon}`} alt="" width={17} height={17} className="h-[17px] w-[17px] shrink-0 object-contain" />
+            <Image src={`/icons/${icon}`} alt="" width={17} height={17} className="h-[17px] w-[17px] shrink-0 object-contain grayscale" />
           )}
-          {Icon && <Icon className="h-[17px] w-[17px] shrink-0 text-[#c7d2fe]" strokeWidth={1.6} />}
+          {Icon && <Icon className="h-[17px] w-[17px] shrink-0 text-[#d0d3da]" strokeWidth={1.6} />}
           {node.label}
         </div>
       </div>
@@ -165,7 +165,7 @@ function NodeBox({ node }: { node: Node }) {
   }
   return (
     <div className="absolute -translate-x-1/2 -translate-y-1/2" style={style}>
-      <span className="block w-[170px] rounded-lg bg-[#533afd] px-3.5 py-2 text-center text-sm font-medium whitespace-nowrap text-white">
+      <span className="block w-[170px] rounded-lg bg-[#54565f] px-3.5 py-2 text-center text-sm font-medium whitespace-nowrap text-white">
         {node.label}
       </span>
     </div>
@@ -177,7 +177,7 @@ export function IntegrationDiagram() {
     <div className="relative w-full" style={{ aspectRatio: `${VW} / ${VH}` }}>
       <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 ${VW} ${VH}`} preserveAspectRatio="none" aria-hidden="true">
         {PATHS.map((d, i) => (
-          <path key={i} className="connector-flow" d={d} fill="none" stroke="#4a5896" strokeWidth={1.5} strokeDasharray="3 6" strokeLinecap="round" />
+          <path key={i} className="connector-flow" d={d} fill="none" stroke="#5c5e6a" strokeWidth={1.5} strokeDasharray="3 6" strokeLinecap="round" />
         ))}
       </svg>
       {NODES.map((node) => (
