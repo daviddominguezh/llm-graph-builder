@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export type HappeningItem = {
   id: string;
@@ -11,36 +11,53 @@ export type HappeningItem = {
   image: string;
 };
 
-// Squeeze carousel modelled on the reference's squeezy-carousel. The active
-// card is the leftmost (expanded); the rest decay geometrically to the right,
-// all summing to the container width so every card stays visible. Selecting a
-// card rotates it to the front and wraps the cards that were before it to the
-// end (cyclic: #n-1 becomes #m). Only cards moving toward the START animate
-// (slide + squeeze); the ones wrapping to the end snap. Hovering a sliver
-// widens it. The image sits in a fixed-size window the card clips, so it never
-// rescales as the card squeezes. The caption crossfades.
-const GAP = 16;
-const SLIVER_BASE = 200;
-const SLIVER_RATIO = 0.5;
-const SLIVER_MIN = 18;
-const HOVER_BONUS = 40;
-const DUR = '0.6s';
-const EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
+// Port of the reference's squeezy-carousel (SqueezyImagesCanvas, chunk
+// 96748.7e2aef2ff10580c3.js). It is a horizontal carousel SCROLL, not a
+// reorder: clicking column t scrolls the whole strip left by t columns — the
+// clicked card glides to column 0 and expands, the cards before it slide off
+// the left edge (recycled), new cards slide in from the right. Widths are the
+// reference's flex fractions; a fixed-size image window is clipped by each
+// card so images never rescale. Duration 1s, easeOutExpo.
+const HEIGHT = 460;
+const SMALL_GAP = 8;
+const LARGE_GAP = 16;
+const SMALL_W = 8;
+const HOVER_OFFSET = 3;
+const DUR_MS = 1000;
+// easeOutExpo (reference easing `1 - 2^(-10t)`) sampled as a CSS linear() curve.
+const EASE =
+  'linear(0, 0.293 5%, 0.5 10%, 0.646 15%, 0.75 20%, 0.823 25%, 0.875 30%, 0.912 35%, 0.938 40%, 0.969 50%, 0.984 60%, 0.992 70%, 0.996 80%, 0.998 90%, 1)';
 
-// Widths by display position (0 = active/expanded); the active card absorbs
-// the remainder so the row fills the container exactly.
-function computeWidths(containerWidth: number, n: number, hoveredPos: number): number[] {
-  const available = Math.max(0, containerWidth - (n - 1) * GAP);
-  const widths = new Array<number>(n).fill(0);
-  let sum = 0;
-  for (let pos = 1; pos < n; pos++) {
-    let w = Math.max(SLIVER_MIN, Math.round(SLIVER_BASE * SLIVER_RATIO ** (pos - 1)));
-    if (pos === hoveredPos) w += HOVER_BONUS;
-    widths[pos] = w;
-    sum += w;
-  }
-  widths[0] = Math.max(SLIVER_MIN, available - sum);
-  return widths;
+// Column flex fractions: [col0, col1, col2, col3]. Hovering a column swaps in
+// its stretched fraction and squeezes the rest.
+const BASE_FR = [-0.06, 0.61, 0.3, 0.15];
+const SQUEEZED_FR = [-0.12, 0.59, 0.28, 0.13];
+const STRETCHED_FR = [0, 0.71, 0.4, 0.25];
+
+function fractions(hovered: number): number[] {
+  if (hovered < 0 || hovered > 3) return BASE_FR;
+  return BASE_FR.map((_, c) => (c === hovered ? STRETCHED_FR[c]! : SQUEEZED_FR[c]!));
+}
+
+function colWidth(c: number, containerW: number, hovered: number): number {
+  const base = (HEIGHT * 16) / 9;
+  const medium = containerW - base - (3 * SMALL_GAP + 3 * LARGE_GAP) - 3 * SMALL_W;
+  if (c < 0 || c > 3) return SMALL_W + (c === hovered ? HOVER_OFFSET : 0);
+  const fr = fractions(hovered);
+  return c === 0 ? base + medium * fr[0]! : medium * fr[c]!;
+}
+
+// x-offset of each column (col 0 anchored at 0); gap to a column's left is
+// large for the 4 sized columns, small for the slivers.
+function layout(containerW: number, hovered: number, lo: number, hi: number) {
+  const width: Record<number, number> = {};
+  const x: Record<number, number> = {};
+  for (let c = lo; c <= hi; c++) width[c] = colWidth(c, containerW, hovered);
+  x[lo] = 0;
+  for (let c = lo + 1; c <= hi; c++) x[c] = x[c - 1]! + width[c - 1]! + (c < 4 ? LARGE_GAP : SMALL_GAP);
+  const shift = x[0]!;
+  for (let c = lo; c <= hi; c++) x[c] = x[c]! - shift;
+  return { width, x };
 }
 
 function Arrow({ dir }: { dir: 'left' | 'right' }) {
@@ -72,12 +89,14 @@ function NavButton({ dir, onClick, label }: { dir: 'left' | 'right'; onClick: ()
 
 export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] }) {
   const n = items.length;
-  const [order, setOrder] = useState<number[]>(() => items.map((_, i) => i));
-  const [hoveredPos, setHoveredPos] = useState(-1);
+  // cols[i] = current column of item i (0 = active/expanded). Can go negative
+  // (scrolling off the left) before being recycled to the right.
+  const [cols, setCols] = useState<number[]>(() => items.map((_, i) => i));
+  const [hovered, setHovered] = useState(-1);
   const [containerWidth, setContainerWidth] = useState(1232);
+  const [noTransition, setNoTransition] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<Map<number, HTMLElement>>(new Map());
-  const flipFrom = useRef<Map<number, { left: number; width: number }> | null>(null);
+  const animating = useRef(false);
 
   useEffect(() => {
     const el = rowRef.current;
@@ -88,86 +107,49 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
     return () => ro.disconnect();
   }, []);
 
-  const widths = computeWidths(containerWidth, n, hoveredPos);
-  const imageWidth = computeWidths(containerWidth, n, -1)[0] as number;
+  const active = cols.indexOf(0);
+  const { width, x } = layout(containerWidth, hovered, -n, n + 2);
+  const imageWidth = colWidth(0, containerWidth, -1);
 
-  // Rotate `at` to the front, capturing pre-move rects so the layout effect
-  // can FLIP the toward-the-start movement.
-  const reorder = (at: number) => {
-    if (at === 0) return;
-    const rects = new Map<number, { left: number; width: number }>();
-    cardRefs.current.forEach((el, id) => {
-      const r = el.getBoundingClientRect();
-      rects.set(id, { left: r.left, width: r.width });
-    });
-    flipFrom.current = rects;
-    setHoveredPos(-1);
-    setOrder((o) => o.slice(at).concat(o.slice(0, at)));
+  // Scroll the strip left by `by` columns; recycle off-screen cards afterward.
+  const scrollBy = (by: number) => {
+    if (by === 0 || animating.current) return;
+    animating.current = true;
+    setHovered(-1);
+    setCols((prev) => prev.map((c) => c - by));
+    window.setTimeout(() => {
+      setNoTransition(true);
+      setCols((prev) => prev.map((c) => (c < 0 ? c + n : c >= n ? c - n : c)));
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          setNoTransition(false);
+          animating.current = false;
+        })
+      );
+    }, DUR_MS);
   };
 
-  // FLIP on reorder: cards moving toward the start slide + squeeze; cards
-  // wrapping to the end snap. Batched two-pass (measure all natural targets,
-  // then invert → one reflow → play) so writing one card's width doesn't
-  // corrupt the next card's measurement.
-  useLayoutEffect(() => {
-    const from = flipFrom.current;
-    if (!from) return;
-    flipFrom.current = null;
-    const els = Array.from(cardRefs.current.entries()).filter(([id]) => from.has(id));
-    els.forEach(([, el]) => {
-      el.style.transition = 'none';
-      el.style.transform = '';
-    });
-    const targets = new Map<number, { left: number; width: number }>();
-    els.forEach(([id, el]) => {
-      const r = el.getBoundingClientRect();
-      targets.set(id, { left: r.left, width: r.width });
-    });
-    const movers: Array<[HTMLElement, number]> = [];
-    els.forEach(([id, el]) => {
-      const prev = from.get(id);
-      const tgt = targets.get(id);
-      if (!prev || !tgt) return;
-      if (prev.left - tgt.left > 0.5) {
-        el.style.transform = `translateX(${prev.left - tgt.left}px)`;
-        el.style.flexBasis = `${prev.width}px`;
-        movers.push([el, tgt.width]);
-      }
-    });
-    if (movers.length > 0) void document.body.offsetWidth;
-    movers.forEach(([el, width]) => {
-      el.style.transition = `transform ${DUR} ${EASE}, flex-basis ${DUR} ${EASE}`;
-      el.style.transform = 'translateX(0)';
-      el.style.flexBasis = `${width}px`;
-    });
-  }, [order]);
-
-  const activeId = order[0] as number;
+  const transition = noTransition ? 'none' : `left ${DUR_MS}ms ${EASE}, width ${DUR_MS}ms ${EASE}`;
 
   return (
     <div className="squeezy-carousel mt-14">
       <div
         ref={rowRef}
-        onMouseLeave={() => setHoveredPos(-1)}
-        className="squeezy-carousel__canvas flex h-[460px] gap-4 overflow-hidden"
+        onMouseLeave={() => setHovered(-1)}
+        className="squeezy-carousel__canvas relative h-[460px] overflow-hidden"
       >
-        {order.map((id, pos) => {
-          const item = items[id];
-          if (!item) return null;
-          const expanded = pos === 0;
+        {items.map((item, i) => {
+          const c = cols[i]!;
+          const expanded = c === 0;
           return (
             <button
-              key={id}
-              ref={(el) => {
-                if (el) cardRefs.current.set(id, el);
-                else cardRefs.current.delete(id);
-              }}
+              key={item.id}
               type="button"
-              onClick={() => reorder(pos)}
-              onMouseEnter={() => setHoveredPos(pos)}
+              onClick={() => scrollBy(c)}
+              onMouseEnter={() => c >= 0 && c <= 3 && setHovered(c)}
               aria-label={item.title}
-              style={{ flexBasis: `${widths[pos]}px`, transition: `flex-basis ${DUR} ${EASE}` }}
-              className="relative h-full min-w-0 shrink-0 grow-0 cursor-pointer overflow-hidden rounded-xl"
+              style={{ left: `${x[c] ?? 0}px`, width: `${width[c] ?? SMALL_W}px`, transition }}
+              className="absolute top-0 h-full cursor-pointer overflow-hidden rounded-md"
             >
               <span className="absolute top-0 left-1/2 h-full -translate-x-1/2" style={{ width: `${imageWidth}px` }}>
                 <Image src={item.image} alt="" fill sizes="840px" unoptimized className="object-cover" />
@@ -184,11 +166,11 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
 
       <div className="mt-7 grid grid-cols-[1fr_auto] items-start gap-8">
         <div className="squeezy-carousel__items-details-container relative min-h-[96px]">
-          {items.map((item, id) => (
+          {items.map((item, i) => (
             <p
               key={item.id}
-              aria-hidden={id !== activeId}
-              className={`squeezy-carousel__item-details max-w-[720px] text-lg leading-snug transition-opacity duration-[120ms] ease-out ${id === activeId ? 'opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'}`}
+              aria-hidden={i !== active}
+              className={`squeezy-carousel__item-details max-w-[720px] text-lg leading-snug transition-opacity duration-[120ms] ease-out ${i === active ? 'opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'}`}
             >
               <span className="font-medium text-[#061b31]">{item.title} </span>
               <span className="text-[#5b7290]">{item.description}</span>
@@ -199,13 +181,13 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
           href="#"
           className="shrink-0 rounded-md px-5 py-3 text-sm font-medium text-[#533afd] transition-colors hover:bg-[#eef1fb]"
         >
-          {items[activeId]?.cta ?? 'Read more'} ›
+          {items[active]?.cta ?? 'Read more'} ›
         </a>
       </div>
 
       <div className="mt-4 flex justify-end gap-2">
-        <NavButton dir="left" onClick={() => reorder(n - 1)} label="Previous story" />
-        <NavButton dir="right" onClick={() => reorder(1)} label="Next story" />
+        <NavButton dir="left" onClick={() => scrollBy(-1)} label="Previous story" />
+        <NavButton dir="right" onClick={() => scrollBy(1)} label="Next story" />
       </div>
     </div>
   );
