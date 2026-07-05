@@ -2,16 +2,21 @@ import { FoldedSilkCanvas } from './FoldedSilkCanvas';
 
 const GITHUB_URL = 'https://github.com/daviddominguezh/llm-graph-builder';
 
-// Customer wordmarks in the logo bar under the hero, styled to read as the
-// brands' marks.
+// Integration/partner wordmarks in the logo bar under the hero, styled to read
+// as the brands' marks. Kept dark so the silk wave blends over them.
 const LOGO_BAR = [
   { name: '▲ Vercel', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
-  { name: 'Uber', className: 'text-xl font-medium tracking-tight text-[#061b31]' },
-  { name: 'ANTHROP\\C', className: 'text-base font-semibold tracking-[0.08em] text-[#061b31]' },
-  { name: 'lightspeed', className: 'text-xl font-bold tracking-tight text-[#e4573d]' },
-  { name: 'Linear', className: 'text-xl font-medium tracking-tight text-[#061b31]/85' },
-  { name: 'runway', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
-  { name: '⚡ Supabase', className: 'text-lg font-semibold tracking-tight text-[#061b31]/90' },
+  { name: 'Supabase', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
+  { name: 'GitHub', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
+  { name: 'Cloudflare', className: 'text-lg font-semibold tracking-tight text-[#061b31]' },
+  { name: 'Google Cloud', className: 'text-lg font-medium tracking-tight text-[#061b31]' },
+  { name: 'OpenRouter', className: 'text-lg font-semibold tracking-tight text-[#061b31]' },
+  { name: 'React Flow', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
+  { name: 'Tavily', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
+  { name: 'Browserbase', className: 'text-base font-semibold tracking-tight text-[#061b31]' },
+  { name: 'Fly.io', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
+  { name: 'Redis', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
+  { name: 'Upstash', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
 ] as const;
 
 function ArrowIcon() {
