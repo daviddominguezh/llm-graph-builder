@@ -12,24 +12,25 @@ export type HappeningItem = {
 };
 
 // Port of the reference's squeezy-carousel (SqueezyImagesCanvas, chunk
-// 96748.7e2aef2ff10580c3.js). It is a horizontal carousel SCROLL, not a
-// reorder: clicking column t scrolls the whole strip left by t columns — the
-// clicked card glides to column 0 and expands, the cards before it slide off
-// the left edge (recycled), new cards slide in from the right. Widths are the
-// reference's flex fractions; a fixed-size image window is clipped by each
-// card so images never rescale. Duration 1s, easeOutExpo.
+// 96748.7e2aef2ff10580c3.js). A horizontal carousel SCROLL: selecting column t
+// scrolls the strip left by t columns — the clicked card glides to column 0
+// and expands, cards before it slide off the left, new cards slide in from the
+// right. Implemented as a "deck": a keyed list of cards with a base column;
+// selecting decrements the base column (all cards slide left) and appends
+// fresh cards on the right; off-screen cards are pruned. No teleport, so rapid
+// clicks just redirect the in-flight CSS transitions. Duration 1s, easeOutExpo.
 const HEIGHT = 460;
 const SMALL_GAP = 8;
 const LARGE_GAP = 16;
 const SMALL_W = 8;
 const HOVER_OFFSET = 3;
 const DUR_MS = 1000;
-// easeOutExpo (reference easing `1 - 2^(-10t)`) sampled as a CSS linear() curve.
+const MAX_COL = 9; // keep cards populated out to this column on the right
+const MIN_COL = -3; // prune cards left of this
+// easeOutExpo (`1 - 2^(-10t)`) sampled as a CSS linear() curve.
 const EASE =
   'linear(0, 0.293 5%, 0.5 10%, 0.646 15%, 0.75 20%, 0.823 25%, 0.875 30%, 0.912 35%, 0.938 40%, 0.969 50%, 0.984 60%, 0.992 70%, 0.996 80%, 0.998 90%, 1)';
 
-// Column flex fractions: [col0, col1, col2, col3]. Hovering a column swaps in
-// its stretched fraction and squeezes the rest.
 const BASE_FR = [-0.06, 0.61, 0.3, 0.15];
 const SQUEEZED_FR = [-0.12, 0.59, 0.28, 0.13];
 const STRETCHED_FR = [0, 0.71, 0.4, 0.25];
@@ -39,26 +40,31 @@ function fractions(hovered: number): number[] {
   return BASE_FR.map((_, c) => (c === hovered ? STRETCHED_FR[c]! : SQUEEZED_FR[c]!));
 }
 
+const COL0_BASE = (HEIGHT * 16) / 9;
+// Image window = the widest col-0 can ever be (stretched fraction 0), so the
+// image always fills the expanded card and its rounded corners stay clipped.
+const IMAGE_W = Math.ceil(COL0_BASE) + 4;
+
 function colWidth(c: number, containerW: number, hovered: number): number {
-  const base = (HEIGHT * 16) / 9;
-  const medium = containerW - base - (3 * SMALL_GAP + 3 * LARGE_GAP) - 3 * SMALL_W;
-  if (c < 0 || c > 3) return SMALL_W + (c === hovered ? HOVER_OFFSET : 0);
+  const medium = containerW - COL0_BASE - (3 * SMALL_GAP + 3 * LARGE_GAP) - 3 * SMALL_W;
+  if (c < 0 || c > 3) return SMALL_W + (c > 3 && c === hovered ? HOVER_OFFSET : 0);
   const fr = fractions(hovered);
-  return c === 0 ? base + medium * fr[0]! : medium * fr[c]!;
+  return c === 0 ? COL0_BASE + medium * fr[0]! : medium * fr[c]!;
 }
 
-// x-offset of each column (col 0 anchored at 0); gap to a column's left is
-// large for the 4 sized columns, small for the slivers.
 function layout(containerW: number, hovered: number, lo: number, hi: number) {
   const width: Record<number, number> = {};
   const x: Record<number, number> = {};
   for (let c = lo; c <= hi; c++) width[c] = colWidth(c, containerW, hovered);
   x[lo] = 0;
   for (let c = lo + 1; c <= hi; c++) x[c] = x[c - 1]! + width[c - 1]! + (c < 4 ? LARGE_GAP : SMALL_GAP);
-  const shift = x[0]!;
+  const shift = x[0] ?? 0;
   for (let c = lo; c <= hi; c++) x[c] = x[c]! - shift;
   return { width, x };
 }
+
+type Card = { key: number; itemIndex: number };
+type Deck = { cards: Card[]; baseCol: number; nextKey: number };
 
 function Arrow({ dir }: { dir: 'left' | 'right' }) {
   return (
@@ -89,14 +95,16 @@ function NavButton({ dir, onClick, label }: { dir: 'left' | 'right'; onClick: ()
 
 export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] }) {
   const n = items.length;
-  // cols[i] = current column of item i (0 = active/expanded). Can go negative
-  // (scrolling off the left) before being recycled to the right.
-  const [cols, setCols] = useState<number[]>(() => items.map((_, i) => i));
+  const [deck, setDeck] = useState<Deck>(() => {
+    const cards: Card[] = [];
+    let k = 0;
+    for (let c = MIN_COL; c <= MAX_COL; c++) cards.push({ key: k++, itemIndex: ((c % n) + n) % n });
+    return { cards, baseCol: MIN_COL, nextKey: k };
+  });
   const [hovered, setHovered] = useState(-1);
   const [containerWidth, setContainerWidth] = useState(1232);
-  const [noTransition, setNoTransition] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
-  const animating = useRef(false);
+  const pruneTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     const el = rowRef.current;
@@ -107,29 +115,47 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
     return () => ro.disconnect();
   }, []);
 
-  const active = cols.indexOf(0);
-  const { width, x } = layout(containerWidth, hovered, -n, n + 2);
-  const imageWidth = colWidth(0, containerWidth, -1);
-
-  // Scroll the strip left by `by` columns; recycle off-screen cards afterward.
-  const scrollBy = (by: number) => {
-    if (by === 0 || animating.current) return;
-    animating.current = true;
-    setHovered(-1);
-    setCols((prev) => prev.map((c) => c - by));
-    window.setTimeout(() => {
-      setNoTransition(true);
-      setCols((prev) => prev.map((c) => (c < 0 ? c + n : c >= n ? c - n : c)));
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          setNoTransition(false);
-          animating.current = false;
-        })
-      );
-    }, DUR_MS);
+  const schedulePrune = () => {
+    clearTimeout(pruneTimer.current);
+    pruneTimer.current = setTimeout(() => {
+      setDeck(({ cards, baseCol, nextKey }) => {
+        let lo = 0;
+        while (lo < cards.length && baseCol + lo < MIN_COL) lo++;
+        let hi = cards.length;
+        while (hi > lo && baseCol + (hi - 1) > MAX_COL + 2) hi--;
+        if (lo === 0 && hi === cards.length) return { cards, baseCol, nextKey };
+        return { cards: cards.slice(lo, hi), baseCol: baseCol + lo, nextKey };
+      });
+    }, DUR_MS + 150);
   };
 
-  const transition = noTransition ? 'none' : `left ${DUR_MS}ms ${EASE}, width ${DUR_MS}ms ${EASE}`;
+  // Scroll the strip by `by` columns (positive = forward). Appends/prepends
+  // cards so the visible window stays populated; never teleports.
+  const scrollBy = (by: number) => {
+    if (by === 0) return;
+    setHovered(-1);
+    setDeck(({ cards, baseCol, nextKey }) => {
+      const next = [...cards];
+      let base = baseCol - by;
+      let k = nextKey;
+      while (base + next.length - 1 < MAX_COL) {
+        const last = next[next.length - 1]!.itemIndex;
+        next.push({ key: k++, itemIndex: (last + 1) % n });
+      }
+      while (base > MIN_COL) {
+        const first = next[0]!.itemIndex;
+        next.unshift({ key: k++, itemIndex: (first - 1 + n) % n });
+        base -= 1;
+      }
+      return { cards: next, baseCol: base, nextKey: k };
+    });
+    schedulePrune();
+  };
+
+  const { cards, baseCol } = deck;
+  const { width, x } = layout(containerWidth, hovered, baseCol - 1, baseCol + cards.length + 1);
+  const activeItem = cards.find((_, idx) => baseCol + idx === 0)?.itemIndex ?? 0;
+  const transition = `left ${DUR_MS}ms ${EASE}, width ${DUR_MS}ms ${EASE}`;
 
   return (
     <div className="squeezy-carousel mt-14">
@@ -138,12 +164,13 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
         onMouseLeave={() => setHovered(-1)}
         className="squeezy-carousel__canvas relative h-[460px] overflow-hidden"
       >
-        {items.map((item, i) => {
-          const c = cols[i]!;
+        {cards.map((card, idx) => {
+          const c = baseCol + idx;
+          const item = items[card.itemIndex]!;
           const expanded = c === 0;
           return (
             <button
-              key={item.id}
+              key={card.key}
               type="button"
               onClick={() => scrollBy(c)}
               onMouseEnter={() => c >= 0 && c <= 3 && setHovered(c)}
@@ -151,7 +178,7 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
               style={{ left: `${x[c] ?? 0}px`, width: `${width[c] ?? SMALL_W}px`, transition }}
               className="absolute top-0 h-full cursor-pointer overflow-hidden rounded-md"
             >
-              <span className="absolute top-0 left-1/2 h-full -translate-x-1/2" style={{ width: `${imageWidth}px` }}>
+              <span className="absolute top-0 left-1/2 h-full -translate-x-1/2" style={{ width: `${IMAGE_W}px` }}>
                 <Image src={item.image} alt="" fill sizes="840px" unoptimized className="object-cover" />
                 <span
                   className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-6 text-left text-lg font-medium whitespace-nowrap text-white transition-opacity duration-200 ${expanded ? 'opacity-100 delay-200' : 'opacity-0'}`}
@@ -169,8 +196,8 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
           {items.map((item, i) => (
             <p
               key={item.id}
-              aria-hidden={i !== active}
-              className={`squeezy-carousel__item-details max-w-[720px] text-lg leading-snug transition-opacity duration-[120ms] ease-out ${i === active ? 'opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'}`}
+              aria-hidden={i !== activeItem}
+              className={`squeezy-carousel__item-details max-w-[720px] text-lg leading-snug transition-opacity duration-[120ms] ease-out ${i === activeItem ? 'opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'}`}
             >
               <span className="font-medium text-[#061b31]">{item.title} </span>
               <span className="text-[#5b7290]">{item.description}</span>
@@ -181,7 +208,7 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
           href="#"
           className="shrink-0 rounded-md px-5 py-3 text-sm font-medium text-[#533afd] transition-colors hover:bg-[#eef1fb]"
         >
-          {items[active]?.cta ?? 'Read more'} ›
+          {items[activeItem]?.cta ?? 'Read more'} ›
         </a>
       </div>
 
