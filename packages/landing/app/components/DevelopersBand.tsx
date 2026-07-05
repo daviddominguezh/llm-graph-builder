@@ -63,7 +63,7 @@ function ConnectBlock() {
       </h2>
       <div className="relative mt-10 overflow-hidden rounded-lg">
         <Image
-          src="/reference/ConnectBentoBackground.jpg"
+          src="/reference/ConnectBentoBackground.webp"
           alt=""
           width={1242}
           height={454}

@@ -185,7 +185,7 @@ export function SolutionsBento() {
         <div className="mt-14 flex flex-wrap gap-4">
           <BentoCard
             title="Deploy agents across every channel, in every tenant"
-            className="grow basis-[calc(66.666%-8px)] lg:aspect-[816/686]"
+            className="grow basis-[calc(66.666%-8px)] lg:aspect-[816/600]"
           >
             <ChatMockup />
           </BentoCard>
@@ -199,7 +199,7 @@ export function SolutionsBento() {
           <BentoCard
             title="Monetize agent commerce"
             description="Charge per plan, per seat, or per token — pricing that follows your agents."
-            className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px] lg:aspect-[400/690]"
+            className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px] lg:aspect-[400/600]"
           >
             <ParticleFieldCanvas mode="scatter" />
             <div className="relative">
