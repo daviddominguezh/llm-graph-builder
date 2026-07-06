@@ -5,13 +5,13 @@ import logoCloudflare from '@/public/cloudicons/logo_cloudflare.png';
 import logoFly from '@/public/cloudicons/logo_fly.png';
 import logoGithub from '@/public/cloudicons/logo_github.png';
 import logoGoogle from '@/public/cloudicons/logo_google.png';
-import logoOpenrouter from '@/public/cloudicons/logo_openrouter.svg';
+import logoOpenrouter from '@/public/cloudicons/logo_openrouter.png';
 import logoReactflow from '@/public/cloudicons/logo_reactflow.png';
 import logoRedis from '@/public/cloudicons/logo_redis.webp';
 import logoSupabase from '@/public/cloudicons/logo_supabase.png';
 import logoTavily from '@/public/cloudicons/logo_tavily.png';
 import logoUpstash from '@/public/cloudicons/logo_upstash.png';
-import logoVercel from '@/public/cloudicons/logo_vercel.svg';
+import logoVercel from '@/public/cloudicons/logo_vercel.png';
 
 import { FoldedSilkCanvas } from './FoldedSilkCanvas';
 
