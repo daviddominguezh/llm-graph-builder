@@ -1,8 +1,8 @@
 import Image from 'next/image';
 
 import { BentoCard } from './BentoCard';
-import { ScrollFadeSection } from './ScrollFadeSection';
 import { ParticleFieldCanvas } from './ParticleFieldCanvas';
+import { ScrollFadeSection } from './ScrollFadeSection';
 import { SectionHeading } from './SectionHeading';
 
 const CARD_BORDER = 'border border-white/8';
@@ -143,7 +143,13 @@ function ProductCards() {
       {PRODUCTS.map((product) => (
         <div key={product.name} className={`rounded-md bg-white/5 p-3 ${CARD_BORDER}`}>
           <div className="flex items-center justify-center rounded-md bg-white/5 p-3">
-            <Image src={product.image} alt="" width={160} height={160} className="h-auto w-full max-w-[96px]" />
+            <Image
+              src={product.image}
+              alt=""
+              width={160}
+              height={160}
+              className="h-auto w-full max-w-[96px]"
+            />
           </div>
           <p className="mt-2 text-xs font-semibold text-white">{product.name}</p>
           <p className="text-[11px] text-white/45">{product.variant}</p>
@@ -169,82 +175,88 @@ function CodeSnippet() {
 
 export function SolutionsBento() {
   return (
-    <ScrollFadeSection from="#0d0d0d" to="#101010" className="modular-solutions px-10 pt-24 pb-4">
-      <div className="mx-auto max-w-[1232px]">
-        <SectionHeading
-          dark
-          lead="Flexible solutions for every agent business."
-          rest="Grow your company with a complete set of agent and monetization tools designed to work individually or together."
-        />
+    <div className="w-full bg-[#070707]">
+      <ScrollFadeSection
+        from="#070707"
+        to="#101010"
+        className="modular-solutions px-10 pt-24 pb-4"
+      >
+        <div className="mx-auto max-w-[1232px]">
+          <SectionHeading
+            dark
+            lead="Flexible solutions for every agent business."
+            rest="Grow your company with a complete set of agent and monetization tools designed to work individually or together."
+          />
 
-        {/* Exact reference layout: ONE flex-wrap container, gap 16px. Cards
+          {/* Exact reference layout: ONE flex-wrap container, gap 16px. Cards
             size via flex-basis(calc %) + max-width + grow, and wrap into
             rows (66.6+33.3, 33.3x3, 100%). Flex align-stretch gives cards in
             the same row equal height; the graphic-heavy cards carry an
             aspect ratio as their intrinsic height source (our content differs
             from the reference's fixed-size graphics). */}
-        <div className="mt-14 flex flex-wrap gap-4">
-          <BentoCard
-            title="Deploy agents across every channel, in every tenant"
-            className="grow basis-[calc(66.666%-8px)] lg:aspect-[816/600]"
-          >
-            <ChatMockup />
-          </BentoCard>
-          <BentoCard
-            title="Enable any billing model"
-            className="grow basis-[calc(33.333%-8px)] lg:max-w-[400px]"
-          >
-            <BillingMockup />
-          </BentoCard>
+          <div className="mt-14 flex flex-wrap gap-4">
+            <BentoCard
+              title="Deploy agents across every channel, in every tenant"
+              className="grow basis-[calc(66.666%-8px)] lg:aspect-[816/600]"
+            >
+              <ChatMockup />
+            </BentoCard>
+            <BentoCard
+              title="Enable any billing model"
+              className="grow basis-[calc(33.333%-8px)] lg:max-w-[400px]"
+            >
+              <BillingMockup />
+            </BentoCard>
 
-          <BentoCard
-            title="Monetize agent commerce"
-            description="Charge per plan, per seat, or per token — pricing that follows your agents."
-            className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px] lg:aspect-[400/600]"
-          >
-            <ParticleFieldCanvas mode="scatter" />
-            <div className="relative">
-              <ProductCards />
-            </div>
-          </BentoCard>
-          <BentoCard
-            title="Create per-tenant channels"
-            description="Every customer gets their own numbers, workspaces, and identities."
-            className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px]"
-          >
-            <ChannelChips />
-          </BentoCard>
-          <BentoCard
-            title="Access usage-based revenue"
-            description="Meter every conversation and turn agent traffic into recurring revenue."
-            className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px]"
-          >
-            <ParticleFieldCanvas mode="globe" />
-            <div className="relative">
-              <RevenueSparkline />
-            </div>
-          </BentoCard>
-
-          <BentoCard
-            title="Integrate agents into your platform"
-            description="A single API call provisions an isolated tenant with channels, memory, and billing."
-            className="grow basis-full lg:aspect-[1232/456]"
-          >
-            <div className="flex items-start gap-8">
-              <div className="min-w-0 flex-1">
-                <CodeSnippet />
+            <BentoCard
+              title="Monetize agent commerce"
+              description="Charge per plan, per seat, or per token — pricing that follows your agents."
+              className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px] lg:aspect-[400/600]"
+            >
+              <ParticleFieldCanvas mode="scatter" />
+              <div className="relative">
+                <ProductCards />
               </div>
-              <Image
-                src="/reference/bento-terminal.png"
-                alt=""
-                width={308}
-                height={525}
-                className="mt-6 hidden w-[240px] shrink-0 rounded-lg lg:block"
-              />
-            </div>
-          </BentoCard>
+            </BentoCard>
+            <BentoCard
+              title="Create per-tenant channels"
+              description="Every customer gets their own numbers, workspaces, and identities."
+              className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px]"
+            >
+              <ChannelChips />
+            </BentoCard>
+            <BentoCard
+              title="Access usage-based revenue"
+              description="Meter every conversation and turn agent traffic into recurring revenue."
+              className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px]"
+            >
+              <ParticleFieldCanvas mode="globe" />
+              <div className="relative">
+                <RevenueSparkline />
+              </div>
+            </BentoCard>
+
+            <BentoCard
+              title="Integrate agents into your platform"
+              description="A single API call provisions an isolated tenant with channels, memory, and billing."
+              className="grow basis-full lg:aspect-[1232/456]"
+            >
+              <div className="flex items-start gap-8">
+                <div className="min-w-0 flex-1">
+                  <CodeSnippet />
+                </div>
+                <Image
+                  src="/reference/bento-terminal.png"
+                  alt=""
+                  width={308}
+                  height={525}
+                  className="mt-6 hidden w-[240px] shrink-0 rounded-lg lg:block"
+                />
+              </div>
+            </BentoCard>
+          </div>
         </div>
-      </div>
-    </ScrollFadeSection>
+      </ScrollFadeSection>
+    </div>
   );
 }

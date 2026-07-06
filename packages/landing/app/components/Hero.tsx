@@ -1,5 +1,3 @@
-import Image from 'next/image';
-
 import logoBrowserbase from '@/public/cloudicons/logo_browserbase.png';
 import logoCloudflare from '@/public/cloudicons/logo_cloudflare.png';
 import logoFly from '@/public/cloudicons/logo_fly.png';
@@ -12,6 +10,7 @@ import logoSupabase from '@/public/cloudicons/logo_supabase.png';
 import logoTavily from '@/public/cloudicons/logo_tavily.png';
 import logoUpstash from '@/public/cloudicons/logo_upstash.png';
 import logoVercel from '@/public/cloudicons/logo_vercel.png';
+import Image from 'next/image';
 
 import { HeroWave } from './HeroWave';
 
@@ -38,7 +37,13 @@ const LOGO_BAR = [
 function ArrowIcon() {
   return (
     <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-      <path d="M4 2l4 4-4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M4 2l4 4-4 4"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -106,8 +111,7 @@ function LogoBar() {
 const HEADING_LEAD = 'AI infrastructure to power your SaaS.';
 const HEADING_REST =
   ' Build an agent, connect WhatsApp, Slack, or your own website, and give every customer their own isolated instance, from your first tenant to your last.';
-const HEADING_BASE =
-  'max-w-[961px] text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]';
+const HEADING_BASE = 'max-w-[961px] text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]';
 
 // The blend must live on the <h1>: its z-[2] makes it a stacking context, so a
 // mix-blend on a child would only blend against the h1's own (empty) backdrop,
@@ -129,7 +133,7 @@ function HeroHeading() {
 
 export function Hero() {
   return (
-    <section className="hero-wave-animation relative isolate overflow-hidden bg-[#0d0d0d]">
+    <section className="hero-wave-animation relative isolate overflow-hidden bg-[#070707]">
       {/* Hero-local guide rails: the section is isolated (for the marquee
           stacking), which paints it atomically above the page-level guides —
           so the rails are re-drawn here, under the silk. */}
