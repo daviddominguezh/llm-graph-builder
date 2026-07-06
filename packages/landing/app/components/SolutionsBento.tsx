@@ -176,11 +176,7 @@ function CodeSnippet() {
 export function SolutionsBento() {
   return (
     <div className="w-full bg-[#070707]">
-      <ScrollFadeSection
-        from="#070707"
-        to="#101010"
-        className="modular-solutions px-10 pt-24 pb-4"
-      >
+      <ScrollFadeSection from="#070707" to="#101010" className="modular-solutions px-10 pt-24 pb-4">
         <div className="mx-auto max-w-[1232px]">
           <SectionHeading
             dark
@@ -195,6 +191,30 @@ export function SolutionsBento() {
             aspect ratio as their intrinsic height source (our content differs
             from the reference's fixed-size graphics). */}
           <div className="mt-14 flex flex-wrap gap-4">
+            <BentoCard className="block w-full lg:aspect-[27/10]">
+              <Image
+                src="/reference/ConnectBentoBackground2.webp"
+                alt=""
+                fill
+                sizes="1232px"
+                className="absolute inset-0 -z-10 object-cover [object-position:50%_25%]"
+              />
+              <div className="relative flex flex-1 flex-col justify-between">
+                <div className="self-start text-lg font-semibold tracking-tight text-white">OpenFlow</div>
+                <div className="flex flex-col gap-4">
+                  <h2 className="max-w-[659px] text-[48px] leading-[1.03] font-light tracking-[-0.02em] text-white">
+                    Powering the businesses building AI agents.
+                  </h2>
+                  <a
+                    href="#"
+                    className="inline-flex h-12 w-fit items-center rounded-[4px] bg-white px-6 text-base font-normal text-[#533afd] transition-colors duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] hover:text-[#3a1fd0]"
+                  >
+                    Get started
+                  </a>
+                </div>
+              </div>
+            </BentoCard>
+            
             <BentoCard
               title="Deploy agents across every channel, in every tenant"
               className="grow basis-[calc(66.666%-8px)] lg:aspect-[816/600]"

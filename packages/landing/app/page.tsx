@@ -5,7 +5,6 @@ import { GlobalScale } from './components/GlobalScale';
 import { Happenings } from './components/Happenings';
 import { Hero } from './components/Hero';
 import { Navbar } from './components/Navbar';
-import { SessionsBand } from './components/SessionsBand';
 import { SolutionsBento } from './components/SolutionsBento';
 
 export default function Home() {
@@ -24,7 +23,6 @@ export default function Home() {
       <main id="main">
         <Hero />
         <SolutionsBento />
-        <SessionsBand />
         <GlobalScale />
         <CaseStudies />
         <DevelopersBand />

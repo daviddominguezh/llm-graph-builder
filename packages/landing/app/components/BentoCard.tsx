@@ -30,7 +30,7 @@ function DialogEntryIcon() {
 }
 
 type BentoCardProps = {
-  title: string;
+  title?: string;
   description?: string;
   children?: ReactNode;
   className?: string;
@@ -112,11 +112,13 @@ export function BentoCard({ title, description, children, className = '' }: Bent
           aria-hidden="true"
           className="modular-solutions-bento-card__inner pointer-events-none absolute -inset-[4px] bg-black transition-[clip-path] duration-[800ms] ease-[cubic-bezier(0.165,0.84,0.44,1)] [clip-path:inset(4px_4.8284px_round_5px)] group-hover:[clip-path:inset(0px_round_5px)]"
         />
-        <div className="modular-solutions-bento-card__content relative flex h-full flex-col overflow-hidden rounded-[5px] p-6">
+        <div className="modular-solutions-bento-card__content relative isolate flex h-full flex-col overflow-hidden rounded-[5px] p-6">
           <DialogEntryIcon />
-          <h3 className="max-w-[320px] pr-9 text-[26px] font-light leading-[1.12] tracking-[-0.01em] text-white">
-            {title}
-          </h3>
+          {title !== undefined && (
+            <h3 className="max-w-[320px] pr-9 text-[26px] font-light leading-[1.12] tracking-[-0.01em] text-white">
+              {title}
+            </h3>
+          )}
           {description !== undefined && (
             <p className="mt-2 text-sm leading-relaxed text-white/60">{description}</p>
           )}
@@ -126,9 +128,11 @@ export function BentoCard({ title, description, children, className = '' }: Bent
 
       {open && (
         <Modal onClose={() => setOpen(false)}>
-          <h3 className="pr-8 text-[26px] font-light leading-[1.12] tracking-[-0.01em] text-white">
-            {title}
-          </h3>
+          {title !== undefined && (
+            <h3 className="pr-8 text-[26px] font-light leading-[1.12] tracking-[-0.01em] text-white">
+              {title}
+            </h3>
+          )}
           {description !== undefined && (
             <p className="mt-3 text-base leading-relaxed text-white/60">{description}</p>
           )}
