@@ -1,6 +1,4 @@
-import Image from 'next/image';
-
-import { HappeningsCarousel, type HappeningItem } from './HappeningsCarousel';
+import { type HappeningItem, HappeningsCarousel } from './HappeningsCarousel';
 import { SectionHeading } from './SectionHeading';
 
 // OpenFlow story slots reusing the reference's imagery.
@@ -9,7 +7,7 @@ const NEWS: HappeningItem[] = [
     id: 'annual',
     title: 'Agents on OpenFlow handled 1.9 B conversations in 2025.',
     description:
-      "Our annual letter breaks down a record year for agent traffic and what it signals for the businesses building on OpenFlow.",
+      'Our annual letter breaks down a record year for agent traffic and what it signals for the businesses building on OpenFlow.',
     cta: 'Read the letter',
     image: '/reference/annual-letter-mobile.png',
   },
@@ -24,8 +22,7 @@ const NEWS: HappeningItem[] = [
   {
     id: 'agentic',
     title: 'Make your agents discoverable through AI platforms.',
-    description:
-      'Publish an agent once and let it show up wherever your customers already ask questions.',
+    description: 'Publish an agent once and let it show up wherever your customers already ask questions.',
     cta: 'Learn more',
     image: '/reference/the-happenings-agentic-mobile.png',
   },
@@ -71,28 +68,6 @@ const NEWS: HappeningItem[] = [
   },
 ];
 
-function BookOfTheWeek() {
-  return (
-    <div className="book-of-the-week mt-16 grid items-center gap-10 border-t border-dashed border-neutral-800 pt-14 lg:grid-cols-[220px_1fr]">
-      <Image
-        src="/reference/Reminiscences_of_a_Stock_Operator.png"
-        alt="Book of the week cover"
-        width={296}
-        height={440}
-        className="w-[180px] rounded-md shadow-[0_10px_20px_-6px_rgba(50,50,93,0.3)]"
-      />
-      <div>
-        <p className="text-sm font-semibold text-[#061b31]">Book of the week</p>
-        <p className="mt-2 max-w-[520px] text-sm leading-relaxed text-[#425466]">
-          Timeless lessons on markets, risk, and conviction — required reading for anyone building the
-          infrastructure other businesses run on.
-        </p>
-        <span className="mt-3 inline-block text-sm font-medium text-[#533afd]">Borrow it ›</span>
-      </div>
-    </div>
-  );
-}
-
 export function Happenings() {
   return (
     <section className="the-happenings bg-white px-10 py-24">
@@ -103,8 +78,6 @@ export function Happenings() {
         />
 
         <HappeningsCarousel items={NEWS} />
-
-        <BookOfTheWeek />
       </div>
     </section>
   );
