@@ -19,10 +19,20 @@ export function HeroWave({ className }: { className: string }) {
     void navigator.clipboard?.writeText(JSON.stringify(params, null, 2));
   }, [params]);
 
+  const setFromJson = useCallback((incoming: WaveParams) => {
+    setParams((prev) => ({ ...prev, ...incoming }));
+  }, []);
+
   return (
     <>
       <FoldedSilkCanvas variant="solid" className={className} params={params} />
-      <WaveControls params={params} onChange={setParam} onReset={reset} onCopy={copy} />
+      <WaveControls
+        params={params}
+        onChange={setParam}
+        onReset={reset}
+        onCopy={copy}
+        onSetJson={setFromJson}
+      />
     </>
   );
 }
