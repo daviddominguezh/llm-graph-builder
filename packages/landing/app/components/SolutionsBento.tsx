@@ -5,7 +5,7 @@ import { ScrollFadeSection } from './ScrollFadeSection';
 import { ParticleFieldCanvas } from './ParticleFieldCanvas';
 import { SectionHeading } from './SectionHeading';
 
-const CARD_BORDER = 'border border-[#e5edf5]';
+const CARD_BORDER = 'border border-white/8';
 
 // Chat-agent mockup inside a browser-window frame matching the reference's
 // browser-graphic CSS: translucent #f8fafd window, 6px radius, soft 15/35
@@ -20,15 +20,15 @@ function ChatMockup() {
         alt=""
         width={860}
         height={712}
-        className="absolute inset-0 h-full w-full object-cover opacity-60"
+        className="absolute inset-0 h-full w-full object-cover opacity-15"
       />
-      <div className="browser-graphic__window relative flex h-full flex-col overflow-hidden rounded-md bg-[#f8fafd]/45 shadow-[0_15px_35px_rgba(23,23,23,0.08)]">
+      <div className="browser-graphic__window relative flex h-full flex-col overflow-hidden rounded-md bg-white/5 shadow-[0_15px_35px_rgba(23,23,23,0.08)]">
         <div className="browser-graphic__window-top-bar grid grid-cols-[1fr] items-center px-5 py-0.5">
-          <span className="browser-graphic__url-box justify-self-start rounded-2xl bg-white/40 px-2 py-0.5 text-[11px] text-[#425466]">
+          <span className="browser-graphic__url-box justify-self-start rounded-2xl bg-white/10 px-2 py-0.5 text-[11px] text-white/50">
             acme-travel.openflow.app
           </span>
         </div>
-        <div className="min-h-0 flex-1 overflow-hidden bg-white/70 p-5">
+        <div className="min-h-0 flex-1 overflow-hidden bg-white/[0.03] p-5">
           <ChatMockupBody />
         </div>
       </div>
@@ -41,16 +41,16 @@ function ChatMockupBody() {
     <div className="relative">
       <div className="flex items-center gap-2 border-b border-dashed border-neutral-800 pb-3">
         <span className="h-2 w-2 rounded-full bg-[#2ec46e]" />
-        <span className="text-xs font-medium text-[#425466]">agent · acme-travel · WhatsApp</span>
+        <span className="text-xs font-medium text-white/60">agent · acme-travel · WhatsApp</span>
       </div>
       <div className="mt-4 space-y-3">
-        <div className="max-w-[75%] rounded-lg bg-white px-3 py-2 text-xs text-[#425466] shadow-sm">
+        <div className="max-w-[75%] rounded-lg bg-white/10 px-3 py-2 text-xs text-white/70 shadow-sm">
           Hi! I need to move my flight to Friday.
         </div>
         <div className="ml-auto max-w-[75%] rounded-lg bg-[#533afd] px-3 py-2 text-xs text-white shadow-sm">
           Sure — you&apos;re confirmed on the 10:40 AM to Denver this Friday. Anything else?
         </div>
-        <div className="max-w-[75%] rounded-lg bg-white px-3 py-2 text-xs text-[#425466] shadow-sm">
+        <div className="max-w-[75%] rounded-lg bg-white/10 px-3 py-2 text-xs text-white/70 shadow-sm">
           That was fast. Thanks!
         </div>
       </div>
@@ -63,28 +63,28 @@ function BillingMockup() {
   const bars = [18, 26, 22, 34, 30, 42, 38, 52, 46, 60, 55, 70];
   return (
     <div className="mt-8 space-y-4">
-      <div className={`rounded-md bg-white p-5 ${CARD_BORDER}`}>
+      <div className={`rounded-md bg-white/5 p-5 ${CARD_BORDER}`}>
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#533afd]/10 text-sm font-semibold text-[#533afd]">
             P
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#061b31]">Plan Pro</p>
-            <p className="text-xs text-[#425466]">Monthly billing</p>
+            <p className="text-sm font-semibold text-white">Plan Pro</p>
+            <p className="text-xs text-white/55">Monthly billing</p>
           </div>
         </div>
         {/* Audited off billing-plan-graphic: label 12px/400, meter track
             14px tall / 4px radius / #f8fafd, fill 3px radius. */}
-        <p className="mt-4 text-xs font-normal text-[#061b31]">Tokens</p>
-        <p className="text-xs text-[#425466]">USD 0.01 per 1,000 units</p>
-        <p className="mt-3 text-xs text-[#425466]">◔ Usage meter</p>
-        <div className="billing-plan-graphic__usage-bar mt-1.5 h-[14px] overflow-hidden rounded bg-[#f8fafd]">
+        <p className="mt-4 text-xs font-normal text-white">Tokens</p>
+        <p className="text-xs text-white/55">USD 0.01 per 1,000 units</p>
+        <p className="mt-3 text-xs text-white/55">◔ Usage meter</p>
+        <div className="billing-plan-graphic__usage-bar mt-1.5 h-[14px] overflow-hidden rounded bg-white/10">
           <div className="h-full w-[45%] rounded-[3px] bg-gradient-to-r from-[#533afd] via-[#a05df0] to-[#f06bb3]" />
         </div>
       </div>
-      <div className={`rounded-md bg-white p-5 ${CARD_BORDER}`}>
-        <p className="text-xs text-[#425466]">Tokens used in the last 30 days</p>
-        <p className="mt-1 text-sm font-semibold text-[#061b31]">1,757,267,878</p>
+      <div className={`rounded-md bg-white/5 p-5 ${CARD_BORDER}`}>
+        <p className="text-xs text-white/55">Tokens used in the last 30 days</p>
+        <p className="mt-1 text-sm font-semibold text-white">1,757,267,878</p>
         <div className="mt-3 flex h-16 items-end gap-1.5">
           {bars.map((height, i) => (
             <div key={i} className="w-3 rounded-sm bg-[#7a73f0]/70" style={{ height: `${height}%` }} />
@@ -101,7 +101,7 @@ function ChannelChips() {
       {['WhatsApp', 'Slack', 'Web chat', 'Email', 'Voice'].map((channel) => (
         <span
           key={channel}
-          className="rounded-full border border-[#061b31]/10 bg-[#f6f9fc] px-3 py-1 text-xs font-medium text-[#425466]"
+          className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/70"
         >
           {channel}
         </span>
@@ -141,14 +141,14 @@ function ProductCards() {
   return (
     <div className="agentic-commerce-graphic__products mx-auto mt-6 grid max-w-[276px] grid-cols-2 gap-3">
       {PRODUCTS.map((product) => (
-        <div key={product.name} className={`rounded-md bg-white p-3 ${CARD_BORDER}`}>
-          <div className="flex items-center justify-center rounded-md bg-[#eef2f7] p-3">
+        <div key={product.name} className={`rounded-md bg-white/5 p-3 ${CARD_BORDER}`}>
+          <div className="flex items-center justify-center rounded-md bg-white/5 p-3">
             <Image src={product.image} alt="" width={160} height={160} className="h-auto w-full max-w-[96px]" />
           </div>
-          <p className="mt-2 text-xs font-semibold text-[#061b31]">{product.name}</p>
-          <p className="text-[11px] text-[#7a8bb0]">{product.variant}</p>
-          <p className="mt-1 text-xs font-semibold text-[#061b31]">{product.price}</p>
-          <p className="text-[11px] text-[#425466]">Cartsy</p>
+          <p className="mt-2 text-xs font-semibold text-white">{product.name}</p>
+          <p className="text-[11px] text-white/45">{product.variant}</p>
+          <p className="mt-1 text-xs font-semibold text-white">{product.price}</p>
+          <p className="text-[11px] text-white/55">Cartsy</p>
         </div>
       ))}
     </div>

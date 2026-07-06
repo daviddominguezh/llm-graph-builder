@@ -14,6 +14,15 @@ export const metadata: Metadata = {
   title: 'OpenFlow | AI Dev Platform',
   description:
     'Build an AI agent, connect WhatsApp, Slack, or a chatbot — and each of your customers gets their own isolated instance. Multi-tenant from day one. MIT licensed.',
+  // Theme-aware favicon: the browser tab bar follows the browser color scheme,
+  // so serve the black icon on light and the white icon on dark. Defining
+  // `icons` here disables Next's automatic app/icon.png detection.
+  icons: {
+    icon: [
+      { url: '/iconBlack.png', media: '(prefers-color-scheme: light)' },
+      { url: '/iconWhite.png', media: '(prefers-color-scheme: dark)' },
+    ],
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

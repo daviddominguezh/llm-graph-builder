@@ -121,7 +121,7 @@ const HEADING_BASE =
 function HeroHeading() {
   return (
     <h1 className={`${HEADING_BASE} relative z-[2] mt-[32px] mix-blend-plus-lighter`}>
-      <em className="font-medium not-italic text-white">{HEADING_LEAD}</em>
+      <em className="font-normal not-italic text-white">{HEADING_LEAD}</em>
       <span className="font-extralight text-white/40">{HEADING_REST}</span>
     </h1>
   );
