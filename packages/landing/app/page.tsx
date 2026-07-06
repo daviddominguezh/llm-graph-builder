@@ -6,6 +6,7 @@ import { Happenings } from './components/Happenings';
 import { Hero } from './components/Hero';
 import { Navbar } from './components/Navbar';
 import { SolutionsBento } from './components/SolutionsBento';
+import { StoryScroll } from './components/StoryScroll';
 
 export default function Home() {
   return (
@@ -24,6 +25,7 @@ export default function Home() {
         <Hero />
         <SolutionsBento />
         <GlobalScale />
+        <StoryScroll />
         <CaseStudies />
         <DevelopersBand />
         <Happenings />
