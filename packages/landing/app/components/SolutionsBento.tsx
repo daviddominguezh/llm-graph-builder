@@ -192,12 +192,14 @@ export function SolutionsBento() {
             from the reference's fixed-size graphics). */}
           <div className="mt-14 flex flex-wrap gap-4">
             <BentoCard className="block w-full lg:aspect-[27/10]">
+              {/* Only this card: the background image grows with the frame on
+                  hover (same 0.8s ease as the card's expand). */}
               <Image
                 src="/reference/ConnectBentoBackground2.webp"
                 alt=""
                 fill
                 sizes="1232px"
-                className="absolute inset-0 -z-10 object-cover [object-position:50%_25%]"
+                className="absolute inset-0 -z-10 object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.165,0.84,0.44,1)] group-hover:scale-[1.05] [object-position:50%_25%]"
               />
               <div className="relative flex flex-1 flex-col justify-between">
                 <div className="self-start text-lg font-semibold tracking-tight text-white">OpenFlow</div>
