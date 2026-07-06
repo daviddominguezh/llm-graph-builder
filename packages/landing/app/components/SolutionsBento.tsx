@@ -39,7 +39,7 @@ function ChatMockup() {
 function ChatMockupBody() {
   return (
     <div className="relative">
-      <div className="flex items-center gap-2 border-b border-[#061b31]/8 pb-3">
+      <div className="flex items-center gap-2 border-b border-dashed border-[#061b31]/8 pb-3">
         <span className="h-2 w-2 rounded-full bg-[#2ec46e]" />
         <span className="text-xs font-medium text-[#425466]">agent · acme-travel · WhatsApp</span>
       </div>

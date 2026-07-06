@@ -51,7 +51,7 @@ const INTEGRATION_PATHS = [
 
 function ConnectBlock() {
   return (
-    <div className="border-b border-white/8 pb-16">
+    <div className="border-b border-dashed border-white/8 pb-16">
       <h2 className="max-w-2xl text-2xl leading-snug tracking-[-0.01em]">
         <em className="font-normal not-italic text-white">Connect with existing systems.</em>{' '}
         <span className="text-[#7d90b8]">
@@ -67,7 +67,7 @@ function ConnectBlock() {
 
 function IntegrationPaths() {
   return (
-    <div className="mt-20 border-t border-white/8 pt-16">
+    <div className="mt-20 border-t border-dashed border-white/8 pt-16">
       <h2 className="max-w-2xl text-2xl leading-snug tracking-[-0.01em]">
         <em className="font-normal not-italic text-white">Choose an integration path.</em>{' '}
         <span className="text-[#7d90b8]">
@@ -105,7 +105,7 @@ export function DevelopersBand() {
         }}
       />
 
-      <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-white/8 lg:block" />
+      <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-dashed border-white/8 lg:block" />
 
       <div className="relative mx-auto w-full max-w-[1232px] px-0 pt-24 pb-24">
         <ConnectBlock />

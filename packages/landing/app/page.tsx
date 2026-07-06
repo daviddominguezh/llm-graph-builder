@@ -15,7 +15,7 @@ export default function Home() {
           (positioned, later in DOM) passes over them. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-[#061b31]/6 lg:block"
+        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-dashed border-[#061b31]/6 lg:block"
       />
       {/* Section sequence mirrors the reference 1:1: hero → solutions bento →
           global backbone → businesses of all sizes → developers → happenings.

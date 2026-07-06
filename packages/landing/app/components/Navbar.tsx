@@ -22,7 +22,7 @@ function GitHubStarButton({ stars }: { stars: number | null }) {
       rel="noopener noreferrer"
       className="inline-flex h-10 items-stretch overflow-hidden rounded-md border border-[#d0d7de] bg-white text-sm font-semibold text-[#24292f]"
     >
-      <span className="flex items-center gap-2 border-r border-[#d0d7de] bg-[#f6f8fa] px-3.5 transition-colors hover:bg-[#eef1f4]">
+      <span className="flex items-center gap-2 border-r border-dashed border-[#d0d7de] bg-[#f6f8fa] px-3.5 transition-colors hover:bg-[#eef1f4]">
         <GitHubIcon />
         Star
       </span>
@@ -55,7 +55,7 @@ export async function Navbar() {
   const stars = await fetchGitHubStars();
 
   return (
-    <nav className="absolute top-0 w-full bg-transparent border-b border-[#061b31]/6">
+    <nav className="absolute top-0 w-full bg-transparent border-b border-dashed border-[#061b31]/6">
       <div className="mx-auto flex h-[76px] max-w-[1240px] items-center justify-between px-6">
         <div className="flex items-center gap-12">
           <a href="#" className="flex items-center">

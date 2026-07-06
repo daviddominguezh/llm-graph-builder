@@ -1,22 +1,38 @@
+import Image from 'next/image';
+
+import logoBrowserbase from '@/public/cloudicons/logo_browserbase.png';
+import logoCloudflare from '@/public/cloudicons/logo_cloudflare.png';
+import logoFly from '@/public/cloudicons/logo_fly.png';
+import logoGithub from '@/public/cloudicons/logo_github.png';
+import logoGoogle from '@/public/cloudicons/logo_google.png';
+import logoOpenrouter from '@/public/cloudicons/logo_openrouter.svg';
+import logoReactflow from '@/public/cloudicons/logo_reactflow.png';
+import logoRedis from '@/public/cloudicons/logo_redis.webp';
+import logoSupabase from '@/public/cloudicons/logo_supabase.png';
+import logoTavily from '@/public/cloudicons/logo_tavily.png';
+import logoUpstash from '@/public/cloudicons/logo_upstash.png';
+import logoVercel from '@/public/cloudicons/logo_vercel.svg';
+
 import { FoldedSilkCanvas } from './FoldedSilkCanvas';
 
 const GITHUB_URL = 'https://github.com/daviddominguezh/llm-graph-builder';
 
-// Integration/partner wordmarks in the logo bar under the hero, styled to read
-// as the brands' marks. Kept dark so the silk wave blends over them.
+// Integration/partner logos in the hero logo bar. Each asset already includes
+// the brand's wordmark, so no text label — rendered at a fixed height with
+// auto width so varied aspect ratios stay undistorted.
 const LOGO_BAR = [
-  { name: '▲ Vercel', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
-  { name: 'Supabase', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
-  { name: 'GitHub', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
-  { name: 'Cloudflare', className: 'text-lg font-semibold tracking-tight text-[#061b31]' },
-  { name: 'Google Cloud', className: 'text-lg font-medium tracking-tight text-[#061b31]' },
-  { name: 'OpenRouter', className: 'text-lg font-semibold tracking-tight text-[#061b31]' },
-  { name: 'React Flow', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
-  { name: 'Tavily', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
-  { name: 'Browserbase', className: 'text-base font-semibold tracking-tight text-[#061b31]' },
-  { name: 'Fly.io', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
-  { name: 'Redis', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
-  { name: 'Upstash', className: 'text-xl font-semibold tracking-tight text-[#061b31]' },
+  { name: 'Vercel', src: logoVercel },
+  { name: 'Supabase', src: logoSupabase },
+  { name: 'GitHub', src: logoGithub },
+  { name: 'Cloudflare', src: logoCloudflare },
+  { name: 'Google Cloud', src: logoGoogle },
+  { name: 'OpenRouter', src: logoOpenrouter },
+  { name: 'React Flow', src: logoReactflow },
+  { name: 'Tavily', src: logoTavily },
+  { name: 'Browserbase', src: logoBrowserbase },
+  { name: 'Fly.io', src: logoFly },
+  { name: 'Redis', src: logoRedis },
+  { name: 'Upstash', src: logoUpstash },
 ] as const;
 
 function ArrowIcon() {
@@ -64,8 +80,8 @@ function LogoTiles({ hidden }: { hidden?: boolean }) {
   return (
     <div className="flex shrink-0 items-center" aria-hidden={hidden === true ? 'true' : undefined}>
       {LOGO_BAR.map((logo) => (
-        <span key={logo.name} className="flex h-[72px] w-[172px] shrink-0 items-center justify-center">
-          <span className={logo.className}>{logo.name}</span>
+        <span key={logo.name} className="flex h-[72px] shrink-0 items-center px-9">
+          <Image src={logo.src} alt={logo.name} className="h-[23px] w-auto object-contain" />
         </span>
       ))}
     </div>
@@ -76,7 +92,7 @@ function LogoTiles({ hidden }: { hidden?: boolean }) {
 // and slides half its width per cycle for a seamless loop.
 function LogoBar() {
   return (
-    <div className="border-y border-[#0a2540]/10">
+    <div className="border-y border-dashed border-[#0a2540]/10">
       <div className="mx-auto max-w-[1280px] overflow-hidden py-0">
         <div className="logo-marquee relative -z-[1] flex w-max">
           <LogoTiles />
@@ -125,7 +141,7 @@ export function Hero() {
           so the rails are re-drawn here, under the silk. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-[#061b31]/6 lg:block"
+        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-dashed border-[#061b31]/6 lg:block"
       />
       {/* Wave at z-1: sits ABOVE the background title copy (z-0) and BELOW the
           foreground copy (z-2), so the hard-light foreground blends against

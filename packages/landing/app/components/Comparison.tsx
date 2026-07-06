@@ -43,7 +43,7 @@ function TableHead() {
 
 function TableRow({ row }: { row: ComparisonRow }) {
   return (
-    <tr className={`border-t border-[#061b31]/8 ${row.emphasis === true ? 'bg-[#061b31]/2 font-medium' : ''}`}>
+    <tr className={`border-t border-dashed border-[#061b31]/8 ${row.emphasis === true ? 'bg-[#061b31]/2 font-medium' : ''}`}>
       <td className="py-3 pr-4 text-sm text-[#061b31]">{row.feature}</td>
       {COMPETITOR_KEYS.map((key, i) => (
         <td key={key} className={`py-3 text-center ${i === 0 ? 'bg-[#533afd]/4' : ''}`}>
