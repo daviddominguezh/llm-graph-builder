@@ -8,7 +8,7 @@ export function SessionsBand() {
   return (
     // .sessions-section { --section-container-pbs/pbe-dt: core-1000 (~80px) }
     <section className="bg-[#101010] sessions-section px-10 pt-0 pb-27">
-      <div className="mx-auto max-w-[1232px]">
+      <div className="mx-auto max-w-[1234px]">
         {/* .sessions-on-demand__wrapper { display:grid }, sized to a 2.7:1 aspect ratio */}
         <div className="border border-[#181818] sessions-on-demand__wrapper relative grid aspect-[27/10] overflow-hidden rounded-xl">
           {/* .sessions-on-demand-background { grid-area:1/1 }

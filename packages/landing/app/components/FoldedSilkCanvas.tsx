@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { createFoldedSilk, type FoldedSilkVariant } from '../lib/foldedSilk';
+import { createFoldedSilk, type FoldedSilk, type FoldedSilkVariant } from '../lib/foldedSilk';
+import { applyWaveParams, type WaveParams } from '../lib/waveControlsConfig';
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -13,17 +14,23 @@ type FoldedSilkCanvasProps = {
   timeOffset?: number;
   // 'solid' opaque silk on white (default) or 'fibrous' line strands on navy.
   variant?: FoldedSilkVariant;
+  // Live parameter overrides from the tuning panel.
+  params?: WaveParams;
 };
 
-export function FoldedSilkCanvas({ className, timeOffset = 0, variant = 'solid' }: FoldedSilkCanvasProps) {
+export function FoldedSilkCanvas({ className, timeOffset = 0, variant = 'solid', params }: FoldedSilkCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const silkRef = useRef<FoldedSilk | null>(null);
+  const reducedRef = useRef(false);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
     const silk = createFoldedSilk(container, timeOffset, variant);
+    silkRef.current = silk;
     const reduced = prefersReducedMotion();
+    reducedRef.current = reduced;
 
     if (reduced) {
       silk.renderStill();
@@ -53,8 +60,17 @@ export function FoldedSilkCanvas({ className, timeOffset = 0, variant = 'solid' 
       observer.disconnect();
       intersection.disconnect();
       silk.dispose();
+      silkRef.current = null;
     };
   }, [timeOffset, variant]);
+
+  // Live-apply parameter changes to the existing instance (no re-creation).
+  useEffect(() => {
+    const silk = silkRef.current;
+    if (!silk || !params) return;
+    applyWaveParams(silk, params);
+    if (reducedRef.current) silk.renderStill();
+  }, [params]);
 
   return <div ref={containerRef} className={className} aria-hidden="true" />;
 }

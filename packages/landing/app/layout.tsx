@@ -11,7 +11,7 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'OpenFlow — The platform for building agent-powered SaaS',
+  title: 'OpenFlow | AI Dev Platform',
   description:
     'Build an AI agent, connect WhatsApp, Slack, or a chatbot — and each of your customers gets their own isolated instance. Multi-tenant from day one. MIT licensed.',
 };

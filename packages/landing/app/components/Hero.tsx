@@ -13,7 +13,7 @@ import logoTavily from '@/public/cloudicons/logo_tavily.png';
 import logoUpstash from '@/public/cloudicons/logo_upstash.png';
 import logoVercel from '@/public/cloudicons/logo_vercel.png';
 
-import { FoldedSilkCanvas } from './FoldedSilkCanvas';
+import { HeroWave } from './HeroWave';
 
 const GITHUB_URL = 'https://github.com/daviddominguezh/llm-graph-builder';
 
@@ -138,7 +138,7 @@ export function Hero() {
       {/* Wave at z-1: sits ABOVE the background title copy (z-0) and BELOW the
           foreground copy (z-2), so the hard-light foreground blends against
           the silk. Also passes over the logo bar. */}
-      <FoldedSilkCanvas variant='solid' className="hero-wave-animation__canvas absolute inset-0 z-[1]" />
+      <HeroWave className="hero-wave-animation__canvas absolute inset-0 z-[1]" />
 
       {/* Content column stays z-auto (no stacking context) so the heading's
           two copies resolve around the wave. CTAs get z-2 to sit above it. */}

@@ -139,6 +139,11 @@ export type FoldedSilk = {
   renderStill: () => void;
   resize: () => void;
   dispose: () => void;
+  // Live parameter setters for the tuning panel.
+  setUniform: (name: string, value: number) => void;
+  setMesh: (prop: 'position' | 'rotation' | 'scale', axis: 0 | 1 | 2, value: number) => void;
+  setGrain: (value: number) => void;
+  setZoom: (value: number) => void;
 };
 
 function parabola(x: number, k: number): number {
@@ -299,13 +304,12 @@ export function createFoldedSilk(
   // no output color-space conversion pass.
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  composer.addPass(
-    new ShaderPass({
-      uniforms: { tDiffuse: { value: null }, u_grainAmount: { value: GRAIN_AMOUNT } },
-      vertexShader: GLOW_GRAIN_VERTEX,
-      fragmentShader: GLOW_GRAIN_FRAGMENT,
-    })
-  );
+  const grainPass = new ShaderPass({
+    uniforms: { tDiffuse: { value: null }, u_grainAmount: { value: GRAIN_AMOUNT } },
+    vertexShader: GLOW_GRAIN_VERTEX,
+    fragmentShader: GLOW_GRAIN_FRAGMENT,
+  });
+  composer.addPass(grainPass);
 
   const resize = () => {
     const width = container.clientWidth;
@@ -374,6 +378,24 @@ export function createFoldedSilk(
     renderStill: () => {
       introTimeRamp = 1;
       renderFrame(0);
+    },
+    setUniform: (name, value) => {
+      const uniform = material.uniforms[name];
+      if (uniform) uniform.value = value;
+    },
+    setMesh: (prop, axis, value) => {
+      const target = prop === 'position' ? mesh.position : prop === 'scale' ? mesh.scale : mesh.rotation;
+      if (axis === 0) target.x = value;
+      else if (axis === 1) target.y = value;
+      else target.z = value;
+    },
+    setGrain: (value) => {
+      const uniform = grainPass.uniforms.u_grainAmount;
+      if (uniform) uniform.value = value;
+    },
+    setZoom: (value) => {
+      camera.zoom = value;
+      camera.updateProjectionMatrix();
     },
     resize,
     dispose: () => {
