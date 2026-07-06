@@ -9,7 +9,7 @@ const SCALE_POINTS = [
 
 export function GlobalScale() {
   return (
-    <section className="stats-section__globe-host bg-[#0d0d0d] px-10 py-20">
+    <section className="stats-section__globe-host bg-[#070707] px-10 py-20">
       <div className="mx-auto grid max-w-[1232px] items-center gap-14 lg:grid-cols-2">
         <div>
           <SectionHeading

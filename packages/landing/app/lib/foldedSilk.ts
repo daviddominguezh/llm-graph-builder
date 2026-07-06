@@ -102,7 +102,7 @@ const VARIANTS: Record<FoldedSilkVariant, VariantConfig> = {
   },
   // Discrete flowing strands on dark navy — the line-based dark preset.
   fibrous: {
-    background: '#0e1a38',
+    background: '#070707',
     fragmentShader: FOLDED_SILK_LINES_FRAGMENT,
     timeOffset: 1150,
     position: [-24.3, -56.4, -11.1],
@@ -128,7 +128,7 @@ const VARIANTS: Record<FoldedSilkVariant, VariantConfig> = {
       // Dim strands — the reference's dark band keeps them barely luminous.
       u_lineOpacity: { value: 0.3 },
       u_maxWidth: { value: 1232 },
-      u_clearColor: { value: new THREE.Color('#0e1a38') },
+      u_clearColor: { value: new THREE.Color('#070707') },
     }),
   },
 };

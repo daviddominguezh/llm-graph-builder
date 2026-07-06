@@ -90,7 +90,7 @@ function IntegrationPaths() {
 
 export function DevelopersBand() {
   return (
-    <section className="stats-section relative overflow-hidden bg-[#0e1a38]">
+    <section className="stats-section relative overflow-hidden bg-[#070707]">
       <FoldedSilkCanvas className="developers-wave-animation__canvas absolute inset-0" timeOffset={90000} variant="fibrous" />
 
       {/* Film grain now comes from the site-wide <FilmGrain /> in the layout. */}
