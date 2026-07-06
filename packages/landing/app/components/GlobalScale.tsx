@@ -23,18 +23,19 @@ function Globe() {
 
 export function GlobalScale() {
   return (
-    <section className="stats-section__globe-host bg-white px-10 py-40">
+    <section className="stats-section__globe-host bg-[#0d0d0d] px-10 py-40">
       <div className="mx-auto grid max-w-[1232px] items-center gap-14 lg:grid-cols-2">
         <div>
           <SectionHeading
+            dark
             lead="The backbone of global agent commerce."
             rest="OpenFlow tenants run everywhere your customers are — one deployment, isolated instances across every region and channel."
           />
           <dl className="mt-12 space-y-8">
             {SCALE_POINTS.map((point) => (
               <div key={point.label} className="border-l-2 border-[#533afd]/30 pl-5">
-                <dt className="text-2xl font-light tracking-tight text-[#061b31]">{point.value}</dt>
-                <dd className="mt-1 text-sm text-[#425466]">{point.label}</dd>
+                <dt className="text-2xl font-light tracking-tight text-white">{point.value}</dt>
+                <dd className="mt-1 text-sm text-white/55">{point.label}</dd>
               </div>
             ))}
           </dl>

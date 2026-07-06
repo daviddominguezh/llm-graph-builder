@@ -1,5 +1,5 @@
 import { fetchGitHubStars } from '@/app/lib/github';
-import logoFull from '@/app/openflowLogoFullWhite.png';
+import logoFull from '@/app/openflowLightWhite.png';
 import Image from 'next/image';
 
 const GITHUB_URL = 'https://github.com/daviddominguezh/llm-graph-builder';
@@ -58,7 +58,7 @@ export async function Navbar() {
       <div className="mx-auto flex h-[76px] max-w-[1240px] items-center justify-between px-6">
         <div className="flex items-center gap-12">
           <a href="#" className="flex items-center">
-            <Image src={logoFull} alt="OpenFlow" height={32} priority />
+            <Image src={logoFull} alt="OpenFlow" height={24} priority />
           </a>
         </div>
 
