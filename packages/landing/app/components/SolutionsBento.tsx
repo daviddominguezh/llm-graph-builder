@@ -169,7 +169,7 @@ function CodeSnippet() {
 
 export function SolutionsBento() {
   return (
-    <ScrollFadeSection from="#0d0d0d" to="#101010" className="modular-solutions px-10 py-24">
+    <ScrollFadeSection from="#0d0d0d" to="#101010" className="modular-solutions px-10 pt-24 pb-4">
       <div className="mx-auto max-w-[1232px]">
         <SectionHeading
           lead="Flexible solutions for every agent business."

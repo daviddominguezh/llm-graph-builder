@@ -109,27 +109,15 @@ const HEADING_REST =
 const HEADING_BASE =
   'max-w-[961px] text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]';
 
-// Reference title color-blend (exact CSS + stacking): TWO stacked copies with
-// the wave canvas sandwiched between them by z-index.
-//   - background copy (z-0): navy lead + yellow (#ddd600) rest, BELOW the wave
-//   - wave canvas (z-1): painted over the background copy
-//   - foreground copy (z-2): mix-blend-mode hard-light, #2d2564 lead +
-//     rgba(0,14,255,.5) rest, ON TOP — so it hard-lights against the WAVE,
-//     which is what makes the glyph color track the silk as it passes.
-// The wrapper stays z-auto (no stacking context) so all three resolve in the
-// hero's isolated context.
+// Single heading layer blended against the silk wave (z-1) beneath it: the
+// text is white, and mix-blend-difference makes it read pure white over the
+// black section while shifting gray wherever the light wave passes over it.
 function HeroHeading() {
   return (
-    <div className="relative mt-[32px]">
-      <div className={`${HEADING_BASE} relative z-0`} aria-hidden="true">
-        <em className="font-normal not-italic text-white">{HEADING_LEAD}</em>
-        <span className="text-[#ddd600]">{HEADING_REST}</span>
-      </div>
-      <h1 className={`${HEADING_BASE} absolute inset-0 z-[2] mix-blend-hard-light`}>
-        <em className="font-normal not-italic text-white">{HEADING_LEAD}</em>
-        <span className="text-[rgba(0,14,255,0.5)]">{HEADING_REST}</span>
-      </h1>
-    </div>
+    <h1 className={`${HEADING_BASE} relative z-[2] mt-[32px] text-white mix-blend-difference`}>
+      <em className="font-normal not-italic">{HEADING_LEAD}</em>
+      <span>{HEADING_REST}</span>
+    </h1>
   );
 }
 
