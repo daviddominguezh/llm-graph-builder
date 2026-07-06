@@ -172,6 +172,7 @@ export function SolutionsBento() {
     <ScrollFadeSection from="#0d0d0d" to="#101010" className="modular-solutions px-10 pt-24 pb-4">
       <div className="mx-auto max-w-[1232px]">
         <SectionHeading
+          dark
           lead="Flexible solutions for every agent business."
           rest="Grow your company with a complete set of agent and monetization tools designed to work individually or together."
         />
