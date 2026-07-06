@@ -58,7 +58,7 @@ function HeroCtas() {
         href={GITHUB_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex h-12 min-w-[172px] items-center justify-center gap-2 rounded-[4px] bg-[#533afd] px-6 text-base text-white transition-colors hover:bg-[#4430d4]"
+        className="inline-flex h-11 px-10 items-center justify-center gap-2 rounded-xl bg-white px-6 text-base text-black font-bold transition-colors hover:bg-white/90"
       >
         Get started
         <ArrowIcon />
@@ -67,7 +67,7 @@ function HeroCtas() {
         href={GITHUB_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex h-12 min-w-[247px] items-center justify-center gap-2 rounded-[4px] border border-white/25 bg-white/5 px-6 text-base text-white transition-colors hover:bg-white/10"
+        className="inline-flex h-11 px-10 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/5 px-6 text-base text-white transition-colors hover:bg-white/10 font-bold"
       >
         <GitHubIcon />
         View on GitHub
@@ -103,20 +103,24 @@ function LogoBar() {
   );
 }
 
-const HEADING_LEAD = 'Agent infrastructure to power your SaaS.';
+const HEADING_LEAD = 'AI infrastructure to power your SaaS.';
 const HEADING_REST =
-  ' Build an AI agent, connect WhatsApp, Slack, or a chatbot, and give every customer their own isolated instance, from your first tenant to your last.';
+  ' Build an agent, connect WhatsApp, Slack, or your own website, and give every customer their own isolated instance, from your first tenant to your last.';
 const HEADING_BASE =
   'max-w-[961px] text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]';
 
-// Single heading layer blended against the silk wave (z-1) beneath it: the
-// text is white, and mix-blend-difference makes it read pure white over the
-// black section while shifting gray wherever the light wave passes over it.
+// The blend must live on the <h1>: its z-[2] makes it a stacking context, so a
+// mix-blend on a child would only blend against the h1's own (empty) backdrop,
+// not the silk wave (z-1). On the h1, difference blends the rendered glyphs —
+// with their per-span colors — against the wave beneath:
+//  - Lead (white): full white over the black section, full black on the wave.
+//  - Subtitle (light gray): reads gray over the black section, darkens to
+//    ~gray-700 where the light wave crosses it.
 function HeroHeading() {
   return (
-    <h1 className={`${HEADING_BASE} relative z-[2] mt-[32px] text-white mix-blend-difference`}>
-      <em className="font-normal not-italic">{HEADING_LEAD}</em>
-      <span>{HEADING_REST}</span>
+    <h1 className={`${HEADING_BASE} relative z-[2] mt-[32px] mix-blend-difference`}>
+      <em className="font-medium not-italic text-white">{HEADING_LEAD}</em>
+      <span className="font-extralight text-[#c2c2c2]">{HEADING_REST}</span>
     </h1>
   );
 }
@@ -134,7 +138,7 @@ export function Hero() {
       {/* Wave at z-1: sits ABOVE the background title copy (z-0) and BELOW the
           foreground copy (z-2), so the hard-light foreground blends against
           the silk. Also passes over the logo bar. */}
-      <FoldedSilkCanvas className="hero-wave-animation__canvas absolute inset-0 z-[1]" />
+      <FoldedSilkCanvas variant='solid' className="hero-wave-animation__canvas absolute inset-0 z-[1]" />
 
       {/* Content column stays z-auto (no stacking context) so the heading's
           two copies resolve around the wave. CTAs get z-2 to sit above it. */}

@@ -19,13 +19,13 @@ function GitHubStarButton({ stars }: { stars: number | null }) {
       href={GITHUB_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex h-10 items-stretch overflow-hidden rounded-md border border-[#d0d7de] bg-white text-sm font-semibold text-[#24292f]"
+      className="inline-flex h-9 items-stretch overflow-hidden rounded-xl border border-[#d0d7de] bg-white text-sm font-semibold text-[#24292f] font-bold"
     >
       <span className="flex items-center gap-2 border-r border-dashed border-neutral-800 bg-[#f6f8fa] px-3.5 transition-colors hover:bg-[#eef1f4]">
         <GitHubIcon />
         Star
       </span>
-      <span className="flex items-center px-3.5 tabular-nums">
+      <span className="text-xs flex items-center px-3.5 tabular-nums">
         {stars === null ? '—' : stars.toLocaleString('en-US')}
       </span>
     </a>
@@ -43,7 +43,7 @@ function SignInButton() {
       href={GITHUB_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex h-10 items-center rounded-[4px] bg-white px-5 text-sm font-medium text-black mix-blend-lighten"
+      className="inline-flex h-9 items-center rounded-xl bg-white px-5 text-sm font-medium text-black mix-blend-lighten font-bold"
     >
       Sign in
     </a>
