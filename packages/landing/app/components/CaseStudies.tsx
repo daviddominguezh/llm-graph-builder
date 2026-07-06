@@ -2,7 +2,7 @@ import Image from 'next/image';
 
 import { SectionHeading } from './SectionHeading';
 
-const CARD_BORDER = 'border border-[#e5edf5]';
+const CARD_BORDER = 'border border-white/8';
 
 // Customer-story rows with the reference's accordion media slots.
 const MINI_CASES = [
@@ -35,7 +35,7 @@ const CAROUSEL = [
 // Horizontal card with portrait media, on the reference's 332x448 ratio.
 function FeaturedCase() {
   return (
-    <div className={`flex overflow-hidden rounded-md lg:aspect-[608/448] bg-white ${CARD_BORDER}`}>
+    <div className={`flex overflow-hidden rounded-md lg:aspect-[608/448] bg-white/5 ${CARD_BORDER}`}>
       <div className="case-study-card__media relative w-[45%] shrink-0">
         <Image
           src="/reference/enterprise-accordion-hertz.png"
@@ -46,10 +46,10 @@ function FeaturedCase() {
         />
       </div>
       <div className="flex flex-col justify-center p-8">
-        <h3 className="text-lg font-medium text-[#061b31]">
+        <h3 className="text-lg font-medium text-white">
           A global fleet unifies customer conversations with OpenFlow.
         </h3>
-        <p className="mt-2 text-sm leading-relaxed text-[#425466]">
+        <p className="mt-2 text-sm leading-relaxed text-white/60">
           One agent graph, hundreds of locations — each with its own WhatsApp number, history, and usage
           billing.
         </p>
@@ -75,10 +75,10 @@ function StartupBlock() {
   return (
     <div className="mt-20 grid items-center gap-4 border-t border-dashed border-neutral-800 pt-16 lg:grid-cols-2">
       <div>
-        <h3 className="max-w-[480px] text-xl font-medium leading-snug text-[#061b31]">
+        <h3 className="max-w-[480px] text-xl font-medium leading-snug text-white">
           Build a foundation for your startup that enables faster growth.
         </h3>
-        <p className="mt-3 max-w-[480px] text-sm leading-relaxed text-[#425466]">
+        <p className="mt-3 max-w-[480px] text-sm leading-relaxed text-white/60">
           Launch your agent product in days: tenants, channels, memory, and billing come wired together
           from the first commit.
         </p>
@@ -109,10 +109,10 @@ function PlatformFeatureRows() {
       {PLATFORM_FEATURES.map((feature) => (
         <div
           key={feature.title}
-          className={`platform-graphic__feature-card rounded-lg bg-white p-5 lg:aspect-[356/104] ${CARD_BORDER}`}
+          className={`platform-graphic__feature-card rounded-lg bg-white/5 p-5 lg:aspect-[356/104] ${CARD_BORDER}`}
         >
-          <h4 className="text-sm font-semibold text-[#061b31]">{feature.title}</h4>
-          <p className="mt-1 text-xs leading-relaxed text-[#425466]">{feature.text}</p>
+          <h4 className="text-sm font-semibold text-white">{feature.title}</h4>
+          <p className="mt-1 text-xs leading-relaxed text-white/60">{feature.text}</p>
         </div>
       ))}
     </div>
@@ -130,10 +130,10 @@ function PlatformBlock() {
         className="h-auto w-full rounded-lg"
       />
       <div>
-        <h3 className="max-w-[480px] text-xl font-medium leading-snug text-[#061b31]">
+        <h3 className="max-w-[480px] text-xl font-medium leading-snug text-white">
           Make your SaaS platform a complete agent operating system.
         </h3>
-        <p className="mt-3 max-w-[480px] text-sm leading-relaxed text-[#425466]">
+        <p className="mt-3 max-w-[480px] text-sm leading-relaxed text-white/60">
           Embed OpenFlow under your own brand: your customers configure agents inside your product while
           you keep the margin.
         </p>
@@ -148,9 +148,10 @@ function PlatformBlock() {
 
 export function CaseStudies() {
   return (
-    <section className="bg-[#f6f9fc] px-10 py-24">
+    <section className="bg-[#0d0d0d] px-10 py-24">
       <div className="mx-auto max-w-[1232px]">
         <SectionHeading
+          dark
           lead="We power agent businesses of all sizes."
           rest="Transform your company with agent infrastructure that grows from your first client to your thousandth."
         />
@@ -168,7 +169,7 @@ export function CaseStudies() {
                   className="w-[120px] shrink-0 rounded-md"
                 />
                 <div>
-                  <h3 className="text-base font-medium text-[#061b31]">{item.title}</h3>
+                  <h3 className="text-base font-medium text-white">{item.title}</h3>
                   <span className="mt-1 inline-block text-sm font-medium text-[#533afd]">Learn more ›</span>
                 </div>
               </li>
