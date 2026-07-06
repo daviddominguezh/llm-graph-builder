@@ -73,7 +73,7 @@ function CustomerCarousel() {
 
 function StartupBlock() {
   return (
-    <div className="mt-20 grid items-center gap-4 border-t border-dashed border-[#061b31]/8 pt-16 lg:grid-cols-2">
+    <div className="mt-20 grid items-center gap-4 border-t border-dashed border-neutral-800 pt-16 lg:grid-cols-2">
       <div>
         <h3 className="max-w-[480px] text-xl font-medium leading-snug text-[#061b31]">
           Build a foundation for your startup that enables faster growth.
@@ -121,7 +121,7 @@ function PlatformFeatureRows() {
 
 function PlatformBlock() {
   return (
-    <div className="platform-graphic mt-16 grid items-center gap-4 border-t border-dashed border-[#061b31]/8 pt-16 lg:grid-cols-2">
+    <div className="platform-graphic mt-16 grid items-center gap-4 border-t border-dashed border-neutral-800 pt-16 lg:grid-cols-2">
       <Image
         src="/reference/platform-graphic-background_2x.png"
         alt=""
@@ -159,7 +159,7 @@ export function CaseStudies() {
           <FeaturedCase />
           <ul className="space-y-6">
             {MINI_CASES.map((item) => (
-              <li key={item.title} className="flex items-center gap-5 border-b border-dashed border-[#061b31]/8 pb-6">
+              <li key={item.title} className="flex items-center gap-5 border-b border-dashed border-neutral-800 pb-6">
                 <Image
                   src={item.image}
                   alt=""

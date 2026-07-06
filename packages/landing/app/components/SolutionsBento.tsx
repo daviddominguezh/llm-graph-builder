@@ -39,7 +39,7 @@ function ChatMockup() {
 function ChatMockupBody() {
   return (
     <div className="relative">
-      <div className="flex items-center gap-2 border-b border-dashed border-[#061b31]/8 pb-3">
+      <div className="flex items-center gap-2 border-b border-dashed border-neutral-800 pb-3">
         <span className="h-2 w-2 rounded-full bg-[#2ec46e]" />
         <span className="text-xs font-medium text-[#425466]">agent · acme-travel · WhatsApp</span>
       </div>
@@ -169,7 +169,7 @@ function CodeSnippet() {
 
 export function SolutionsBento() {
   return (
-    <ScrollFadeSection from="#ffffff" to="#f6f9fc" className="modular-solutions px-10 py-24">
+    <ScrollFadeSection from="#0d0d0d" to="#101010" className="modular-solutions px-10 py-24">
       <div className="mx-auto max-w-[1232px]">
         <SectionHeading
           lead="Flexible solutions for every agent business."

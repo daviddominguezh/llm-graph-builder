@@ -7,7 +7,7 @@ import Image from 'next/image';
 export function SessionsBand() {
   return (
     // .sessions-section { --section-container-pbs/pbe-dt: core-1000 (~80px) }
-    <section className="sessions-section px-10 py-20">
+    <section className="bg-black sessions-section px-10 py-20">
       <div className="mx-auto max-w-[1232px]">
         {/* .sessions-on-demand__wrapper { display:grid }, sized to a 2.7:1 aspect ratio */}
         <div className="sessions-on-demand__wrapper relative grid aspect-[27/10] overflow-hidden rounded-xl">

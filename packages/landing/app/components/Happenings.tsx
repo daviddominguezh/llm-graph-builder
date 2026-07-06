@@ -73,7 +73,7 @@ const NEWS: HappeningItem[] = [
 
 function BookOfTheWeek() {
   return (
-    <div className="book-of-the-week mt-16 grid items-center gap-10 border-t border-dashed border-[#061b31]/8 pt-14 lg:grid-cols-[220px_1fr]">
+    <div className="book-of-the-week mt-16 grid items-center gap-10 border-t border-dashed border-neutral-800 pt-14 lg:grid-cols-[220px_1fr]">
       <Image
         src="/reference/Reminiscences_of_a_Stock_Operator.png"
         alt="Book of the week cover"

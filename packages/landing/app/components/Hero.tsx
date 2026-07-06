@@ -67,7 +67,7 @@ function HeroCtas() {
         href={GITHUB_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex h-12 min-w-[247px] items-center justify-center gap-2 rounded-[4px] border border-[#b9b9f9] bg-white/65 px-6 text-base text-[#533afd] transition-colors hover:bg-white"
+        className="inline-flex h-12 min-w-[247px] items-center justify-center gap-2 rounded-[4px] border border-white/25 bg-white/5 px-6 text-base text-white transition-colors hover:bg-white/10"
       >
         <GitHubIcon />
         View on GitHub
@@ -92,7 +92,7 @@ function LogoTiles({ hidden }: { hidden?: boolean }) {
 // and slides half its width per cycle for a seamless loop.
 function LogoBar() {
   return (
-    <div className="border-y border-dashed border-[#0a2540]/10">
+    <div className="border-y border-dashed border-neutral-800">
       <div className="mx-auto max-w-[1280px] overflow-hidden py-0">
         <div className="logo-marquee relative -z-[1] flex w-max">
           <LogoTiles />
@@ -122,11 +122,11 @@ function HeroHeading() {
   return (
     <div className="relative mt-[32px]">
       <div className={`${HEADING_BASE} relative z-0`} aria-hidden="true">
-        <em className="font-normal not-italic text-[#061b31]">{HEADING_LEAD}</em>
+        <em className="font-normal not-italic text-white">{HEADING_LEAD}</em>
         <span className="text-[#ddd600]">{HEADING_REST}</span>
       </div>
       <h1 className={`${HEADING_BASE} absolute inset-0 z-[2] mix-blend-hard-light`}>
-        <em className="font-normal not-italic text-[#2d2564]">{HEADING_LEAD}</em>
+        <em className="font-normal not-italic text-white">{HEADING_LEAD}</em>
         <span className="text-[rgba(0,14,255,0.5)]">{HEADING_REST}</span>
       </h1>
     </div>
@@ -135,13 +135,13 @@ function HeroHeading() {
 
 export function Hero() {
   return (
-    <section className="hero-wave-animation relative isolate overflow-hidden bg-white">
+    <section className="hero-wave-animation relative isolate overflow-hidden bg-[#0d0d0d]">
       {/* Hero-local guide rails: the section is isolated (for the marquee
           stacking), which paints it atomically above the page-level guides —
           so the rails are re-drawn here, under the silk. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-dashed border-[#061b31]/6 lg:block"
+        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-dashed border-neutral-800 lg:block"
       />
       {/* Wave at z-1: sits ABOVE the background title copy (z-0) and BELOW the
           foreground copy (z-2), so the hard-light foreground blends against
