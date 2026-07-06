@@ -112,15 +112,17 @@ const HEADING_BASE =
 // The blend must live on the <h1>: its z-[2] makes it a stacking context, so a
 // mix-blend on a child would only blend against the h1's own (empty) backdrop,
 // not the silk wave (z-1). On the h1, difference blends the rendered glyphs —
-// with their per-span colors — against the wave beneath:
-//  - Lead (white): full white over the black section, full black on the wave.
-//  - Subtitle (light gray): reads gray over the black section, darkens to
-//    ~gray-700 where the light wave crosses it.
+// with their per-span colors — against the wave beneath. brightness() is
+// applied BEFORE the blend: it lowers the glyph luminance so the inversion
+// drives the text noticeably darker over the light/mid-gray wave (contrast)
+// while it still reads light over the dark areas.
+//  - Lead (white): near-white over dark, darkening toward black on the wave.
+//  - Subtitle (light gray): a muted version of the same behaviour.
 function HeroHeading() {
   return (
-    <h1 className={`${HEADING_BASE} relative z-[2] mt-[32px] mix-blend-difference`}>
+    <h1 className={`${HEADING_BASE} relative z-[2] mt-[32px] mix-blend-plus-lighter`}>
       <em className="font-medium not-italic text-white">{HEADING_LEAD}</em>
-      <span className="font-extralight text-[#c2c2c2]">{HEADING_REST}</span>
+      <span className="font-extralight text-white/40">{HEADING_REST}</span>
     </h1>
   );
 }
