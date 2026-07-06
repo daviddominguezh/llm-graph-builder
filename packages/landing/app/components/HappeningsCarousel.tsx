@@ -7,7 +7,6 @@ export type HappeningItem = {
   id: string;
   title: string;
   description: string;
-  cta: string;
   image: string;
 };
 
@@ -65,33 +64,6 @@ function layout(containerW: number, hovered: number, lo: number, hi: number) {
 
 type Card = { key: number; itemIndex: number };
 type Deck = { cards: Card[]; baseCol: number; nextKey: number };
-
-function Arrow({ dir }: { dir: 'left' | 'right' }) {
-  return (
-    <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path
-        d={dir === 'left' ? 'M10 3L5 8l5 5' : 'M6 3l5 5-5 5'}
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function NavButton({ dir, onClick, label }: { dir: 'left' | 'right'; onClick: () => void; label: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="flex h-9 w-9 items-center justify-center rounded-md bg-[#eef1fb] text-[#533afd] transition-colors hover:bg-[#e2e6f8]"
-    >
-      <Arrow dir={dir} />
-    </button>
-  );
-}
 
 export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] }) {
   const n = items.length;
@@ -178,7 +150,10 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
               style={{ left: `${x[c] ?? 0}px`, width: `${width[c] ?? SMALL_W}px`, transition }}
               className="absolute top-0 h-full cursor-pointer overflow-hidden rounded-md"
             >
-              <span className="absolute top-0 left-1/2 h-full -translate-x-1/2" style={{ width: `${IMAGE_W}px` }}>
+              <span
+                className="absolute top-0 left-1/2 h-full -translate-x-1/2"
+                style={{ width: `${IMAGE_W}px` }}
+              >
                 <Image src={item.image} alt="" fill sizes="840px" unoptimized className="object-cover" />
                 <span
                   className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-6 text-left text-lg font-medium whitespace-nowrap text-white transition-opacity duration-200 ${expanded ? 'opacity-100 delay-200' : 'opacity-0'}`}
@@ -199,22 +174,11 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
               aria-hidden={i !== activeItem}
               className={`squeezy-carousel__item-details max-w-[720px] text-lg leading-snug transition-opacity duration-[120ms] ease-out ${i === activeItem ? 'opacity-100' : 'pointer-events-none absolute inset-0 opacity-0'}`}
             >
-              <span className="font-medium text-[#061b31]">{item.title} </span>
-              <span className="text-[#5b7290]">{item.description}</span>
+              <span className="font-medium text-white">{item.title} </span>
+              <span className="text-white/55">{item.description}</span>
             </p>
           ))}
         </div>
-        <a
-          href="#"
-          className="shrink-0 rounded-md px-5 py-3 text-sm font-medium text-[#533afd] transition-colors hover:bg-[#eef1fb]"
-        >
-          {items[activeItem]?.cta ?? 'Read more'} ›
-        </a>
-      </div>
-
-      <div className="mt-4 flex justify-end gap-2">
-        <NavButton dir="left" onClick={() => scrollBy(-1)} label="Previous story" />
-        <NavButton dir="right" onClick={() => scrollBy(1)} label="Next story" />
       </div>
     </div>
   );
