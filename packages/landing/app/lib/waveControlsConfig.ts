@@ -36,7 +36,7 @@ export const WAVE_CONTROL_GROUPS: WaveControlGroup[] = [
   {
     title: 'Transform',
     controls: [
-      c('zoom', 'Zoom', 0.1, 5, 0.01, 1, zoom),
+      c('zoom', 'Zoom', 0.1, 5, 0.01, 1.18, zoom),
       c('posX', 'Position X', -2000, 2000, 1, 640, m('position', 0)),
       c('posY', 'Position Y', -2000, 2000, 1, -301.7, m('position', 1)),
       c('posZ', 'Position Z', -2000, 2000, 1, -11.1, m('position', 2)),
@@ -51,9 +51,9 @@ export const WAVE_CONTROL_GROUPS: WaveControlGroup[] = [
   {
     title: 'Fold displacement',
     controls: [
-      c('dispFreqX', 'Frequency X', 0, 0.05, 0.0001, 0.005831, u('u_displaceFrequencyX')),
-      c('dispFreqZ', 'Frequency Z', 0, 0.05, 0.0001, 0.016001, u('u_displaceFrequencyZ')),
-      c('dispAmount', 'Amount', -20, 20, 0.01, -7.821, u('u_displaceAmount')),
+      c('dispFreqX', 'Frequency X', 0, 0.05, 0.0001, 0.0031, u('u_displaceFrequencyX')),
+      c('dispFreqZ', 'Frequency Z', 0, 0.05, 0.0001, 0.0026, u('u_displaceFrequencyZ')),
+      c('dispAmount', 'Amount', -20, 20, 0.01, -20, u('u_displaceAmount')),
     ],
   },
   {
@@ -62,41 +62,41 @@ export const WAVE_CONTROL_GROUPS: WaveControlGroup[] = [
       c('twFreqX', 'Frequency X', -2, 2, 0.001, -0.65, u('u_twistFrequencyX')),
       c('twFreqY', 'Frequency Y', -2, 2, 0.001, 0.41, u('u_twistFrequencyY')),
       c('twFreqZ', 'Frequency Z', -2, 2, 0.001, -0.58, u('u_twistFrequencyZ')),
-      c('twPowX', 'Power X', 0, 10, 0.01, 3.63, u('u_twistPowerX')),
+      c('twPowX', 'Power X', 0, 10, 0.01, 4.7, u('u_twistPowerX')),
       c('twPowY', 'Power Y', 0, 10, 0.01, 0.7, u('u_twistPowerY')),
-      c('twPowZ', 'Power Z', 0, 10, 0.01, 3.95, u('u_twistPowerZ')),
+      c('twPowZ', 'Power Z', 0, 10, 0.01, 4.29, u('u_twistPowerZ')),
     ],
   },
   {
     title: 'Color',
     controls: [
-      c('contrast', 'Contrast', 0, 3, 0.01, 1, u('u_colorContrast')),
-      c('saturation', 'Saturation', 0, 3, 0.01, 1.08, u('u_colorSaturation')),
-      c('hueShift', 'Hue shift', -1, 1, 0.001, 0, u('u_colorHueShift')),
+      c('contrast', 'Contrast', 0, 3, 0.01, 0.7, u('u_colorContrast')),
+      c('saturation', 'Saturation', 0, 3, 0.01, 0, u('u_colorSaturation')),
+      c('hueShift', 'Hue shift', -1, 1, 0.001, -1, u('u_colorHueShift')),
     ],
   },
   {
     title: 'Motion & grain',
     controls: [
-      c('speed', 'Speed', 0, 0.0002, 0.000001, 0.00004, u('u_speed')),
-      c('grain', 'Grain', 0, 3, 0.01, 1.1, grain),
+      c('speed', 'Speed', 0, 0.0002, 0.000001, 0.000038, u('u_speed')),
+      c('grain', 'Grain', 0, 3, 0.01, 3, grain),
     ],
   },
   {
     title: 'Fold glow',
     controls: [
-      c('glowAmount', 'Amount', 0, 5, 0.01, 1.98, u('u_glowAmount')),
-      c('glowPower', 'Power', 0, 3, 0.001, 0.806, u('u_glowPower')),
-      c('glowRamp', 'Ramp', 0, 2, 0.001, 0.834, u('u_glowRamp')),
+      c('glowAmount', 'Amount', 0, 5, 0.01, 0, u('u_glowAmount')),
+      c('glowPower', 'Power', 0, 3, 0.001, 0, u('u_glowPower')),
+      c('glowRamp', 'Ramp', 0, 2, 0.001, 0, u('u_glowRamp')),
     ],
   },
   {
     title: 'Fibers',
     controls: [
-      c('fiberStrength', 'Strength', 0, 2, 0.01, 0.2, u('u_fiberStrength')),
-      c('fiberFrequency', 'Frequency', 0, 2000, 1, 600, u('u_fiberFrequency')),
-      c('fiberAtten', 'Color atten.', 0, 2, 0.01, 0.9, u('u_fiberColorAttenuation')),
-      c('fiberParabola', 'Parabola power', 0, 10, 0.1, 3, u('u_fiberParabolaPower')),
+      c('fiberStrength', 'Strength', 0, 2, 0.01, 2, u('u_fiberStrength')),
+      c('fiberFrequency', 'Frequency', 0, 2000, 1, 38, u('u_fiberFrequency')),
+      c('fiberAtten', 'Color atten.', 0, 2, 0.01, 2, u('u_fiberColorAttenuation')),
+      c('fiberParabola', 'Parabola power', 0, 10, 0.1, 10, u('u_fiberParabolaPower')),
     ],
   },
 ];
