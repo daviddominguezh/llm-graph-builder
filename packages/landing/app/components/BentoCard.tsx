@@ -110,7 +110,7 @@ export function BentoCard({ title, description, children, className = '' }: Bent
         </span>
         <span
           aria-hidden="true"
-          className="modular-solutions-bento-card__inner pointer-events-none absolute -inset-[4px] bg-[#141519] transition-[clip-path] duration-[800ms] ease-[cubic-bezier(0.165,0.84,0.44,1)] [clip-path:inset(4px_4.8284px_round_5px)] group-hover:[clip-path:inset(0px_round_5px)]"
+          className="modular-solutions-bento-card__inner pointer-events-none absolute -inset-[4px] bg-black transition-[clip-path] duration-[800ms] ease-[cubic-bezier(0.165,0.84,0.44,1)] [clip-path:inset(4px_4.8284px_round_5px)] group-hover:[clip-path:inset(0px_round_5px)]"
         />
         <div className="modular-solutions-bento-card__content relative flex h-full flex-col overflow-hidden rounded-[5px] p-6">
           <DialogEntryIcon />

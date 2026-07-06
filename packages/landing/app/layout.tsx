@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
 import { AnalyticsClient } from './components/AnalyticsClient';
+import { FilmGrain } from './components/FilmGrain';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -36,6 +37,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           Skip to content
         </a>
         {children}
+        <FilmGrain />
         <AnalyticsClient />
       </body>
     </html>

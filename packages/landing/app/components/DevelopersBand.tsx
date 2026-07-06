@@ -93,17 +93,7 @@ export function DevelopersBand() {
     <section className="stats-section relative overflow-hidden bg-[#0e1a38]">
       <FoldedSilkCanvas className="developers-wave-animation__canvas absolute inset-0" timeOffset={90000} variant="fibrous" />
 
-      {/* Film grain: monochrome fractal-noise tile blended over the bg so it
-          reads as texture without shifting the base color. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.28] mix-blend-screen"
-        style={{
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23grain)'/%3E%3C/svg%3E\")",
-          backgroundSize: '160px 160px',
-        }}
-      />
+      {/* Film grain now comes from the site-wide <FilmGrain /> in the layout. */}
 
       <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-dashed border-neutral-800 lg:block" />
 
