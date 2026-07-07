@@ -26,6 +26,13 @@
   cursor: default;
 }
 
+a,
+button,
+a *,
+button * {
+  cursor: pointer;
+}
+
 body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   color: var(--color-foreground);

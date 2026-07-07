@@ -22,11 +22,11 @@ function GitHubStarButton({ stars }: { stars: number | null }) {
       rel="noopener noreferrer"
       className="mix-blend-plus-lighter text-white inline-flex h-7.5 items-stretch overflow-hidden rounded-lg border border-[#d0d7de] bg-transparent hover:bg-white hover:text-black hover:mix-blend-normal text-sm font-semibold font-bold"
     >
-      <span className="flex items-center gap-2 border-r border-neutral-300 px-3 transition-colors">
+      <span className="flex items-center gap-2 border-neutral-300 px-3 transition-colors">
         <GitHubIcon />
         Star
       </span>
-      <span className="text-xs flex items-center px-3 tabular-nums">
+      <span className="hidden text-xs flex items-center px-3 tabular-nums">
         {stars === null ? '—' : stars.toLocaleString('en-US')}
       </span>
     </a>
