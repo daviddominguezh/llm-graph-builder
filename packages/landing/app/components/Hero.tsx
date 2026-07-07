@@ -34,6 +34,15 @@ const LOGO_BAR = [
   { name: 'Upstash', src: logoUpstash },
 ] as const;
 
+// Per-brand height overrides to balance differing optical weights; brands not
+// listed fall back to DEFAULT_LOGO_HEIGHT.
+const DEFAULT_LOGO_HEIGHT = 'h-[23px]';
+const LOGO_HEIGHT_OVERRIDES: Record<string, string> = {
+  Vercel: 'h-[18px]',
+  OpenRouter: 'h-[20px]',
+  Browserbase: 'h-[28px]',
+};
+
 function ArrowIcon() {
   return (
     <svg className="h-3 w-3" viewBox="0 0 12 12" fill="none" aria-hidden="true">
@@ -85,8 +94,12 @@ function LogoTiles({ hidden }: { hidden?: boolean }) {
   return (
     <div className="flex shrink-0 items-center" aria-hidden={hidden === true ? 'true' : undefined}>
       {LOGO_BAR.map((logo) => (
-        <span key={logo.name} className="flex h-[72px] shrink-0 items-center px-9">
-          <Image src={logo.src} alt={logo.name} className="h-[23px] w-auto object-contain" />
+        <span key={logo.name} className="flex h-[72px] shrink-0 items-center px-11">
+          <Image
+            src={logo.src}
+            alt={logo.name}
+            className={`${LOGO_HEIGHT_OVERRIDES[logo.name] ?? DEFAULT_LOGO_HEIGHT} w-auto object-contain`}
+          />
         </span>
       ))}
     </div>
