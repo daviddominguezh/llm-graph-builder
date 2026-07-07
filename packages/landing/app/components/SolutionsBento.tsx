@@ -134,7 +134,7 @@ function BrandCard() {
         className="absolute inset-0 -z-10 object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.165,0.84,0.44,1)] group-hover:scale-[1.05] [object-position:50%_25%]"
       />
       <div className="relative flex flex-1 flex-col justify-between">
-        <div className="self-start text-lg font-semibold tracking-tight text-white">OpenFlow</div>
+        <div className="self-start text-lg font-semibold tracking-tight text-white"></div>
         <div className="flex flex-col gap-4">
           <h2 className="max-w-[659px] text-[48px] leading-[1.03] font-light tracking-[-0.02em] text-white">
             {t('title')}

@@ -33,6 +33,10 @@ button * {
   cursor: pointer;
 }
 
+h1, h2, h3, h4, h5, h6 {
+  white-space: pre-wrap;
+}
+
 body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   color: var(--color-foreground);

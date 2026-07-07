@@ -6,8 +6,8 @@
       "cta": "Join the Waitlist"
     },
     "whatIsOpenflow": {
-      "title": "Build a support agent. Sell it to every client you serve.",
-      "description": "Each client gets its own WhatsApp number, its own guest history, its own knowledge base. You improve the agent once; every hotel gets the update.",
+      "title": "Build an agent once.\nSell it to every client you serve.",
+      "description": "Each customer gets its own WhatsApp number, its own guest history, its own knowledge base. You improve the agent once; every hotel gets the update.",
       "cta": "See how it works"
     },
     "families": {
@@ -38,8 +38,6 @@
         }
       },
       "controlRoom": {
-        "title": "See everything, trust everything",
-        "intro": "You can't sell what you can't inspect.",
         "items": {
           "observability": {
             "title": "\"Why did it say that?\" Answered in seconds.",
