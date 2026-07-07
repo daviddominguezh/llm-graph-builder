@@ -163,8 +163,13 @@ function DeckCard({ card, index, total, isLast }: { card: DeckCardData; index: n
           className="pointer-events-none absolute -top-24 right-0 h-72 w-72 rounded-full opacity-25 blur-3xl"
           style={{ background: card.accent }}
         />
+             <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-24 left-0 h-72 w-72 rounded-full opacity-25 blur-3xl"
+          style={{ background: card.accent }}
+        />
         <div className="relative grid gap-12 lg:grid-cols-2 lg:items-stretch">
-          <div className="flex flex-col justify-between gap-10">
+          <div className="flex flex-col gap-10">
             <div>
               <SegmentPills index={index} total={total} accent={card.accent} label={card.eyebrow} />
               <h3 className="mt-6 max-w-[26rem] text-[34px] leading-[1.08] font-light tracking-[-0.02em] text-white">

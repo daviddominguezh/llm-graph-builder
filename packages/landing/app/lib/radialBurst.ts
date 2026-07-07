@@ -15,7 +15,9 @@ export type RadialBurst = {
 };
 
 type Line = {
-  angle: number;
+  dx: number; // unit direction on the sphere (x)
+  dy: number; // unit direction on the sphere (y)
+  dz: number; // unit direction on the sphere (z, toward viewer)
   lenFrac: number;
   width: number;
   alpha: number;
@@ -33,21 +35,28 @@ const LINE_COUNT = 210;
 const INFLUENCE = 150; // px radius of the mouse repulsion
 const PUSH = 62; // max px a tip is pushed
 const EASE = 0.12; // tip return/approach easing
+const TILT = 0.42; // fixed camera tilt (radians) — view the sphere at an angle
+const CAM = 5; // perspective camera distance (larger = flatter)
+const ROT_SPEED = 0.0001; // radians per ms — a slow spin that reads as 3D depth
 
+// Even directions on a unit sphere (Fibonacci lattice) so the rotating burst
+// looks like a full 3D dandelion rather than a flat fan.
 function buildLines(): Line[] {
   const lines: Line[] = [];
+  const golden = Math.PI * (3 - Math.sqrt(5));
   for (let i = 0; i < LINE_COUNT; i++) {
-    const base = i / LINE_COUNT;
-    const jitter = (Math.random() - 0.5) * (1.6 / LINE_COUNT);
-    const angle = (base + jitter) * Math.PI * 2; // full circle
+    const dy = 1 - (i / (LINE_COUNT - 1)) * 2; // 1 → -1
+    const r = Math.sqrt(Math.max(0, 1 - dy * dy));
+    const theta = golden * i;
     const lenFrac = 0.3 + Math.pow(Math.random(), 0.6) * 0.68;
-    const dev = Math.abs(Math.cos(angle)); // 0 vertical → 1 horizontal
     lines.push({
-      angle,
+      dx: Math.cos(theta) * r,
+      dy,
+      dz: Math.sin(theta) * r,
       lenFrac,
       width: 0.6 + Math.random() * 0.7,
       alpha: 0.36 + (1 - lenFrac / 1.12) * 0.4,
-      tipLight: 62 + dev * 10 + Math.random() * 10,
+      tipLight: 70 + Math.random() * 12,
       dot: 1 + Math.random() * 1.7,
       phase: Math.random() * Math.PI * 2,
       cx: 0,
@@ -57,10 +66,26 @@ function buildLines(): Line[] {
   return lines;
 }
 
+// Spin the direction slowly around Y and tilt it a fixed amount around X, then
+// return the rotated vector plus a perspective factor — the depth cues that
+// turn the flat fan into a rotating 3D burst.
+function project(ln: Line, rot: number): { fx: number; fy: number; fz: number; persp: number } {
+  const cr = Math.cos(rot);
+  const sr = Math.sin(rot);
+  const rx = ln.dx * cr + ln.dz * sr;
+  const rz = -ln.dx * sr + ln.dz * cr;
+  const ct = Math.cos(TILT);
+  const st = Math.sin(TILT);
+  const fy = ln.dy * ct - rz * st;
+  const fz = ln.dy * st + rz * ct;
+  return { fx: rx, fy, fz, persp: CAM / (CAM - fz) };
+}
+
 function seedLine(ln: Line, dim: Dim): void {
   const len = ln.lenFrac * dim.maxR;
-  ln.cx = dim.ox + Math.cos(ln.angle) * len;
-  ln.cy = dim.oy - Math.sin(ln.angle) * len;
+  const p = project(ln, 0);
+  ln.cx = dim.ox + p.fx * len * p.persp;
+  ln.cy = dim.oy - p.fy * len * p.persp;
 }
 
 function paintBloom(ctx: CanvasRenderingContext2D, dim: Dim): void {
@@ -72,14 +97,13 @@ function paintBloom(ctx: CanvasRenderingContext2D, dim: Dim): void {
 }
 
 function paintLine(ctx: CanvasRenderingContext2D, dim: Dim, ln: Line, mouse: Mouse, t: number): void {
-  // Always-on shimmer: a compound breathe of the tip — a slow primary wave plus
-  // a faster phase-offset ripple, each line on its own phase, so the whole burst
-  // visibly pulses and rustles even when the cursor is away (≈±9% of length).
+  // Always-on shimmer: a slow compound breathe on top of the 3D spin.
   const pulse =
     1 + Math.sin(t * 0.00045 + ln.phase) * 0.06 + Math.sin(t * 0.001 + ln.phase * 1.7) * 0.03;
   const len = ln.lenFrac * dim.maxR * pulse;
-  let tx = dim.ox + Math.cos(ln.angle) * len;
-  let ty = dim.oy - Math.sin(ln.angle) * len;
+  const p = project(ln, t * ROT_SPEED);
+  let tx = dim.ox + p.fx * len * p.persp;
+  let ty = dim.oy - p.fy * len * p.persp;
   if (mouse.active) {
     const dx = tx - mouse.x;
     const dy = ty - mouse.y;
@@ -92,18 +116,22 @@ function paintLine(ctx: CanvasRenderingContext2D, dim: Dim, ln: Line, mouse: Mou
   }
   ln.cx += (tx - ln.cx) * EASE;
   ln.cy += (ty - ln.cy) * EASE;
+  // Depth: 0 = pointing away (dim/thin/small tip), 1 = toward viewer (bright/big).
+  const depth = (p.fz + 1) / 2;
+  const a = ln.alpha * (0.38 + 0.62 * depth);
+  const tip = Math.min(96, ln.tipLight + depth * 18);
   const grad = ctx.createLinearGradient(dim.ox, dim.oy, ln.cx, ln.cy);
-  grad.addColorStop(0, `hsla(0,0%,94%,${ln.alpha})`);
-  grad.addColorStop(1, `hsla(0,0%,${ln.tipLight}%,${ln.alpha})`);
+  grad.addColorStop(0, `hsla(0,0%,94%,${a})`);
+  grad.addColorStop(1, `hsla(0,0%,${tip}%,${a})`);
   ctx.strokeStyle = grad;
-  ctx.lineWidth = ln.width;
+  ctx.lineWidth = ln.width * (0.7 + depth * 0.6);
   ctx.beginPath();
   ctx.moveTo(dim.ox, dim.oy);
   ctx.lineTo(ln.cx, ln.cy);
   ctx.stroke();
-  ctx.fillStyle = `hsla(0,0%,${Math.min(92, ln.tipLight + 16)}%,${Math.min(1, ln.alpha + 0.28)})`;
+  ctx.fillStyle = `hsla(0,0%,${Math.min(96, tip + 16)}%,${Math.min(1, a + 0.3)})`;
   ctx.beginPath();
-  ctx.arc(ln.cx, ln.cy, ln.dot, 0, Math.PI * 2);
+  ctx.arc(ln.cx, ln.cy, ln.dot * (0.55 + depth * 0.9), 0, Math.PI * 2);
   ctx.fill();
 }
 
@@ -128,7 +156,7 @@ export function createRadialBurst(container: HTMLElement): RadialBurst {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     dim.ox = dim.w / 2;
     dim.oy = dim.h / 2;
-    dim.maxR = Math.min(dim.w, dim.h) * 0.47;
+    dim.maxR = Math.min(dim.w, dim.h) * 0.4; // headroom for the perspective scale
     for (const ln of lines) seedLine(ln, dim);
   };
 
