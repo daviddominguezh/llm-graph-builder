@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';
-import { Inter } from 'next/font/google';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Noto_Sans } from 'next/font/google';
 
 import './globals.css';
 
@@ -10,7 +9,7 @@ import { AnalyticsClient } from './components/AnalyticsClient';
 import { FilmGrain } from './components/FilmGrain';
 import { SmoothScroll } from './components/SmoothScroll';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const notoSans = Noto_Sans({ subsets: ['latin'], variable: '--font-noto-sans' });
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
@@ -32,7 +31,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const locale = await getLocale();
   return (
-    <html lang={locale} className={`${inter.variable} ${geistSans.variable} ${geistMono.variable}`}>
+    <html lang={locale} className={`${notoSans.variable} ${geistSans.variable} ${geistMono.variable}`}>
       <body className="antialiased">
         <a
           href="#main"

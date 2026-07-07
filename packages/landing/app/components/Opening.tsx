@@ -46,6 +46,7 @@ export function Opening() {
 
   const cardScale = 1 - clamp01(p / 0.6) * 0.22; // 1 → 0.78 (shrinks)
   const cardOpacity = 1 - clamp01(p / 0.5); // 1 → 0 (fades to black)
+  const veilOpacity = clamp01(p / 0.5); // 0 → 1 (white frame darkens to black)
   const stageOpacity = 1 - clamp01((p - 0.55) / 0.45); // 1 → 0 (reveals hero)
 
   return (
@@ -66,6 +67,15 @@ export function Opening() {
             {t('title')}
           </h1>
         </div>
+
+        {/* Scroll veil: the white frame stays white at rest (the framed look),
+            then this black layer rises as you scroll so the screen turns to
+            black — not white — before the stage fades out to the hero. */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-black"
+          style={{ opacity: veilOpacity }}
+        />
 
         {/* Load-time curtain: eases out on first paint so the opening emerges
             from black (moved here from the hero). */}

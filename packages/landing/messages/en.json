@@ -23,7 +23,7 @@
             "description": "Sell your agent to one customer or a hundred. Each gets their own channels, their own data, their own bill. You build once. We isolate everything."
           },
           "multiChannel": {
-            "title": "The channels each customer's audience already uses.",
+            "title": "The channels your audience already uses.",
             "description": "Your agents answer on WhatsApp, web chat, Instagram, Telegram, Slack, Discord, Teams, and Google Chat. Each customer connects their own channels."
           },
           "deployToYourWebsite": {
@@ -31,7 +31,7 @@
             "description": "Paste a script tag — the agent is on your customer's homepage. Branded, versioned, no cookies. Finished at 4:00, live at 4:05."
           },
           "expensesControlPerTenant": {
-            "title": "Know what every customer costs you",
+            "title": "Know what every customer is costing you.",
             "description": "Spend is metered per customer, per conversation, per model call. Your margin stops being a guess. Spending caps and alerts included."
           }
         }
