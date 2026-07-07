@@ -55,6 +55,25 @@ body {
   animation: logo-marquee 55s linear infinite;
 }
 
+/* Hero intro: fade the whole hero in on load so it never snaps into view.
+   Pure CSS, so it runs at first paint regardless of hydration or how long the
+   WebGL wave takes to warm up. The wave fades in separately (FoldedSilkCanvas)
+   once its first frame paints — so a slow wave never holds back the hero, and
+   whenever it is ready it eases in on top. `both` applies opacity: 0 from the
+   very first frame to avoid a flash of the fully-opaque hero. */
+@keyframes hero-intro {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.hero-wave-animation {
+  animation: hero-intro 900ms ease-out both;
+}
+
 /* Hero abstract graph animation */
 @keyframes node-float {
   0%,

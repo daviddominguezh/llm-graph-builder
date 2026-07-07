@@ -1,146 +1,162 @@
 import Image from 'next/image';
 
+import { LogoShuffle, type ShuffleItem } from './LogoShuffle';
 import { SectionHeading } from './SectionHeading';
 
-const CARD_BORDER = 'border border-white/8';
-
-// Customer-story rows with the reference's accordion media slots.
-const MINI_CASES = [
+// Customer logos + quotes feeding the Enterprise card's shuffle stack.
+const SHUFFLE_ITEMS: ShuffleItem[] = [
   {
-    title: 'URBN consolidates multi-brand agents on OpenFlow.',
-    image: '/reference/enterprise-accordion-urbn.png',
+    id: 'elevenlabs',
+    name: 'ElevenLabs',
+    role: 'Voice AI',
+    quote: 'One agent graph now handles support across every surface, with billing per workspace.',
+    image: '/reference/Eleven_Labs.png',
   },
   {
-    title: 'A grocery-delivery leader powers support with OpenFlow.',
-    image: '/reference/enterprise-accordion-instacart.png',
+    id: 'gamma',
+    name: 'Gamma',
+    role: 'Presentations',
+    quote: 'We spun up isolated tenants for each customer in a single call — no infra work.',
+    image: '/reference/Gamma.png',
   },
   {
-    title: 'A global newsroom improves reader conversations with OpenFlow.',
-    image: '/reference/enterprise-accordion-lemonde.png',
+    id: 'runway',
+    name: 'Runway',
+    role: 'Generative video',
+    quote: 'Channels, memory, and metering came wired together from the first commit.',
+    image: '/reference/Runway.png',
   },
-] as const;
+  {
+    id: 'supabase',
+    name: 'Supabase',
+    role: 'Developer platform',
+    quote: 'Our customers configure agents inside our product while we keep the margin.',
+    image: '/reference/Supabase.png',
+  },
+  {
+    id: 'linear',
+    name: 'Linear',
+    role: 'Product tooling',
+    quote: 'Thousands of conversations a minute, consistent latency, zero babysitting.',
+    image: '/reference/linear.png',
+  },
+];
 
-// Customer carousel tiles, one per reference slot.
-const CAROUSEL = [
-  { name: 'ElevenLabs', image: '/reference/Eleven_Labs.png' },
-  { name: 'Gamma', image: '/reference/Gamma.png' },
-  { name: 'Runway', image: '/reference/Runway.png' },
-  { name: 'Supabase', image: '/reference/Supabase.png' },
-  { name: 'Browserbase', image: '/reference/browserbase.png' },
-  { name: 'Decagon', image: '/reference/decagon.png' },
-  { name: 'Linear', image: '/reference/linear.png' },
-  { name: 'Lovable', image: '/reference/lovable.png' },
-] as const;
+type DeckCardData = {
+  eyebrow: string;
+  title: string;
+  highlight: string;
+  description: string;
+  cta: string;
+  accent: string;
+  visual: string; // 'shuffle' or an image path
+};
 
-// Horizontal card with portrait media, on the reference's 332x448 ratio.
-function FeaturedCase() {
+const CARDS: DeckCardData[] = [
+  {
+    eyebrow: 'Enterprise',
+    title: 'A global fleet unifies customer conversations with',
+    highlight: 'OpenFlow.',
+    description: 'One agent graph, hundreds of locations — each with its own channels, history, and usage billing.',
+    cta: 'Read the story',
+    accent: '#7c72ff',
+    visual: 'shuffle',
+  },
+  {
+    eyebrow: 'Startups',
+    title: 'Build a foundation for your startup that enables',
+    highlight: 'faster growth.',
+    description: 'Launch your agent product in days: tenants, channels, memory, and billing wired together from commit one.',
+    cta: 'Start building',
+    accent: '#4aa8ff',
+    visual: '/reference/card_startups.png',
+  },
+  {
+    eyebrow: 'Platforms',
+    title: 'Make your SaaS a complete agent',
+    highlight: 'operating system.',
+    description: 'Embed OpenFlow under your brand: customers configure agents inside your product while you keep the margin.',
+    cta: 'Explore platforms',
+    accent: '#3ddc97',
+    visual: '/reference/platform-graphic-background_2x.png',
+  },
+  {
+    eyebrow: 'Developers',
+    title: 'Ship agents with typed SDKs and a',
+    highlight: 'single API call.',
+    description: 'Provision isolated tenants with channels, memory, and billing programmatically — no glue code required.',
+    cta: 'Read the docs',
+    accent: '#f0a94a',
+    visual: '/reference/bento-terminal.png',
+  },
+  {
+    eyebrow: 'Agencies',
+    title: 'Resell agent infrastructure under',
+    highlight: 'your own brand.',
+    description: 'White-label the whole runtime, meter every conversation, and turn agent traffic into recurring revenue.',
+    cta: 'Become a partner',
+    accent: '#f06bb3',
+    visual: '/reference/ConnectBentoBackground2.webp',
+  },
+];
+
+function SegmentPills({ label, accent }: { label: string; accent: string }) {
   return (
-    <div className={`flex overflow-hidden rounded-md lg:aspect-[608/448] bg-white/5 ${CARD_BORDER}`}>
-      <div className="case-study-card__media relative w-[45%] shrink-0">
-        <Image
-          src="/reference/enterprise-accordion-hertz.png"
-          alt=""
-          width={296}
-          height={128}
-          className="h-full w-full object-cover"
-        />
-      </div>
-      <div className="flex flex-col justify-center p-8">
-        <h3 className="text-lg font-medium text-white">
-          A global fleet unifies customer conversations with OpenFlow.
-        </h3>
-        <p className="mt-2 text-sm leading-relaxed text-white/60">
-          One agent graph, hundreds of locations — each with its own WhatsApp number, history, and usage
-          billing.
-        </p>
-        <span className="mt-4 inline-block text-sm font-medium text-[#533afd]">Read the story ›</span>
-      </div>
-    </div>
-  );
-}
-
-function CustomerCarousel() {
-  return (
-    <div className="mt-16 grid grid-cols-2 gap-4 sm:grid-cols-4">
-      {CAROUSEL.map((customer) => (
-        <div key={customer.name} className={`overflow-hidden rounded-md ${CARD_BORDER}`}>
-          <Image src={customer.image} alt={customer.name} width={432} height={421} className="h-auto w-full" />
-        </div>
+    <div className="flex items-center gap-2">
+      <span
+        className="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-black"
+        style={{ backgroundColor: accent }}
+      >
+        {label}
+      </span>
+      {[0, 1, 2].map((dot) => (
+        <span key={dot} className="h-1.5 w-1.5 rounded-full bg-white/15" />
       ))}
     </div>
   );
 }
 
-function StartupBlock() {
+function CardVisual({ card }: { card: DeckCardData }) {
+  if (card.visual === 'shuffle') return <LogoShuffle items={SHUFFLE_ITEMS} />;
   return (
-    <div className="mt-20 grid items-center gap-4 border-t border-dashed border-neutral-800 pt-16 lg:grid-cols-2">
-      <div>
-        <h3 className="max-w-[480px] text-xl font-medium leading-snug text-white">
-          Build a foundation for your startup that enables faster growth.
-        </h3>
-        <p className="mt-3 max-w-[480px] text-sm leading-relaxed text-white/60">
-          Launch your agent product in days: tenants, channels, memory, and billing come wired together
-          from the first commit.
-        </p>
-        <span className="mt-4 inline-block text-sm font-medium text-[#533afd]">Start building ›</span>
-      </div>
-      <Image
-        src="/reference/card_startups.png"
-        alt=""
-        width={585}
-        height={236}
-        className="startups__startups-graphic h-auto w-full rounded-lg"
-      />
+    <div className="relative aspect-[4/3] w-full max-w-[26rem] overflow-hidden rounded-2xl border border-white/8">
+      <Image src={card.visual} alt="" fill sizes="26rem" className="object-cover" />
     </div>
   );
 }
 
-// Feature rows on the reference's 356x104 card dimensions.
-const PLATFORM_FEATURES = [
-  { title: 'Tenant provisioning', text: 'Spin up isolated customer instances in one call.' },
-  { title: 'Channel management', text: 'Numbers, workspaces, and identities per tenant.' },
-  { title: 'Usage metering', text: 'Track every conversation for billing.' },
-  { title: 'White-label controls', text: 'Your brand, your margins, our runtime.' },
-] as const;
-
-function PlatformFeatureRows() {
+// One deck card. On desktop it pins (`lg:sticky lg:top-24`) and overlaps the
+// next by 3rem (`lg:-mb-12`), so cards slide up and stack — Clay's mechanism.
+// On mobile it falls back to normal flow (their `< lg` override).
+function DeckCard({ card, index, isLast }: { card: DeckCardData; index: number; isLast: boolean }) {
   return (
-    <div className="mt-10 grid max-w-[728px] gap-4 sm:grid-cols-2">
-      {PLATFORM_FEATURES.map((feature) => (
+    <div
+      className={`relative lg:sticky lg:top-24 ${isLast ? '' : 'lg:-mb-12'}`}
+      style={{ zIndex: index + 1 }}
+    >
+      <div
+        className={`relative overflow-hidden border border-white/8 bg-[#0e0e10] px-8 pt-12 pb-14 rounded-t-[2.5rem] lg:min-h-[34rem] lg:px-14 lg:pb-20 ${isLast ? 'rounded-b-[2.5rem]' : ''}`}
+      >
         <div
-          key={feature.title}
-          className={`platform-graphic__feature-card rounded-lg bg-white/5 p-5 lg:aspect-[356/104] ${CARD_BORDER}`}
-        >
-          <h4 className="text-sm font-semibold text-white">{feature.title}</h4>
-          <p className="mt-1 text-xs leading-relaxed text-white/60">{feature.text}</p>
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-24 right-0 h-72 w-72 rounded-full opacity-25 blur-3xl"
+          style={{ background: card.accent }}
+        />
+        <div className="relative grid items-center gap-12 lg:grid-cols-2">
+          <div>
+            <SegmentPills label={card.eyebrow} accent={card.accent} />
+            <h3 className="mt-6 max-w-[26rem] text-[34px] leading-[1.08] font-light tracking-[-0.02em] text-white">
+              {card.title} <span style={{ color: card.accent }}>{card.highlight}</span>
+            </h3>
+            <p className="mt-4 max-w-[26rem] text-sm leading-relaxed text-white/55">{card.description}</p>
+            <span className="mt-6 inline-block text-sm font-medium" style={{ color: card.accent }}>
+              {card.cta} ›
+            </span>
+          </div>
+          <div className="flex justify-center lg:justify-end">
+            <CardVisual card={card} />
+          </div>
         </div>
-      ))}
-    </div>
-  );
-}
-
-function PlatformBlock() {
-  return (
-    <div className="platform-graphic mt-16 grid items-center gap-4 border-t border-dashed border-neutral-800 pt-16 lg:grid-cols-2">
-      <Image
-        src="/reference/platform-graphic-background_2x.png"
-        alt=""
-        width={296}
-        height={128}
-        className="h-auto w-full rounded-lg"
-      />
-      <div>
-        <h3 className="max-w-[480px] text-xl font-medium leading-snug text-white">
-          Make your SaaS platform a complete agent operating system.
-        </h3>
-        <p className="mt-3 max-w-[480px] text-sm leading-relaxed text-white/60">
-          Embed OpenFlow under your own brand: your customers configure agents inside your product while
-          you keep the margin.
-        </p>
-        <span className="mt-4 inline-block text-sm font-medium text-[#533afd]">Explore platforms ›</span>
-      </div>
-      <div className="lg:col-span-2">
-        <PlatformFeatureRows />
       </div>
     </div>
   );
@@ -156,30 +172,11 @@ export function CaseStudies() {
           rest="Transform your company with agent infrastructure that grows from your first client to your thousandth."
         />
 
-        <div className="mt-14 grid gap-4 lg:grid-cols-2">
-          <FeaturedCase />
-          <ul className="space-y-6">
-            {MINI_CASES.map((item) => (
-              <li key={item.title} className="flex items-center gap-5 border-b border-dashed border-neutral-800 pb-6">
-                <Image
-                  src={item.image}
-                  alt=""
-                  width={296}
-                  height={128}
-                  className="w-[120px] shrink-0 rounded-md"
-                />
-                <div>
-                  <h3 className="text-base font-medium text-white">{item.title}</h3>
-                  <span className="mt-1 inline-block text-sm font-medium text-[#533afd]">Learn more ›</span>
-                </div>
-              </li>
-            ))}
-          </ul>
+        <div className="mt-14 flex flex-col gap-6 lg:gap-0">
+          {CARDS.map((card, index) => (
+            <DeckCard key={card.eyebrow} card={card} index={index} isLast={index === CARDS.length - 1} />
+          ))}
         </div>
-
-        <CustomerCarousel />
-        <StartupBlock />
-        <PlatformBlock />
       </div>
     </section>
   );

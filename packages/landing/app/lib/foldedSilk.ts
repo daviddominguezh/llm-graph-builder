@@ -255,7 +255,10 @@ function createSheetMaterial(palette: THREE.Texture, config: VariantConfig): THR
 export function createFoldedSilk(
   container: HTMLElement,
   timeOffset = 0,
-  variant: FoldedSilkVariant = 'solid'
+  variant: FoldedSilkVariant = 'solid',
+  // Fired exactly once, right after the very first frame is painted — lets the
+  // caller fade the canvas in only when there is actually something to show.
+  onReady?: () => void
 ): FoldedSilk {
   const config = VARIANTS[variant];
   const scene = new THREE.Scene();
@@ -351,12 +354,20 @@ export function createFoldedSilk(
   let running = false;
   let frame = 0;
 
+  let readyFired = false;
+  const markReady = () => {
+    if (readyFired) return;
+    readyFired = true;
+    onReady?.();
+  };
+
   const update = (t: number) => {
     frame += 1;
     if (frame % 2 !== 0) return;
     if (firstDrawTime === null) firstDrawTime = t;
     renderFrame((t - firstDrawTime - pausedTime) * introTimeRamp);
     introTimeRamp = Math.min(introTimeRamp + 0.016, 1);
+    markReady();
   };
 
   return {
@@ -378,6 +389,7 @@ export function createFoldedSilk(
     renderStill: () => {
       introTimeRamp = 1;
       renderFrame(0);
+      markReady();
     },
     setUniform: (name, value) => {
       const uniform = material.uniforms[name];
