@@ -90,7 +90,7 @@ body {
   }
 }
 
-.hero-intro-curtain {
+.intro-curtain {
   animation: hero-intro-fade 1800ms ease-in-out both;
 }
 
@@ -280,7 +280,7 @@ body {
   .hero-edge,
   .logo-marquee,
   .connector-flow,
-  .hero-intro-curtain {
+  .intro-curtain {
     animation: none;
   }
 }
