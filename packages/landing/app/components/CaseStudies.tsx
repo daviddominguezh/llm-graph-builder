@@ -137,13 +137,13 @@ function SegmentPills({ index, total, accent, label }: { index: number; total: n
 function CardVisual({ card }: { card: DeckCardData }) {
   if (card.visual === 'shuffle') {
     return (
-      <div className="flex items-center justify-center lg:justify-end">
+      <div className="flex items-center justify-center lg:h-[18rem] lg:justify-end">
         <LogoShuffle items={SHUFFLE_ITEMS} />
       </div>
     );
   }
   return (
-    <div className="relative min-h-[16rem] w-full overflow-hidden rounded-2xl border border-white/8 lg:h-full">
+    <div className="relative h-[15rem] w-full overflow-hidden rounded-2xl border border-white/8 lg:h-[18rem]">
       <Image src={card.visual} alt="" fill sizes="30rem" className="object-cover" />
     </div>
   );
@@ -159,7 +159,7 @@ function DeckCard({ card, index, total, isLast }: { card: DeckCardData; index: n
   return (
     <div className={`relative lg:sticky lg:top-24 ${isLast ? '' : 'lg:-mb-12'}`} style={{ zIndex: index + 1 }}>
       <div
-        className={`relative flex flex-col overflow-hidden border border-white/8 px-8 pt-12 pb-14 rounded-t-[2.5rem] lg:min-h-[30rem] lg:px-14 lg:pb-16 ${isLast ? 'rounded-b-[2.5rem]' : ''}`}
+        className={`relative flex flex-col overflow-hidden border border-white/8 px-8 py-12 rounded-t-[2.5rem] lg:px-14 ${isLast ? 'rounded-b-[2.5rem]' : ''}`}
         style={{ backgroundColor: background }}
       >
         <div
@@ -167,14 +167,16 @@ function DeckCard({ card, index, total, isLast }: { card: DeckCardData; index: n
           className="pointer-events-none absolute -top-24 right-0 h-72 w-72 rounded-full opacity-25 blur-3xl"
           style={{ background: card.accent }}
         />
-        <div className="relative grid gap-12 lg:grid-cols-2 lg:flex-1 lg:items-stretch">
-          <div className="flex flex-col justify-center">
-            <SegmentPills index={index} total={total} accent={card.accent} label={card.eyebrow} />
-            <h3 className="mt-6 max-w-[26rem] text-[34px] leading-[1.08] font-light tracking-[-0.02em] text-white">
-              {card.title} <span style={{ color: card.accent }}>{card.highlight}</span>
-            </h3>
-            <p className="mt-4 max-w-[26rem] text-sm leading-relaxed text-white/55">{card.description}</p>
-            <span className="mt-6 inline-block text-sm font-medium" style={{ color: card.accent }}>
+        <div className="relative grid gap-12 lg:grid-cols-2 lg:items-stretch">
+          <div className="flex flex-col justify-between gap-10">
+            <div>
+              <SegmentPills index={index} total={total} accent={card.accent} label={card.eyebrow} />
+              <h3 className="mt-6 max-w-[26rem] text-[34px] leading-[1.08] font-light tracking-[-0.02em] text-white">
+                {card.title} <span style={{ color: card.accent }}>{card.highlight}</span>
+              </h3>
+              <p className="mt-4 max-w-[26rem] text-sm leading-relaxed text-white/55">{card.description}</p>
+            </div>
+            <span className="inline-block text-sm font-medium" style={{ color: card.accent }}>
               {card.cta} ›
             </span>
           </div>
@@ -195,7 +197,12 @@ export function CaseStudies() {
           rest="Transform your company with agent infrastructure that grows from your first client to your thousandth."
         />
 
-        <div className="mt-14 flex flex-col gap-6 lg:gap-0">
+        {/* `overflow-clip` (NOT hidden — hidden would create a scroll container
+            and break sticky) cuts off the previous cards where they protrude
+            below the last one: their -mb-12 sits on the sticky wrappers, and
+            sticky constrains the MARGIN box, so their border boxes may rest
+            48px below the container bottom. Rounded to match the last card. */}
+        <div className="mt-14 flex flex-col gap-6 lg:gap-0 lg:overflow-clip lg:rounded-b-[2.5rem]">
           {CARDS.map((card, index) => (
             <DeckCard
               key={card.eyebrow}
