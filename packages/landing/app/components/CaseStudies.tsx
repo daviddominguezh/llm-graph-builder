@@ -135,15 +135,16 @@ function SegmentPills({ index, total, accent, label }: { index: number; total: n
 // Visual fills the card's full height (grid `items-stretch`) so there is no
 // empty framed area below the content on the top-most card.
 function CardVisual({ card }: { card: DeckCardData }) {
+  // Visual height drives card height: 502px + 96px card padding + 2px borders = 600px.
   if (card.visual === 'shuffle') {
     return (
-      <div className="flex items-center justify-center lg:h-[26rem] lg:justify-end">
+      <div className="flex items-center justify-center lg:h-[502px] lg:justify-end">
         <LogoShuffle items={SHUFFLE_ITEMS} />
       </div>
     );
   }
   return (
-    <div className="relative h-[17rem] w-full overflow-hidden rounded-2xl border border-white/8 lg:h-[26rem]">
+    <div className="relative h-[17rem] w-full overflow-hidden rounded-2xl border border-white/8 lg:h-[502px]">
       <Image src={card.visual} alt="" fill sizes="30rem" className="object-cover" />
     </div>
   );
@@ -189,7 +190,7 @@ function DeckCard({ card, index, total, isLast }: { card: DeckCardData; index: n
 
 export function CaseStudies() {
   return (
-    <section className="bg-[#070707] px-10 py-24">
+    <section className="bg-[#070707] px-10 pt-25 pb-30">
       <div className="mx-auto max-w-[1232px]">
         <SectionHeading
           dark
