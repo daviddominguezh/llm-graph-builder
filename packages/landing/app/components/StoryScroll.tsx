@@ -20,20 +20,21 @@ type StoryCard = {
   image: string;
 };
 
+// controlRoom items in catalog order (see messages/KEY_USAGE.md).
 const CARDS: StoryCard[] = [
   {
-    eyebrow: 'Agent builder',
-    messageKey: 'studio.items.agentBuilder',
+    eyebrow: 'Observability',
+    messageKey: 'controlRoom.items.observability',
     image: '/reference/ConnectBentoBackground2.webp',
   },
   {
-    eyebrow: 'MCP & tools',
-    messageKey: 'toolbox.items.connectAnyMcp',
+    eyebrow: 'Live inbox',
+    messageKey: 'controlRoom.items.conversationsDashboard',
     image: '/reference/payment-bento-background.jpg',
   },
   {
-    eyebrow: 'Multi-tenant',
-    messageKey: 'foundation.items.multiTenancy',
+    eyebrow: 'Evals',
+    messageKey: 'controlRoom.items.evals',
     image: '/reference/platform-graphic-background_2x.png',
   },
 ];

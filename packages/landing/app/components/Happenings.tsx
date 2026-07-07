@@ -1,31 +1,36 @@
 import { useTranslations } from 'next-intl';
 
 import { type HappeningItem, HappeningsCarousel } from './HappeningsCarousel';
+import { IntegrationDiagram } from './IntegrationDiagram';
 import { SectionHeading } from './SectionHeading';
 
-// News slots reusing the reference's imagery, with copy from unused feature
-// keys (announcement-flavored: shipped features + roadmap items). Item keys
-// live under landing.families — assignments tracked in messages/KEY_USAGE.md.
+// The toolbox family in catalog order: the standard → the catalog → the
+// capabilities, common to specialized (see messages/KEY_USAGE.md). The
+// connector diagram lives here too — it visualizes exactly this family.
 const NEWS_SLOTS = [
-  { id: 'web-search', messageKey: 'toolbox.items.webSearch', image: '/reference/annual-letter-mobile.png' },
   {
-    id: 'any-llm',
-    messageKey: 'studio.items.anyLlmProvider',
-    image: '/reference/the-happenings-payment-processing-mobile.png',
+    id: 'connect-any-mcp',
+    messageKey: 'toolbox.items.connectAnyMcp',
+    image: '/reference/annual-letter-mobile.png',
   },
   {
     id: 'mcp-catalog',
     messageKey: 'toolbox.items.outOfTheBoxMcps',
+    image: '/reference/the-happenings-payment-processing-mobile.png',
+  },
+  {
+    id: 'web-search',
+    messageKey: 'toolbox.items.webSearch',
     image: '/reference/the-happenings-agentic-mobile.png',
   },
   {
-    id: 'skills',
-    messageKey: 'studio.items.agentSkills',
+    id: 'http-requests',
+    messageKey: 'toolbox.items.httpRequests',
     image: '/reference/the-happenings-payment-retailers-mobile.png',
   },
   {
-    id: 'user-memory',
-    messageKey: 'knowledge.items.userMemory',
+    id: 'external-sql',
+    messageKey: 'toolbox.items.externalSql',
     image: '/reference/the-happenings-bfcm-mobile.png',
   },
   {
@@ -34,13 +39,8 @@ const NEWS_SLOTS = [
     image: '/reference/the-happenings-tidemark-mobile.png',
   },
   {
-    id: 'booking',
-    messageKey: 'revenue.items.bookingSystem',
-    image: '/reference/the-happenings-cheeky-pint-mobile.png',
-  },
-  {
-    id: 'long-running',
-    messageKey: 'engine.items.longRunningAgents',
+    id: 'code-sandboxes',
+    messageKey: 'toolbox.items.codeSandboxes',
     image: '/reference/the-happenings-crypto-mobile.png',
   },
 ] as const;
@@ -56,8 +56,10 @@ export function Happenings() {
   return (
     <section className="the-happenings bg-[#0d0d0d] px-10 py-24">
       <div className="mx-auto max-w-[1232px]">
-        <SectionHeading dark lead={t('studio.title')} rest={t('studio.intro')} />
-
+        <SectionHeading dark lead={t('toolbox.title')} rest={t('toolbox.intro')} />
+        <div className="mt-14">
+          <IntegrationDiagram />
+        </div>
         <HappeningsCarousel items={items} />
       </div>
     </section>

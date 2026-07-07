@@ -50,38 +50,44 @@ type DeckCardData = {
   visual: string; // 'shuffle' or an image path
 };
 
-// One flagship story per feature family — key assignments are tracked in
-// messages/KEY_USAGE.md (every key is used at most once across the site).
+// The six studio items in catalog order — rising sophistication, ending on
+// shipping (see messages/KEY_USAGE.md).
 const CARDS: DeckCardData[] = [
   {
-    eyebrow: 'Control room',
-    messageKey: 'controlRoom.items.observability',
+    eyebrow: 'Builder',
+    messageKey: 'studio.items.agentBuilder',
     accent: '#7c72ff',
     visual: 'shuffle',
   },
   {
-    eyebrow: 'Studio',
-    messageKey: 'studio.items.agentOrchestration',
+    eyebrow: 'Workflows',
+    messageKey: 'studio.items.workflowBuilder',
     accent: '#4aa8ff',
     visual: '/reference/card_startups.png',
   },
   {
-    eyebrow: 'Knowledge',
-    messageKey: 'knowledge.items.multimodalRag',
+    eyebrow: 'Orchestration',
+    messageKey: 'studio.items.agentOrchestration',
     accent: '#3ddc97',
     visual: '/reference/platform-graphic-background_2x.png',
   },
   {
-    eyebrow: 'Engine',
-    messageKey: 'engine.items.scheduledExecution',
+    eyebrow: 'Models',
+    messageKey: 'studio.items.anyLlmProvider',
     accent: '#f0a94a',
     visual: '/reference/bento-terminal.png',
   },
   {
-    eyebrow: 'Revenue',
-    messageKey: 'revenue.items.leadScoring',
+    eyebrow: 'Skills',
+    messageKey: 'studio.items.agentSkills',
     accent: '#f06bb3',
     visual: '/reference/ConnectBentoBackground2.webp',
+  },
+  {
+    eyebrow: 'Versions',
+    messageKey: 'studio.items.versionControl',
+    accent: '#38bdf8',
+    visual: '/reference/payment-bento-background.jpg',
   },
 ];
 
@@ -180,7 +186,7 @@ function DeckCard({ card, index, total, isLast }: { card: DeckCardData; index: n
 }
 
 export function CaseStudies() {
-  const t = useTranslations('landing.families.revenue');
+  const t = useTranslations('landing.families.studio');
   return (
     <section className="bg-[#070707] px-10 pt-25 pb-30">
       <div className="mx-auto max-w-[1232px]">

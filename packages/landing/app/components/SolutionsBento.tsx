@@ -2,7 +2,6 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
 import { BentoCard } from './BentoCard';
-import { ParticleFieldCanvas } from './ParticleFieldCanvas';
 import { ScrollFadeSection } from './ScrollFadeSection';
 import { SectionHeading } from './SectionHeading';
 
@@ -99,7 +98,7 @@ function BillingMockup() {
 function ChannelChips() {
   return (
     <div className="mt-6 flex flex-wrap gap-2">
-      {['WhatsApp', 'Slack', 'Web chat', 'Email', 'Voice'].map((channel) => (
+      {['WhatsApp', 'Instagram', 'Telegram', 'Slack', 'Web chat', 'Teams'].map((channel) => (
         <span
           key={channel}
           className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-white/70"
@@ -111,164 +110,81 @@ function ChannelChips() {
   );
 }
 
-function RevenueSparkline() {
-  const bars = [30, 45, 38, 58, 50, 72, 66, 88];
-  return (
-    <div className="mt-6 flex h-14 items-end gap-1.5">
-      {bars.map((height, i) => (
-        <div
-          key={i}
-          className="w-4 rounded-sm bg-gradient-to-t from-[#533afd]/60 to-[#f06bb3]/60"
-          style={{ height: `${height}%` }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// Agent-recommended product cards, on the reference's agentic-commerce
-// layout with its product imagery.
-const PRODUCTS = [
-  { name: 'Deluxe shirt', variant: 'Blue: medium', price: 'USD 26.00', image: '/reference/shirt-blue.png' },
-  {
-    name: 'Essential hoodie',
-    variant: 'Navy: medium',
-    price: 'USD 48.00',
-    image: '/reference/hoodie-navy.png',
-  },
-] as const;
-
-function ProductCards() {
-  return (
-    <div className="agentic-commerce-graphic__products mx-auto mt-6 grid max-w-[276px] grid-cols-2 gap-3">
-      {PRODUCTS.map((product) => (
-        <div key={product.name} className={`rounded-md bg-white/5 p-3 ${CARD_BORDER}`}>
-          <div className="flex items-center justify-center rounded-md bg-white/5 p-3">
-            <Image
-              src={product.image}
-              alt=""
-              width={160}
-              height={160}
-              className="h-auto w-full max-w-[96px]"
-            />
-          </div>
-          <p className="mt-2 text-xs font-semibold text-white">{product.name}</p>
-          <p className="text-[11px] text-white/45">{product.variant}</p>
-          <p className="mt-1 text-xs font-semibold text-white">{product.price}</p>
-          <p className="text-[11px] text-white/55">Cartsy</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function CodeSnippet() {
   return (
     <pre className="mt-6 overflow-x-auto rounded-lg bg-[#0e1a38] p-5 text-xs leading-relaxed text-[#9fb5d9]">
-      {`const tenant = await openflow.tenants.create({
-  name: 'acme-travel',
-  channels: ['whatsapp'],
-  agentGraph: travelAgent,
-});`}
+      {`<script src="https://openflow.app/embed.js"
+  data-tenant="acme-travel"
+  data-agent="support" async></script>`}
     </pre>
   );
 }
 
+function BrandCard() {
+  const t = useTranslations('landing.whatIsOpenflow');
+  return (
+    <BentoCard className="block w-full lg:aspect-[27/10]">
+      {/* Only this card: the background image grows with the frame on hover
+          (same 0.8s ease as the card's expand). */}
+      <Image
+        src="/reference/ConnectBentoBackground2.webp"
+        alt=""
+        fill
+        sizes="1232px"
+        className="absolute inset-0 -z-10 object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.165,0.84,0.44,1)] group-hover:scale-[1.05] [object-position:50%_25%]"
+      />
+      <div className="relative flex flex-1 flex-col justify-between">
+        <div className="self-start text-lg font-semibold tracking-tight text-white">OpenFlow</div>
+        <div className="flex flex-col gap-4">
+          <h2 className="max-w-[659px] text-[48px] leading-[1.03] font-light tracking-[-0.02em] text-white">
+            {t('title')}
+          </h2>
+          <p className="max-w-[520px] text-base leading-relaxed text-white/70">{t('description')}</p>
+          <a
+            href="#"
+            className="inline-flex h-12 w-fit items-center rounded-[4px] bg-white px-6 text-base font-normal text-[#533afd] transition-colors duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] hover:text-[#3a1fd0]"
+          >
+            {t('cta')}
+          </a>
+        </div>
+      </div>
+    </BentoCard>
+  );
+}
+
+// Key order mirrors messages/en.json exactly (see messages/KEY_USAGE.md):
+// whatIsOpenflow (brand card) → foundation header → the four foundation items
+// in catalog order: multiTenancy, multiChannel, deployToYourWebsite,
+// expensesControlPerTenant.
 export function SolutionsBento() {
-  const t = useTranslations('landing');
+  const t = useTranslations('landing.families.foundation');
   return (
     <div className="w-full bg-[#070707]">
       <ScrollFadeSection from="#070707" to="#101010" className="modular-solutions px-10 pt-25 pb-30">
         <div className="mx-auto max-w-[1232px]">
-          <SectionHeading
-            dark
-            lead={t('families.foundation.title')}
-            rest={t('families.foundation.intro')}
-          />
-
-          {/* Exact reference layout: ONE flex-wrap container, gap 16px. Cards
-            size via flex-basis(calc %) + max-width + grow, and wrap into
-            rows (66.6+33.3, 33.3x3, 100%). Flex align-stretch gives cards in
-            the same row equal height; the graphic-heavy cards carry an
-            aspect ratio as their intrinsic height source (our content differs
-            from the reference's fixed-size graphics). */}
+          <BrandCard />
+          <div className="mt-24">
+            <SectionHeading dark lead={t('title')} rest={t('intro')} />
+          </div>
           <div className="mt-14 flex flex-wrap gap-4">
-            <BentoCard className="block w-full lg:aspect-[27/10]">
-              {/* Only this card: the background image grows with the frame on
-                  hover (same 0.8s ease as the card's expand). */}
-              <Image
-                src="/reference/ConnectBentoBackground2.webp"
-                alt=""
-                fill
-                sizes="1232px"
-                className="absolute inset-0 -z-10 object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.165,0.84,0.44,1)] group-hover:scale-[1.05] [object-position:50%_25%]"
-              />
-              <div className="relative flex flex-1 flex-col justify-between">
-                <div className="self-start text-lg font-semibold tracking-tight text-white"></div>
-                <div className="flex flex-col gap-4">
-                  <h2 className="max-w-[659px] text-[48px] leading-[1.03] font-light tracking-[-0.02em] text-white">
-                    {t('whatIsOpenflow.title')}
-                  </h2>
-                  <p className="max-w-[520px] text-base leading-relaxed text-white/70">
-                    {t('whatIsOpenflow.description')}
-                  </p>
-                  <a
-                    href="#"
-                    className="inline-flex h-12 w-fit items-center rounded-[4px] bg-white px-6 text-base font-normal text-[#533afd] transition-colors duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] hover:text-[#3a1fd0]"
-                  >
-                    {t('whatIsOpenflow.cta')}
-                  </a>
-                </div>
-              </div>
-            </BentoCard>
-            
             <BentoCard
-              title={t('families.controlRoom.items.conversationsDashboard.title')}
-              description={t('families.controlRoom.items.conversationsDashboard.description')}
+              title={t('items.multiTenancy.title')}
+              description={t('items.multiTenancy.description')}
               className="grow basis-[calc(66.666%-8px)] lg:aspect-[816/600]"
             >
               <ChatMockup />
             </BentoCard>
             <BentoCard
-              title={t('families.foundation.items.expensesControlPerTenant.title')}
-              description={t('families.foundation.items.expensesControlPerTenant.description')}
+              title={t('items.multiChannel.title')}
+              description={t('items.multiChannel.description')}
               className="grow basis-[calc(33.333%-8px)] lg:max-w-[400px]"
-            >
-              <BillingMockup />
-            </BentoCard>
-
-            <BentoCard
-              title={t('families.revenue.items.payments.title')}
-              description={t('families.revenue.items.payments.description')}
-              className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px] lg:aspect-[400/600]"
-            >
-              <ParticleFieldCanvas mode="scatter" />
-              <div className="relative">
-                <ProductCards />
-              </div>
-            </BentoCard>
-            <BentoCard
-              title={t('families.foundation.items.multiChannel.title')}
-              description={t('families.foundation.items.multiChannel.description')}
-              className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px]"
             >
               <ChannelChips />
             </BentoCard>
             <BentoCard
-              title={t('families.waysToUse.items.payAsYouGoPricing.title')}
-              description={t('families.waysToUse.items.payAsYouGoPricing.description')}
-              className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px]"
-            >
-              <ParticleFieldCanvas mode="globe" />
-              <div className="relative">
-                <RevenueSparkline />
-              </div>
-            </BentoCard>
-
-            <BentoCard
-              title={t('families.foundation.items.deployToYourWebsite.title')}
-              description={t('families.foundation.items.deployToYourWebsite.description')}
-              className="grow basis-full lg:aspect-[1232/456]"
+              title={t('items.deployToYourWebsite.title')}
+              description={t('items.deployToYourWebsite.description')}
+              className="grow basis-[calc(66.666%-8px)]"
             >
               <div className="flex items-start gap-8">
                 <div className="min-w-0 flex-1">
@@ -279,9 +195,16 @@ export function SolutionsBento() {
                   alt=""
                   width={308}
                   height={525}
-                  className="mt-6 hidden w-[240px] shrink-0 rounded-lg lg:block"
+                  className="mt-6 hidden w-[200px] shrink-0 rounded-lg lg:block"
                 />
               </div>
+            </BentoCard>
+            <BentoCard
+              title={t('items.expensesControlPerTenant.title')}
+              description={t('items.expensesControlPerTenant.description')}
+              className="grow basis-[calc(33.333%-8px)] lg:max-w-[400px]"
+            >
+              <BillingMockup />
             </BentoCard>
           </div>
         </div>

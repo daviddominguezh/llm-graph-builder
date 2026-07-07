@@ -121,7 +121,7 @@
         }
       },
       "toolbox": {
-        "title": "The Toolbox: Connect to Everything",
+        "title": "Connect to Everything.",
         "intro": "An agent that can't reach your systems is just a chatbot.",
         "items": {
           "connectAnyMcp": {
@@ -204,7 +204,7 @@
         }
       },
       "waysToUse": {
-        "title": "Build your way, pay for what you use",
+        "title": "Build your way, pay for what you use.",
         "intro": "However you build, you only pay for what runs.",
         "items": {
           "noCodeLowCodeApi": {

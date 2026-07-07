@@ -17,18 +17,19 @@ export default function Home() {
         aria-hidden="true"
         className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-dashed border-neutral-800 lg:block"
       />
-      {/* Section sequence mirrors the reference 1:1: hero → solutions bento →
-          global backbone → businesses of all sizes → developers → happenings.
-          Our product sections (Problem/Features/Comparison/Audience/FinalCta)
-          are parked out of the flow — re-add a line here to restore any. */}
+      {/* Section sequence follows the copy catalog (messages/en.json) exactly —
+          every key renders in file order (see messages/KEY_USAGE.md):
+          hero → whatIsOpenflow + foundation (bento) → controlRoom (story) →
+          revenue (scale points) → studio (deck) → toolbox (happenings) →
+          knowledge + engine + waysToUse (developers band). */}
       <main id="main">
         <Hero />
         <SolutionsBento />
-        <GlobalScale />
         <StoryScroll />
+        <GlobalScale />
         <CaseStudies />
-        <DevelopersBand />
         <Happenings />
+        <DevelopersBand />
       </main>
       <Footer />
       {/* After main so it paints above the hero without a z-index — a

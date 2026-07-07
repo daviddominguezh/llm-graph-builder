@@ -3,11 +3,13 @@ import { useTranslations } from 'next-intl';
 import { RadialBurstCanvas } from './RadialBurstCanvas';
 import { SectionHeading } from './SectionHeading';
 
-// Item keys under landing.families — assignments tracked in messages/KEY_USAGE.md.
+// revenue items in catalog order — the capture → qualify → book → close
+// funnel (see messages/KEY_USAGE.md).
 const SCALE_POINTS = [
-  'studio.items.workflowBuilder',
-  'toolbox.items.externalSql',
-  'knowledge.items.kvStores',
+  'revenue.items.formIntegration',
+  'revenue.items.leadScoring',
+  'revenue.items.bookingSystem',
+  'revenue.items.payments',
 ] as const;
 
 export function GlobalScale() {
@@ -16,7 +18,7 @@ export function GlobalScale() {
     <section className="stats-section__globe-host bg-[#070707] px-10 py-20">
       <div className="mx-auto grid max-w-[1232px] items-center gap-14 lg:grid-cols-2">
         <div>
-          <SectionHeading dark lead={t('engine.title')} rest={t('engine.intro')} />
+          <SectionHeading dark lead={t('revenue.title')} rest={t('revenue.intro')} />
           <dl className="mt-12 space-y-8">
             {SCALE_POINTS.map((key) => (
               <div key={key} className="border-l-2 border-white/20 pl-5">
