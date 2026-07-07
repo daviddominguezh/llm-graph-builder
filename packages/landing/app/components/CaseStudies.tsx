@@ -137,13 +137,13 @@ function SegmentPills({ index, total, accent, label }: { index: number; total: n
 function CardVisual({ card }: { card: DeckCardData }) {
   if (card.visual === 'shuffle') {
     return (
-      <div className="flex items-center justify-center lg:h-[18rem] lg:justify-end">
+      <div className="flex items-center justify-center lg:h-[26rem] lg:justify-end">
         <LogoShuffle items={SHUFFLE_ITEMS} />
       </div>
     );
   }
   return (
-    <div className="relative h-[15rem] w-full overflow-hidden rounded-2xl border border-white/8 lg:h-[18rem]">
+    <div className="relative h-[17rem] w-full overflow-hidden rounded-2xl border border-white/8 lg:h-[26rem]">
       <Image src={card.visual} alt="" fill sizes="30rem" className="object-cover" />
     </div>
   );
