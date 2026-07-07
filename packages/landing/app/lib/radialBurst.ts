@@ -72,7 +72,12 @@ function paintBloom(ctx: CanvasRenderingContext2D, dim: Dim): void {
 }
 
 function paintLine(ctx: CanvasRenderingContext2D, dim: Dim, ln: Line, mouse: Mouse, t: number): void {
-  const len = ln.lenFrac * dim.maxR * (1 + Math.sin(t * 0.0007 + ln.phase) * 0.015);
+  // Always-on shimmer: a compound breathe of the tip — a slow primary wave plus
+  // a faster phase-offset ripple, each line on its own phase, so the whole burst
+  // visibly pulses and rustles even when the cursor is away (≈±9% of length).
+  const pulse =
+    1 + Math.sin(t * 0.00045 + ln.phase) * 0.06 + Math.sin(t * 0.001 + ln.phase * 1.7) * 0.03;
+  const len = ln.lenFrac * dim.maxR * pulse;
   let tx = dim.ox + Math.cos(ln.angle) * len;
   let ty = dim.oy - Math.sin(ln.angle) * len;
   if (mouse.active) {

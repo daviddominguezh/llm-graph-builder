@@ -95,11 +95,11 @@
           },
           "anyLlmProvider": {
             "title": "Swap the brain. Keep the agent.",
-            "description": "OpenAI, Anthropic, Google, Mistral, Meta — switch models per agent whenever a better one ships. A dropdown, not a migration.",
+            "description": "OpenAI, Anthropic, Google, Mistral, Meta — switch models per agent whenever a better one ships. A dropdown, not a refactor.",
             "cta": "See supported models"
           },
           "agentSkills": {
-            "title": "Write it once. Attach it anywhere.",
+            "title": "Skills on: write them once. Attach'em anywhere.",
             "description": "Package know-how — refund policy, tone of voice, playbooks — as skills your agents use exactly when relevant.",
             "cta": "Write your first skill"
           },
