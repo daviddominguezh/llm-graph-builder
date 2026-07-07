@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 function clamp01(v: number): number {
   return Math.min(1, Math.max(0, v));
@@ -17,13 +17,17 @@ function clamp01(v: number): number {
 export function Opening() {
   const t = useTranslations('landing.opening');
   const [p, setP] = useState(0);
+  const spacerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let raf = 0;
     const root = document.documentElement;
     const update = () => {
       raf = 0;
-      const prog = clamp01(window.scrollY / (window.innerHeight || 1));
+      // Transition distance = the spacer's own height, so p reaches 1 exactly
+      // when the hero has scrolled fully into place (no lingering dark stage).
+      const dist = spacerRef.current?.offsetHeight || window.innerHeight || 1;
+      const prog = clamp01(window.scrollY / dist);
       setP(prog);
       // Flag the opening as covering the hero so the nav renders solid white
       // (no wave knockout) while the splash is up. Consumed in globals.css.
@@ -52,7 +56,7 @@ export function Opening() {
   return (
     <>
       {/* Scroll track: gives the pinned transition its scroll distance. */}
-      <div aria-hidden="true" className="h-screen bg-black" />
+      <div ref={spacerRef} aria-hidden="true" className="h-[70vh] bg-[#070707]" />
 
       {/* Fixed black stage over the hero; scroll scrubs the whole intro. */}
       <div
