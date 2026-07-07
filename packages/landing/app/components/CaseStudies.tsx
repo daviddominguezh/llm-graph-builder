@@ -100,27 +100,51 @@ const CARDS: DeckCardData[] = [
   },
 ];
 
-function SegmentPills({ label, accent }: { label: string; accent: string }) {
+// Clay's stacked segment pills: one collapsed pill per card, overlapping so
+// only slivers show, with THIS card's pill expanded and labelled. Pills before
+// the active one peek to the left, after it to the right — a "which of N" cue.
+function SegmentPills({ index, total, accent, label }: { index: number; total: number; accent: string; label: string }) {
   return (
-    <div className="flex items-center gap-2">
-      <span
-        className="rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-black"
-        style={{ backgroundColor: accent }}
-      >
-        {label}
-      </span>
-      {[0, 1, 2].map((dot) => (
-        <span key={dot} className="h-1.5 w-1.5 rounded-full bg-white/15" />
-      ))}
+    <div className="flex items-center">
+      {Array.from({ length: total }).map((_, i) => {
+        const active = i === index;
+        return (
+          <span
+            key={i}
+            aria-hidden={!active}
+            className="flex h-7 shrink-0 items-center justify-center overflow-hidden rounded-full text-[10px] font-semibold tracking-[0.18em] whitespace-nowrap uppercase"
+            style={{
+              width: active ? 'auto' : '3.4rem',
+              paddingLeft: active ? '0.85rem' : 0,
+              paddingRight: active ? '0.85rem' : 0,
+              marginRight: i === total - 1 ? 0 : '-2.5rem',
+              zIndex: active ? total + 1 : total - i,
+              backgroundColor: accent,
+              opacity: active ? 1 : 0.28,
+              color: active ? '#0b0b0b' : 'transparent',
+            }}
+          >
+            {label}
+          </span>
+        );
+      })}
     </div>
   );
 }
 
+// Visual fills the card's full height (grid `items-stretch`) so there is no
+// empty framed area below the content on the top-most card.
 function CardVisual({ card }: { card: DeckCardData }) {
-  if (card.visual === 'shuffle') return <LogoShuffle items={SHUFFLE_ITEMS} />;
+  if (card.visual === 'shuffle') {
+    return (
+      <div className="flex items-center justify-center lg:justify-end">
+        <LogoShuffle items={SHUFFLE_ITEMS} />
+      </div>
+    );
+  }
   return (
-    <div className="relative aspect-[4/3] w-full max-w-[26rem] overflow-hidden rounded-2xl border border-white/8">
-      <Image src={card.visual} alt="" fill sizes="26rem" className="object-cover" />
+    <div className="relative min-h-[16rem] w-full overflow-hidden rounded-2xl border border-white/8 lg:h-full">
+      <Image src={card.visual} alt="" fill sizes="30rem" className="object-cover" />
     </div>
   );
 }
@@ -128,23 +152,24 @@ function CardVisual({ card }: { card: DeckCardData }) {
 // One deck card. On desktop it pins (`lg:sticky lg:top-24`) and overlaps the
 // next by 3rem (`lg:-mb-12`), so cards slide up and stack — Clay's mechanism.
 // On mobile it falls back to normal flow (their `< lg` override).
-function DeckCard({ card, index, isLast }: { card: DeckCardData; index: number; isLast: boolean }) {
+function DeckCard({ card, index, total, isLast }: { card: DeckCardData; index: number; total: number; isLast: boolean }) {
+  // Alternate the surface so consecutive cards are distinguishable as they
+  // slide over each other; the first card is the darker #0d0d0d.
+  const background = index % 2 === 0 ? '#0d0d0d' : '#131313';
   return (
-    <div
-      className={`relative lg:sticky lg:top-24 ${isLast ? '' : 'lg:-mb-12'}`}
-      style={{ zIndex: index + 1 }}
-    >
+    <div className={`relative lg:sticky lg:top-24 ${isLast ? '' : 'lg:-mb-12'}`} style={{ zIndex: index + 1 }}>
       <div
-        className={`relative overflow-hidden border border-white/8 bg-[#0e0e10] px-8 pt-12 pb-14 rounded-t-[2.5rem] lg:min-h-[34rem] lg:px-14 lg:pb-20 ${isLast ? 'rounded-b-[2.5rem]' : ''}`}
+        className={`relative flex flex-col overflow-hidden border border-white/8 px-8 pt-12 pb-14 rounded-t-[2.5rem] lg:min-h-[30rem] lg:px-14 lg:pb-16 ${isLast ? 'rounded-b-[2.5rem]' : ''}`}
+        style={{ backgroundColor: background }}
       >
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -top-24 right-0 h-72 w-72 rounded-full opacity-25 blur-3xl"
           style={{ background: card.accent }}
         />
-        <div className="relative grid items-center gap-12 lg:grid-cols-2">
-          <div>
-            <SegmentPills label={card.eyebrow} accent={card.accent} />
+        <div className="relative grid gap-12 lg:grid-cols-2 lg:flex-1 lg:items-stretch">
+          <div className="flex flex-col justify-center">
+            <SegmentPills index={index} total={total} accent={card.accent} label={card.eyebrow} />
             <h3 className="mt-6 max-w-[26rem] text-[34px] leading-[1.08] font-light tracking-[-0.02em] text-white">
               {card.title} <span style={{ color: card.accent }}>{card.highlight}</span>
             </h3>
@@ -153,9 +178,7 @@ function DeckCard({ card, index, isLast }: { card: DeckCardData; index: number; 
               {card.cta} ›
             </span>
           </div>
-          <div className="flex justify-center lg:justify-end">
-            <CardVisual card={card} />
-          </div>
+          <CardVisual card={card} />
         </div>
       </div>
     </div>
@@ -174,7 +197,13 @@ export function CaseStudies() {
 
         <div className="mt-14 flex flex-col gap-6 lg:gap-0">
           {CARDS.map((card, index) => (
-            <DeckCard key={card.eyebrow} card={card} index={index} isLast={index === CARDS.length - 1} />
+            <DeckCard
+              key={card.eyebrow}
+              card={card}
+              index={index}
+              total={CARDS.length}
+              isLast={index === CARDS.length - 1}
+            />
           ))}
         </div>
       </div>
