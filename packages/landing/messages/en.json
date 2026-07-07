@@ -7,7 +7,7 @@
     },
     "whatIsOpenflow": {
       "title": "Build an agent once.\nSell it to every client you serve.",
-      "description": "Each customer gets its own WhatsApp number, its own guest history, its own knowledge base. You improve the agent once; every hotel gets the update.",
+      "description": "Each customer gets its own WhatsApp number, its own guest history, its own knowledge base. You improve the agent once; every client gets the update.",
       "cta": "See how it works"
     },
     "families": {
@@ -17,23 +17,19 @@
         "items": {
           "multiTenancy": {
             "title": "One agent. A hundred isolated customers.",
-            "description": "Sell your agent to one customer or a hundred. Each gets their own channels, their own data, their own bill. You build once. We isolate everything.",
-            "cta": "See how isolation works"
+            "description": "Sell your agent to one customer or a hundred. Each gets their own channels, their own data, their own bill. You build once. We isolate everything."
           },
           "multiChannel": {
             "title": "The channels each customer's audience already uses.",
-            "description": "Your agents answer on WhatsApp, web chat, Instagram, Telegram, Slack, Discord, Teams, and Google Chat. Each customer connects their own channels.",
-            "cta": "Connect WhatsApp"
+            "description": "Your agents answer on WhatsApp, web chat, Instagram, Telegram, Slack, Discord, Teams, and Google Chat. Each customer connects their own channels."
           },
           "deployToYourWebsite": {
             "title": "One line of code. Live on their site.",
-            "description": "Paste a script tag — the agent is on your customer's homepage. Branded, versioned, no cookies. Finished at 4:00, live at 4:05.",
-            "cta": "Get your embed line"
+            "description": "Paste a script tag — the agent is on your customer's homepage. Branded, versioned, no cookies. Finished at 4:00, live at 4:05."
           },
           "expensesControlPerTenant": {
             "title": "Know what every customer costs you",
-            "description": "Spend is metered per customer, per conversation, per model call. Your margin stops being a guess. Spending caps and alerts included.",
-            "cta": "See per-customer costs"
+            "description": "Spend is metered per customer, per conversation, per model call. Your margin stops being a guess. Spending caps and alerts included."
           }
         }
       },
@@ -62,23 +58,19 @@
         "items": {
           "formIntegration": {
             "title": "The conversation is the form",
-            "description": "Agents collect structured data in the chat, validate it field by field, and store it cleanly. Export everything to CSV.",
-            "cta": "Collect data in chat"
+            "description": "Agents collect structured data in the chat, validate it field by field, and store it cleanly. Export everything to CSV."
           },
           "leadScoring": {
             "title": "Every chat carries a 0–100 lead score",
-            "description": "Forty overnight conversations on Monday morning. The agent already scored them all while chatting. Sales calls the hot three first.",
-            "cta": "Score your leads"
+            "description": "Forty overnight conversations on Monday morning. The agent already scored them all while chatting. Sales calls the hot three first."
           },
           "bookingSystem": {
             "title": "Booked before the chat ends",
-            "description": "Agents check availability and confirm the appointment inside the conversation, while intent is at its highest.",
-            "cta": "Enable booking"
+            "description": "Agents check availability and confirm the appointment inside the conversation, while intent is at its highest."
           },
           "payments": {
             "title": "Take payment in the chat",
-            "description": "The moment a customer says yes, the agent closes — natively or through Stripe, PayPal, and Square.",
-            "cta": "Set up payments"
+            "description": "The moment a customer says yes, the agent closes — natively or through Stripe, PayPal, and Square."
           }
         }
       },
@@ -124,38 +116,31 @@
         "items": {
           "connectAnyMcp": {
             "title": "If it speaks MCP, your agent speaks it",
-            "description": "OpenFlow speaks MCP natively. Any tool that exposes a connector becomes an agent capability, with credentials managed per customer.",
-            "cta": "Plug in anything"
+            "description": "OpenFlow speaks MCP natively. Any tool that exposes a connector becomes an agent capability, with credentials managed per customer."
           },
           "outOfTheBoxMcps": {
             "title": "GitHub to Stripe, one click away",
-            "description": "Around thirty pre-configured integrations — GitHub, Notion, Slack, Stripe, HubSpot, Linear, Figma, Zapier and more — installed in one click.",
-            "cta": "Browse the catalog"
+            "description": "Around thirty pre-configured integrations — GitHub, Notion, Slack, Stripe, HubSpot, Linear, Figma, Zapier and more — installed in one click."
           },
           "webSearch": {
             "title": "Answers from today's web",
-            "description": "Agents search the live web, read pages, and explore entire sites — no setup, no stale prices quoted to a customer.",
-            "cta": "Turn on web search"
+            "description": "Agents search the live web, read pages, and explore entire sites — no setup, no stale prices quoted to a customer."
           },
           "httpRequests": {
             "title": "Call any API, even yours",
-            "description": "Internal tools, custom backends, niche software — if it has an endpoint, your agent reaches it.",
-            "cta": "Connect your API"
+            "description": "Internal tools, custom backends, niche software — if it has an endpoint, your agent reaches it."
           },
           "externalSql": {
             "title": "Ask the database directly",
-            "description": "Agents answer from each customer's own database — inventory, orders, account data — read-safe and isolated.",
-            "cta": "Query your data"
+            "description": "Agents answer from each customer's own database — inventory, orders, account data — read-safe and isolated."
           },
           "browserAutomation": {
             "title": "For the software with no API",
-            "description": "Agents operate a real browser — navigate, click, fill, extract — even on the supplier portal last updated in 2009.",
-            "cta": "See browser agents"
+            "description": "Agents operate a real browser — navigate, click, fill, extract — even on the supplier portal last updated in 2009."
           },
           "codeSandboxes": {
             "title": "A safe place for agents to run code",
-            "description": "Disposable, isolated environments where agents write and run code: crunch a spreadsheet, transform an export, verify the math.",
-            "cta": "Run code safely"
+            "description": "Disposable, isolated environments where agents write and run code: crunch a spreadsheet, transform an export, verify the math."
           }
         }
       },
@@ -186,18 +171,15 @@
         "items": {
           "longRunningAgents": {
             "title": "Agents that work for hours",
-            "description": "A runtime built for real work: agents pause for human input, survive restarts, and resume exactly where they left off.",
-            "cta": "Run longer jobs"
+            "description": "A runtime built for real work: agents pause for human input, survive restarts, and resume exactly where they left off."
           },
           "scheduledExecution": {
             "title": "Set the schedule. It fires. Every time.",
-            "description": "Run agents every morning, every hour, or the first of the month — per customer, surviving deploys and outages.",
-            "cta": "Schedule an agent"
+            "description": "Run agents every morning, every hour, or the first of the month — per customer, surviving deploys and outages."
           },
           "webhookTriggers": {
             "title": "Events wake your agents",
-            "description": "A new signup, a paid invoice, a support ticket — your agent acts the moment it happens.",
-            "cta": "Wire up events"
+            "description": "A new signup, a paid invoice, a support ticket — your agent acts the moment it happens."
           }
         }
       },

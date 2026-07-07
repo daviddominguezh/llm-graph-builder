@@ -123,7 +123,7 @@ function CodeSnippet() {
 function BrandCard() {
   const t = useTranslations('landing.whatIsOpenflow');
   return (
-    <BentoCard className="block w-full lg:aspect-[27/10]">
+    <BentoCard className="block w-full lg:aspect-[35/10]">
       {/* Only this card: the background image grows with the frame on hover
           (same 0.8s ease as the card's expand). */}
       <Image
@@ -134,15 +134,16 @@ function BrandCard() {
         className="absolute inset-0 -z-10 object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.165,0.84,0.44,1)] group-hover:scale-[1.05] [object-position:50%_25%]"
       />
       <div className="relative flex flex-1 flex-col justify-between">
-        <div className="self-start text-lg font-semibold tracking-tight text-white"></div>
-        <div className="flex flex-col gap-4">
+        <div className="flex h-full flex-col gap-4 justify-around">
           <h2 className="max-w-[659px] text-[48px] leading-[1.03] font-light tracking-[-0.02em] text-white">
             {t('title')}
           </h2>
           <p className="max-w-[520px] text-base leading-relaxed text-white/70">{t('description')}</p>
           <a
-            href="#"
-            className="inline-flex h-12 w-fit items-center rounded-[4px] bg-white px-6 text-base font-normal text-[#533afd] transition-colors duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] hover:text-[#3a1fd0]"
+            href="$"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-fit inline-flex h-11 px-10 items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/5 px-6 text-base text-white transition-colors hover:bg-white/10 font-bold"
           >
             {t('cta')}
           </a>
@@ -162,11 +163,11 @@ export function SolutionsBento() {
     <div className="w-full bg-[#070707]">
       <ScrollFadeSection from="#070707" to="#101010" className="modular-solutions px-10 pt-25 pb-30">
         <div className="mx-auto max-w-[1232px]">
-          <BrandCard />
-          <div className="mt-24">
+          <div className="mb-10">
             <SectionHeading dark lead={t('title')} rest={t('intro')} />
           </div>
-          <div className="mt-14 flex flex-wrap gap-4">
+          <BrandCard />
+          <div className="mt-4 flex flex-wrap gap-4">
             <BentoCard
               title={t('items.multiTenancy.title')}
               description={t('items.multiTenancy.description')}

@@ -116,7 +116,7 @@ export function BentoCard({ title, description, children, className = '' }: Bent
         <div className="modular-solutions-bento-card__content relative isolate flex h-full flex-col overflow-hidden rounded-[5px] p-6">
           <DialogEntryIcon />
           {title !== undefined && (
-            <h3 className="max-w-[320px] pr-9 text-[26px] font-light leading-[1.12] tracking-[-0.01em] text-white">
+            <h3 className="pr-9 text-[26px] font-light leading-[1.12] tracking-[-0.01em] text-white">
               {title}
             </h3>
           )}
