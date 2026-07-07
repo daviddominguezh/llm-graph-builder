@@ -22,6 +22,10 @@
 /* No `scroll-behavior: smooth` here — Lenis (see SmoothScroll.tsx) owns smooth
    scrolling site-wide, and a CSS smooth-scroll fights its per-frame scrollTo. */
 
+* {
+  cursor: default;
+}
+
 body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   color: var(--color-foreground);
@@ -39,6 +43,7 @@ body {
   0% {
     background-position: -200% center;
   }
+
   100% {
     background-position: 200% center;
   }
@@ -55,41 +60,49 @@ body {
   animation: logo-marquee 55s linear infinite;
 }
 
-/* Hero intro: fade the whole hero in on load so it never snaps into view.
-   Pure CSS, so it runs at first paint regardless of hydration or how long the
-   WebGL wave takes to warm up. The wave fades in separately (FoldedSilkCanvas)
-   once its first frame paints — so a slow wave never holds back the hero, and
-   whenever it is ready it eases in on top. `both` applies opacity: 0 from the
-   very first frame to avoid a flash of the fully-opaque hero. */
-@keyframes hero-intro {
+/* Hero intro: a black curtain that eases out on load, so the hero emerges
+   *from black*. Fading the section itself would fade its own black background
+   too, exposing the white page behind it — a bright flash. Instead the section
+   stays solid black and only this overlay animates. It is pure CSS, so it runs
+   at first paint regardless of hydration or how long the WebGL wave takes to
+   warm up; the wave fades in separately (FoldedSilkCanvas) once its first frame
+   paints, so a slow wave never holds back the hero and eases in on top when
+   ready. The element's base opacity is 0 (utility class) so that with the
+   animation disabled under reduced motion the curtain is simply absent. */
+@keyframes hero-intro-fade {
   from {
-    opacity: 0;
-  }
-  to {
     opacity: 1;
+  }
+
+  to {
+    opacity: 0;
   }
 }
 
-.hero-wave-animation {
-  animation: hero-intro 900ms ease-out both;
+.hero-intro-curtain {
+  animation: hero-intro-fade 1800ms ease-in-out both;
 }
 
 /* Hero abstract graph animation */
 @keyframes node-float {
+
   0%,
   100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-6px);
   }
 }
 
 @keyframes node-pulse {
+
   0%,
   100% {
     opacity: 0.4;
   }
+
   50% {
     opacity: 0.8;
   }
@@ -187,8 +200,8 @@ body {
   margin-bottom: 0.25rem;
 }
 
-.prose li > ul,
-.prose li > ol {
+.prose li>ul,
+.prose li>ol {
   margin-top: 0.25rem;
   margin-bottom: 0.25rem;
 }
@@ -255,7 +268,8 @@ body {
   .hero-node,
   .hero-edge,
   .logo-marquee,
-  .connector-flow {
+  .connector-flow,
+  .hero-intro-curtain {
     animation: none;
   }
 }

@@ -78,7 +78,7 @@ export function FoldedSilkCanvas({ className, timeOffset = 0, variant = 'solid',
   return (
     <div
       ref={containerRef}
-      className={`${className} transition-opacity duration-1000 ease-out ${ready ? 'opacity-100' : 'opacity-0'}`}
+      className={`${className} transition-opacity duration-[1600ms] ease-out ${ready ? 'opacity-100' : 'opacity-0'}`}
       aria-hidden="true"
     />
   );

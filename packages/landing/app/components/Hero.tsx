@@ -169,6 +169,15 @@ export function Hero() {
       </div>
 
       <LogoBar />
+
+      {/* Fade-from-black curtain (see .hero-intro-curtain): sits above every
+          layer (z-3 > CTAs' z-2) and eases out on load so the hero emerges from
+          black. pointer-events-none so it never intercepts clicks; opacity-0
+          base keeps it inert once the fade ends and absent under reduced motion. */}
+      <div
+        aria-hidden="true"
+        className="hero-intro-curtain pointer-events-none absolute inset-0 z-[3] bg-[#070707] opacity-0"
+      />
     </section>
   );
 }
