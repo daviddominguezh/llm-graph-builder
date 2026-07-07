@@ -38,7 +38,7 @@
         }
       },
       "controlRoom": {
-        "title": "The Control Room: See Everything, Trust Everything",
+        "title": "See everything, trust everything",
         "intro": "You can't sell what you can't inspect.",
         "items": {
           "observability": {
@@ -85,12 +85,12 @@
         }
       },
       "studio": {
-        "title": "The Studio: Build Any Agent in Minutes",
+        "title": "Build any agent in minutes",
         "intro": "A new customer should never mean a new engineering project.",
         "items": {
           "agentBuilder": {
             "title": "A customer-ready agent in minutes",
-            "description": "Shared agent logic, tailored per customer — their config, their knowledge, their channels. Built in a visual editor, no code, in minutes.",
+            "description": "Shared logic, customized per customer — set each one's personality, knowledge, and tools in a visual editor, no code.",
             "cta": "Build your first agent"
           },
           "workflowBuilder": {
@@ -177,13 +177,13 @@
           },
           "userMemory": {
             "title": "Agents that remember people",
-            "description": "Agents keep memory of each person across conversations — preferences, history, context — so returning users are treated as returning users.",
+            "description": "Agents remember each person across conversations — preferences, history, context — so no one has to explain themselves twice.",
             "cta": "Give agents memory"
           }
         }
       },
       "engine": {
-        "title": "The Engine: Always-On Agents",
+        "title": "Always-On Agents",
         "intro": "The best agents don't wait to be messaged.",
         "items": {
           "longRunningAgents": {
@@ -204,7 +204,7 @@
         }
       },
       "waysToUse": {
-        "title": "The Console: Build Your Way, Pay for What You Use",
+        "title": "Build your way, pay for what you use",
         "intro": "However you build, you only pay for what runs.",
         "items": {
           "noCodeLowCodeApi": {

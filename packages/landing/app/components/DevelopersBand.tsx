@@ -48,6 +48,58 @@ const INTEGRATION_PATHS = [
   'studio.items.versionControl',
 ] as const;
 
+// Port of Stripe's homepage program cards (`startups-program-card`): a 190px
+// flex card, radius 6px, overflow hidden — content column (padding 32px 24px)
+// with an INLINE emphasized title + regular description in one paragraph and
+// an arrow link below; the right column is an angled gradient graphic flush to
+// the card edge, clipped by the card. Dark-adapted to our surface tokens.
+const PROGRAM_CARDS = [
+  { messageKey: 'controlRoom.items.evals', variant: 'wedge' },
+  { messageKey: 'toolbox.items.codeSandboxes', variant: 'peaks' },
+] as const;
+
+function ProgramGraphic({ variant }: { variant: 'wedge' | 'peaks' }) {
+  if (variant === 'wedge') {
+    return (
+      <div aria-hidden="true" className="relative w-[36%] shrink-0">
+        <div className="absolute inset-0 bg-gradient-to-tr from-[#7011cf] to-[#ff45e6] [clip-path:polygon(28%_100%,100%_0,100%_100%)]" />
+        <div className="absolute inset-0 bg-gradient-to-tr from-[#a960ee] to-[#ff45e6] opacity-60 [clip-path:polygon(0_100%,100%_38%,100%_100%)]" />
+      </div>
+    );
+  }
+  return (
+    <div aria-hidden="true" className="relative w-[36%] shrink-0">
+      <div className="absolute inset-0 bg-gradient-to-b from-[#ffb254] to-[#f76b1c] [clip-path:polygon(38%_0,76%_100%,0_100%)]" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#ffd254] to-[#fda52d] opacity-80 [clip-path:polygon(72%_18%,100%_100%,44%_100%)]" />
+    </div>
+  );
+}
+
+function ProgramCards() {
+  const t = useTranslations('landing.families');
+  return (
+    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      {PROGRAM_CARDS.map((card) => (
+        <div
+          key={card.messageKey}
+          className="relative flex min-h-[190px] overflow-hidden rounded-lg border border-white/10 bg-white/4 lg:aspect-[608/294]"
+        >
+          <div className="flex flex-col justify-between px-6 py-8">
+            <p className="max-w-[390px] text-base leading-snug">
+              <strong className="font-semibold text-white">{t(`${card.messageKey}.title`)}.</strong>{' '}
+              <span className="text-[#7d90b8]">{t(`${card.messageKey}.description`)}</span>
+            </p>
+            <span className="mt-4 inline-block text-sm font-medium text-[#8b9df7]">
+              {t(`${card.messageKey}.cta`)} ›
+            </span>
+          </div>
+          <ProgramGraphic variant={card.variant} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ConnectBlock() {
   const t = useTranslations('landing.families.toolbox');
   return (
@@ -109,6 +161,7 @@ export function DevelopersBand() {
         </div>
 
         <IntegrationPaths />
+        <ProgramCards />
       </div>
     </section>
   );
