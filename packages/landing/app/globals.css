@@ -93,11 +93,12 @@ body {
   animation: hero-intro-fade 1800ms ease-in-out both;
 }
 
-/* The hero wave stays hidden while the opening splash covers the hero, then
-   fades in a moment (200ms) AFTER the hero is fully revealed — i.e. once the
-   opening flips `data-opening` to false. The attribute selector outweighs the
-   Tailwind opacity utility on the canvas, so no !important is needed. */
-html[data-opening='true'] .hero-wave-animation__canvas {
+/* The hero wave stays hidden through the opening, then fades in a moment
+   (200ms) after the intro is 85% revealed — the Opening flips `data-wave-in`
+   to true at that point. Hidden by default (attribute unset) so it never flashes
+   before the splash. The selector outweighs the Tailwind opacity utility on the
+   canvas, so no !important is needed. */
+html:not([data-wave-in='true']) .hero-wave-animation__canvas {
   opacity: 0;
 }
 

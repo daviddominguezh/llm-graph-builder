@@ -33,6 +33,9 @@ export function Opening() {
       // (no wave knockout) while the splash is up. Consumed in globals.css.
       const flag = prog < 1 ? 'true' : 'false';
       if (root.dataset.opening !== flag) root.dataset.opening = flag;
+      // The hero wave reveals once the intro is 85% done (not fully at 100%).
+      const wave = prog >= 0.85 ? 'true' : 'false';
+      if (root.dataset.waveIn !== wave) root.dataset.waveIn = wave;
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
@@ -44,6 +47,7 @@ export function Opening() {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
       root.removeAttribute('data-opening');
+      root.removeAttribute('data-wave-in');
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);
