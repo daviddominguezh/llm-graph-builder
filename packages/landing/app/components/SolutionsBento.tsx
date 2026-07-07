@@ -176,7 +176,7 @@ function CodeSnippet() {
 export function SolutionsBento() {
   return (
     <div className="w-full bg-[#070707]">
-      <ScrollFadeSection from="#070707" to="#101010" className="modular-solutions px-10 pt-24 pb-4">
+      <ScrollFadeSection from="#070707" to="#101010" className="modular-solutions px-10 pt-25 pb-30">
         <div className="mx-auto max-w-[1232px]">
           <SectionHeading
             dark

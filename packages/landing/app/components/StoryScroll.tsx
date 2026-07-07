@@ -93,7 +93,7 @@ function DesktopStory() {
   return (
     <div
       ref={rootRef}
-      className="mx-auto hidden w-full max-w-[1280px] grid-cols-[2fr_3fr] gap-16 pl-10 lg:grid"
+      className="mx-auto hidden w-full max-w-[1280px] grid-cols-[2fr_3fr] pt-20 pb-30 gap-16 pl-10 lg:grid"
     >
       <div>
         <div className="sticky top-0 flex h-screen items-center">

@@ -148,7 +148,7 @@ function PlatformBlock() {
 
 export function CaseStudies() {
   return (
-    <section className="bg-[#0d0d0d] px-10 py-24">
+    <section className="bg-[#070707] px-10 py-24">
       <div className="mx-auto max-w-[1232px]">
         <SectionHeading
           dark
