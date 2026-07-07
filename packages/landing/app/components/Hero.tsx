@@ -5,45 +5,33 @@ import logoGithub from '@/public/cloudicons/logo_github.png';
 import logoGoogle from '@/public/cloudicons/logo_google.png';
 import logoOpenrouter from '@/public/cloudicons/logo_openrouter.png';
 import logoReactflow from '@/public/cloudicons/logo_reactflow.png';
-import logoRedis from '@/public/cloudicons/logo_redis.png';
+import logoRedis from '@/public/cloudicons/logo_redis.webp';
 import logoSupabase from '@/public/cloudicons/logo_supabase.png';
 import logoTavily from '@/public/cloudicons/logo_tavily.png';
 import logoUpstash from '@/public/cloudicons/logo_upstash.png';
 import logoVercel from '@/public/cloudicons/logo_vercel.png';
-import textBrowserbase from '@/public/cloudicons/text_browserbase.png';
-import textCloudflare from '@/public/cloudicons/text_cloudflare.png';
-import textFly from '@/public/cloudicons/text_fly.png';
-import textGithub from '@/public/cloudicons/text_github.png';
-import textGoogle from '@/public/cloudicons/text_google.png';
-import textOpenrouter from '@/public/cloudicons/text_openrouter.png';
-import textReactflow from '@/public/cloudicons/text_reactflow.png';
-import textRedis from '@/public/cloudicons/text_redis.png';
-import textSupabase from '@/public/cloudicons/text_supabase.png';
-import textTavily from '@/public/cloudicons/text_tavily.png';
-import textUpstash from '@/public/cloudicons/text_upstash.png';
-import textVercel from '@/public/cloudicons/text_vercel.png';
 import Image from 'next/image';
 
 import { HeroWave } from './HeroWave';
 
 const GITHUB_URL = 'https://github.com/daviddominguezh/llm-graph-builder';
 
-// Integration/partner logos in the hero logo bar. Each brand is a lockup of two
-// separate assets — the mark (`logo`) and the wordmark (`text`) — rendered at
-// the same fixed height with auto width so neither gets distorted.
+// Integration/partner logos in the hero logo bar. Each asset already includes
+// the brand's wordmark, so no text label — rendered at a fixed height with
+// auto width so varied aspect ratios stay undistorted.
 const LOGO_BAR = [
-  { name: 'Vercel', logo: logoVercel, text: textVercel },
-  { name: 'Supabase', logo: logoSupabase, text: textSupabase },
-  { name: 'GitHub', logo: logoGithub, text: textGithub },
-  { name: 'Cloudflare', logo: logoCloudflare, text: textCloudflare },
-  { name: 'Google Cloud', logo: logoGoogle, text: textGoogle },
-  { name: 'OpenRouter', logo: logoOpenrouter, text: textOpenrouter },
-  { name: 'React Flow', logo: logoReactflow, text: textReactflow },
-  { name: 'Tavily', logo: logoTavily, text: textTavily },
-  { name: 'Browserbase', logo: logoBrowserbase, text: textBrowserbase },
-  { name: 'Fly.io', logo: logoFly, text: textFly },
-  { name: 'Redis', logo: logoRedis, text: textRedis },
-  { name: 'Upstash', logo: logoUpstash, text: textUpstash },
+  { name: 'Vercel', src: logoVercel },
+  { name: 'Supabase', src: logoSupabase },
+  { name: 'GitHub', src: logoGithub },
+  { name: 'Cloudflare', src: logoCloudflare },
+  { name: 'Google Cloud', src: logoGoogle },
+  { name: 'OpenRouter', src: logoOpenrouter },
+  { name: 'React Flow', src: logoReactflow },
+  { name: 'Tavily', src: logoTavily },
+  { name: 'Browserbase', src: logoBrowserbase },
+  { name: 'Fly.io', src: logoFly },
+  { name: 'Redis', src: logoRedis },
+  { name: 'Upstash', src: logoUpstash },
 ] as const;
 
 function ArrowIcon() {
@@ -96,10 +84,9 @@ function HeroCtas() {
 function LogoTiles({ hidden }: { hidden?: boolean }) {
   return (
     <div className="flex shrink-0 items-center" aria-hidden={hidden === true ? 'true' : undefined}>
-      {LOGO_BAR.map((brand) => (
-        <span key={brand.name} className="flex h-[72px] shrink-0 items-center gap-2.5 px-9">
-          <Image src={brand.logo} alt="" aria-hidden className="h-[23px] w-auto object-contain" />
-          <Image src={brand.text} alt={brand.name} className="h-[23px] w-auto object-contain" />
+      {LOGO_BAR.map((logo) => (
+        <span key={logo.name} className="flex h-[72px] shrink-0 items-center px-9">
+          <Image src={logo.src} alt={logo.name} className="h-[23px] w-auto object-contain" />
         </span>
       ))}
     </div>
