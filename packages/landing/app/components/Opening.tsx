@@ -20,9 +20,15 @@ export function Opening() {
 
   useEffect(() => {
     let raf = 0;
+    const root = document.documentElement;
     const update = () => {
       raf = 0;
-      setP(clamp01(window.scrollY / (window.innerHeight || 1)));
+      const prog = clamp01(window.scrollY / (window.innerHeight || 1));
+      setP(prog);
+      // Flag the opening as covering the hero so the nav renders solid white
+      // (no wave knockout) while the splash is up. Consumed in globals.css.
+      const flag = prog < 1 ? 'true' : 'false';
+      if (root.dataset.opening !== flag) root.dataset.opening = flag;
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
@@ -33,6 +39,7 @@ export function Opening() {
     return () => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
+      root.removeAttribute('data-opening');
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);
@@ -44,7 +51,7 @@ export function Opening() {
   return (
     <>
       {/* Scroll track: gives the pinned transition its scroll distance. */}
-      <div aria-hidden="true" className="h-screen" />
+      <div aria-hidden="true" className="h-screen bg-black" />
 
       {/* Fixed black stage over the hero; scroll scrubs the whole intro. */}
       <div

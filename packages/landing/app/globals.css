@@ -94,6 +94,14 @@ body {
   animation: hero-intro-fade 1800ms ease-in-out both;
 }
 
+/* While the opening splash covers the hero, render the nav links solid (no
+   wave-knockout blend) so they read cleanly white on the flat black. The
+   `[attr] element element` selector outweighs Tailwind's single mix-blend
+   utility class, so no !important is needed. */
+[data-opening='true'] nav a {
+  mix-blend-mode: normal;
+}
+
 /* Hero abstract graph animation */
 @keyframes node-float {
 
