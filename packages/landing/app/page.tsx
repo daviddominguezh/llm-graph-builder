@@ -20,14 +20,21 @@ export default function Home() {
       <main id="main">
         <Opening />
         <Hero />
-        <SolutionsBento />
-        <StoryScroll />
-        <GlobalScale />
-        <CaseStudies />
-        <Happenings />
-        <DevelopersBand />
+        {/* Everything below the hero sits in its own positioned layer (z-2) so
+            it paints ABOVE the hero's fixed wave canvas (z-1) — otherwise the
+            viewport-pinned wave would bleed over these sections. */}
+        <div className="relative z-[2]">
+          <SolutionsBento />
+          <StoryScroll />
+          <GlobalScale />
+          <CaseStudies />
+          <Happenings />
+          <DevelopersBand />
+        </div>
       </main>
-      <Footer />
+      <div className="relative z-[2]">
+        <Footer />
+      </div>
       {/* After main so it paints above the hero without a z-index — a
           stacking context would isolate the nav's blend-mode knockout text
           from the wave canvas behind it. */}
