@@ -53,8 +53,8 @@
         }
       },
       "revenue": {
-        "title": "Conversations become revenue",
-        "intro": "A chat that ends without a lead, a booking, or a sale is a cost.",
+        "title": "Conversations become revenue.",
+        "intro": "A chat that ends without a lead, a booking, or a sale is a cost. This is how we solved it:",
         "items": {
           "formIntegration": {
             "title": "The conversation is the form",
