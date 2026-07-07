@@ -55,13 +55,6 @@ body {
   animation: logo-marquee 55s linear infinite;
 }
 
-/* Freeze the horizontal scroll while a logo is hovered so it can be
-   inspected in color. Scoped to img:hover so hovering the gaps between
-   tiles doesn't pause the track. */
-.logo-marquee:has(img:hover) {
-  animation-play-state: paused;
-}
-
 /* Hero abstract graph animation */
 @keyframes node-float {
   0%,
