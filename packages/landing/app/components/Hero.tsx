@@ -157,7 +157,7 @@ export function Hero() {
       {/* Wave at z-1: sits ABOVE the background title copy (z-0) and BELOW the
           foreground copy (z-2), so the hard-light foreground blends against
           the silk. Also passes over the logo bar. */}
-      <HeroWave className="hero-wave-animation__canvas absolute inset-0 z-[1]" />
+      <HeroWave className="hero-wave-animation__canvas pointer-events-none absolute inset-0 z-[1]" />
 
       {/* Content column stays z-auto (no stacking context) so the heading's
           two copies resolve around the wave. CTAs get z-2 to sit above it. */}
