@@ -1,5 +1,6 @@
 import { fetchGitHubStars } from '@/app/lib/github';
 import logoFull from '@/app/openflowLightWhite.png';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
 const GITHUB_URL = 'https://github.com/daviddominguezh/llm-graph-builder';
@@ -19,13 +20,13 @@ function GitHubStarButton({ stars }: { stars: number | null }) {
       href={GITHUB_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex h-9 items-stretch overflow-hidden rounded-xl border border-[#d0d7de] bg-white text-sm font-semibold text-[#24292f] font-bold"
+      className="mix-blend-plus-lighter text-white inline-flex h-7.5 items-stretch overflow-hidden rounded-lg border border-[#d0d7de] bg-transparent hover:bg-white hover:text-black hover:mix-blend-normal text-sm font-semibold font-bold"
     >
-      <span className="flex items-center gap-2 border-r border-dashed border-neutral-800 bg-[#f6f8fa] px-3.5 transition-colors hover:bg-[#eef1f4]">
+      <span className="flex items-center gap-2 border-r border-neutral-300 px-3 transition-colors">
         <GitHubIcon />
         Star
       </span>
-      <span className="text-xs flex items-center px-3.5 tabular-nums">
+      <span className="text-xs flex items-center px-3 tabular-nums">
         {stars === null ? '—' : stars.toLocaleString('en-US')}
       </span>
     </a>
@@ -37,15 +38,16 @@ function GitHubStarButton({ stars }: { stars: number | null }) {
 // through the letters as if they were transparent. Works because neither the
 // nav nor its ancestors create a stacking context that would isolate the
 // blend from the hero canvas.
-function SignInButton() {
+function JoinWaitlistButton() {
+  const t = useTranslations();
   return (
     <a
       href={GITHUB_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex h-9 items-center rounded-xl bg-white px-5 text-sm font-medium text-black mix-blend-lighten font-bold"
+      className="inline-flex h-7.5 items-center rounded-lg bg-white hover:bg-white/90 px-3 text-sm font-medium text-black mix-blend-lighten font-bold"
     >
-      Sign in
+      {t('landing.hero.cta')}
     </a>
   );
 }
@@ -63,7 +65,7 @@ export async function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <SignInButton />
+          <JoinWaitlistButton />
           <GitHubStarButton stars={stars} />
         </div>
       </div>

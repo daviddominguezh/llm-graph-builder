@@ -1,18 +1,18 @@
 {
   "landing": {
     "hero": {
-      "title": "The multi-tenant cloud for AI agents your customers pay for",
+      "title": "The cloud infrastructure for your AI agents.",
       "description": "You go to AWS to build your company. You come to OpenFlow to build the AI agents you sell. We run the infrastructure; you build the product.",
-      "cta": "Start building"
+      "cta": "Join the Waitlist"
     },
     "whatIsOpenflow": {
-      "title": "Build a support agent. Sell it to every hotel you serve.",
-      "description": "Each hotel gets its own WhatsApp number, its own guest history, its own knowledge base. You improve the agent once; every hotel gets the update.",
+      "title": "Build a support agent. Sell it to every client you serve.",
+      "description": "Each client gets its own WhatsApp number, its own guest history, its own knowledge base. You improve the agent once; every hotel gets the update.",
       "cta": "See how it works"
     },
     "families": {
       "foundation": {
-        "title": "The Foundation: Multi-Tenant by Design",
+        "title": "The foundation: multi-tenant by design.",
         "intro": "One agent, many customers, zero mixing. Isolation is the default, not a feature you build.",
         "items": {
           "multiTenancy": {
@@ -21,7 +21,7 @@
             "cta": "See how isolation works"
           },
           "multiChannel": {
-            "title": "The channels each customer's audience already uses",
+            "title": "The channels each customer's audience already uses.",
             "description": "Your agents answer on WhatsApp, web chat, Instagram, Telegram, Slack, Discord, Teams, and Google Chat. Each customer connects their own channels.",
             "cta": "Connect WhatsApp"
           },
@@ -59,7 +59,7 @@
         }
       },
       "revenue": {
-        "title": "The Storefront: Conversations Become Revenue",
+        "title": "Conversations become revenue",
         "intro": "A chat that ends without a lead, a booking, or a sale is a cost.",
         "items": {
           "formIntegration": {
@@ -183,7 +183,7 @@
         }
       },
       "engine": {
-        "title": "Always-On Agents",
+        "title": "Always-On agents.",
         "intro": "The best agents don't wait to be messaged.",
         "items": {
           "longRunningAgents": {

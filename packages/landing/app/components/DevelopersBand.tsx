@@ -4,11 +4,9 @@ import { FoldedSilkCanvas } from './FoldedSilkCanvas';
 import { IntegrationDiagram } from './IntegrationDiagram';
 
 // Dark stats band: dim line-silk flowing behind a two-tone heading and three
-// giant gradient statements. The first two draw from unused catalog item keys
-// (tracked in messages/KEY_USAGE.md); the third stays a literal metric.
-type StatEntry = { gradient: string } & ({ messageKey: string } | { value: string; label: string });
-
-const STATS: StatEntry[] = [
+// giant gradient statements drawn from catalog item keys (tracked in
+// messages/KEY_USAGE.md).
+const STATS = [
   {
     messageKey: 'engine.items.webhookTriggers',
     gradient: 'from-[#f5b78a] via-[#f06bb3] to-[#a06ff0]',
@@ -18,25 +16,21 @@ const STATS: StatEntry[] = [
     gradient: 'from-[#f06bb3] via-[#c46df0] to-[#8b7bf7]',
   },
   {
-    value: '150 k+',
-    label: 'conversations per minute',
+    messageKey: 'revenue.items.formIntegration',
     gradient: 'from-[#8b7bf7] via-[#7a8bf7] to-[#6aa8f7]',
   },
-];
+] as const;
 
-function Stat({ entry }: { entry: StatEntry }) {
+function Stat({ entry }: { entry: (typeof STATS)[number] }) {
   const t = useTranslations('landing.families');
-  const keyed = 'messageKey' in entry;
   return (
     <div>
       <div
         className={`bg-gradient-to-r ${entry.gradient} bg-clip-text text-[40px] font-light leading-[1.05] tracking-[-0.02em] text-transparent`}
       >
-        {keyed ? t(`${entry.messageKey}.title`) : entry.value}
+        {t(`${entry.messageKey}.title`)}
       </div>
-      <p className="mt-3 text-sm leading-relaxed text-white">
-        {keyed ? t(`${entry.messageKey}.description`) : entry.label}
-      </p>
+      <p className="mt-3 text-sm leading-relaxed text-white">{t(`${entry.messageKey}.description`)}</p>
     </div>
   );
 }
@@ -156,7 +150,7 @@ export function DevelopersBand() {
 
         <div className="mt-[360px] grid gap-x-4 gap-y-12 sm:grid-cols-3">
           {STATS.map((entry) => (
-            <Stat key={'messageKey' in entry ? entry.messageKey : entry.value} entry={entry} />
+            <Stat key={entry.messageKey} entry={entry} />
           ))}
         </div>
 
