@@ -55,7 +55,7 @@ export function Opening() {
 
       {/* Fixed black stage over the hero; scroll scrubs the whole intro. */}
       <div
-        className="fixed inset-0 z-[45] flex justify-center bg-[#070707]"
+        className="fixed inset-0 z-[45] flex justify-center bg-white"
         style={{ opacity: stageOpacity, visibility: p >= 1 ? 'hidden' : 'visible', pointerEvents: 'none' }}
       >
         <div

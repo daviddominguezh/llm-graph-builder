@@ -1,4 +1,5 @@
 import { fetchGitHubStars } from '@/app/lib/github';
+import logoDark from '@/app/openflowLightBlack.png';
 import logoFull from '@/app/openflowLightWhite.png';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
@@ -20,6 +21,7 @@ function GitHubStarButton({ stars }: { stars: number | null }) {
       href={GITHUB_URL}
       target="_blank"
       rel="noopener noreferrer"
+      data-nav="star"
       className="mix-blend-plus-lighter text-white inline-flex h-7.5 items-stretch overflow-hidden rounded-lg border border-[#d0d7de] bg-transparent hover:bg-white hover:text-black hover:mix-blend-normal text-sm font-semibold font-bold"
     >
       <span className="flex items-center gap-2 border-neutral-300 px-3 transition-colors">
@@ -45,6 +47,7 @@ function JoinWaitlistButton() {
       href={GITHUB_URL}
       target="_blank"
       rel="noopener noreferrer"
+      data-nav="waitlist"
       className="inline-flex h-7.5 items-center rounded-lg bg-white hover:bg-white/90 px-3 text-sm font-medium text-black mix-blend-lighten font-bold"
     >
       {t('landing.hero.cta')}
@@ -60,7 +63,8 @@ export async function Navbar() {
       <div className="mx-auto flex h-[72px] w-full px-8.5 items-center justify-between px-6">
         <div className="flex items-center gap-12">
           <a href="#" className="flex items-center">
-            <Image src={logoFull} alt="OpenFlow" height={24} priority />
+            <Image src={logoFull} alt="OpenFlow" height={24} priority className="nav-logo-white" />
+            <Image src={logoDark} alt="" aria-hidden="true" height={24} className="nav-logo-dark hidden" />
           </a>
         </div>
 

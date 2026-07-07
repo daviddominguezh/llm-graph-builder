@@ -94,12 +94,34 @@ body {
   animation: hero-intro-fade 1800ms ease-in-out both;
 }
 
-/* While the opening splash covers the hero, render the nav links solid (no
-   wave-knockout blend) so they read cleanly white on the flat black. The
-   `[attr] element element` selector outweighs Tailwind's single mix-blend
-   utility class, so no !important is needed. */
+/* While the opening splash covers the hero, the nav becomes a solid white bar
+   with dark contents (the wave-knockout blend is meant for the hero, not the
+   flat-black splash). Each `[attr] element …` selector outweighs the Tailwind
+   utility it overrides, so no !important is needed. */
+[data-opening='true'] nav {
+  background-color: #ffffff;
+}
+
 [data-opening='true'] nav a {
   mix-blend-mode: normal;
+}
+
+[data-opening='true'] .nav-logo-white {
+  display: none;
+}
+
+[data-opening='true'] .nav-logo-dark {
+  display: block;
+}
+
+[data-opening='true'] nav [data-nav='waitlist'] {
+  background-color: #070707;
+  color: #ffffff;
+}
+
+[data-opening='true'] nav [data-nav='star'] {
+  color: #070707;
+  border-color: rgba(0, 0, 0, 0.18);
 }
 
 /* Hero abstract graph animation */
