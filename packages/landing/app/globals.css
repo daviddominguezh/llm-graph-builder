@@ -19,9 +19,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-html {
-  scroll-behavior: smooth;
-}
+/* No `scroll-behavior: smooth` here — Lenis (see SmoothScroll.tsx) owns smooth
+   scrolling site-wide, and a CSS smooth-scroll fights its per-frame scrollTo. */
 
 body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;

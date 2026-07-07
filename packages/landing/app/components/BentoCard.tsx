@@ -45,6 +45,7 @@ function Modal({ onClose, children }: { onClose: () => void; children: ReactNode
       onClick={onClose}
     >
       <div
+        data-lenis-prevent
         className="relative max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-[#141519] p-10 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >

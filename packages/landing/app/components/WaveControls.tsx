@@ -197,7 +197,7 @@ export function WaveControls({ params, onChange, onReset, onCopy, onSetJson }: W
           onReset={onReset}
           onClose={() => setOpen(false)}
         />
-        <div className="flex-1 space-y-4 overflow-y-auto px-3 py-3">
+        <div data-lenis-prevent className="flex-1 space-y-4 overflow-y-auto px-3 py-3">
           {WAVE_CONTROL_GROUPS.map((group) => (
             <ControlGroup
               key={group.title}
