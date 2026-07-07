@@ -180,14 +180,11 @@ function DeckCard({ card, index, total, isLast }: { card: DeckCardData; index: n
 }
 
 export function CaseStudies() {
+  const t = useTranslations('landing.families.revenue');
   return (
     <section className="bg-[#070707] px-10 pt-25 pb-30">
       <div className="mx-auto max-w-[1232px]">
-        <SectionHeading
-          dark
-          lead="We power agent businesses of all sizes."
-          rest="Transform your company with agent infrastructure that grows from your first client to your thousandth."
-        />
+        <SectionHeading dark lead={t('title')} rest={t('intro')} />
 
         {/* `overflow-clip` (NOT hidden — hidden would create a scroll container
             and break sticky) cuts off the previous cards where they protrude

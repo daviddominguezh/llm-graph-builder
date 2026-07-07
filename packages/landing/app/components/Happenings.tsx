@@ -1,76 +1,64 @@
+import { useTranslations } from 'next-intl';
+
 import { type HappeningItem, HappeningsCarousel } from './HappeningsCarousel';
 import { SectionHeading } from './SectionHeading';
 
-// OpenFlow story slots reusing the reference's imagery.
-const NEWS: HappeningItem[] = [
+// News slots reusing the reference's imagery, with copy from unused feature
+// keys (announcement-flavored: shipped features + roadmap items). Item keys
+// live under landing.families — assignments tracked in messages/KEY_USAGE.md.
+const NEWS_SLOTS = [
+  { id: 'web-search', messageKey: 'toolbox.items.webSearch', image: '/reference/annual-letter-mobile.png' },
   {
-    id: 'annual',
-    title: 'Agents on OpenFlow handled 1.9 B conversations in 2025.',
-    description:
-      'Our annual letter breaks down a record year for agent traffic and what it signals for the businesses building on OpenFlow.',
-    image: '/reference/annual-letter-mobile.png',
-  },
-  {
-    id: 'channels',
-    title: 'New tools for taking agents beyond chat: voice and email.',
-    description:
-      'Every tenant can now run the same agent across voice and email, with unified history and per-channel billing.',
+    id: 'any-llm',
+    messageKey: 'studio.items.anyLlmProvider',
     image: '/reference/the-happenings-payment-processing-mobile.png',
   },
   {
-    id: 'agentic',
-    title: 'Make your agents discoverable through AI platforms.',
-    description: 'Publish an agent once and let it show up wherever your customers already ask questions.',
+    id: 'mcp-catalog',
+    messageKey: 'toolbox.items.outOfTheBoxMcps',
     image: '/reference/the-happenings-agentic-mobile.png',
   },
   {
-    id: 'agencies',
-    title: 'How leading agencies unify tenant experiences.',
-    description:
-      'See how agencies configure isolated instances per client and ship them in minutes instead of months.',
+    id: 'skills',
+    messageKey: 'studio.items.agentSkills',
     image: '/reference/the-happenings-payment-retailers-mobile.png',
   },
   {
-    id: 'bfcm',
-    title: 'Tenants with 150k+ users have their best days on OpenFlow.',
-    description:
-      'Through peak traffic, agents kept answering at consistent speed while uptime held at 99.999%.',
+    id: 'user-memory',
+    messageKey: 'knowledge.items.userMemory',
     image: '/reference/the-happenings-bfcm-mobile.png',
   },
   {
-    id: 'tidemark',
-    title: 'The vertical SaaS agent benchmark report.',
-    description:
-      'What drives agent adoption in vertical SaaS: product breadth, embedded billing, and AI woven into the core.',
+    id: 'browser-automation',
+    messageKey: 'toolbox.items.browserAutomation',
     image: '/reference/the-happenings-tidemark-mobile.png',
   },
   {
-    id: 'founders',
-    title: 'A conversation on agent infrastructure with our founders.',
-    description:
-      'A candid look at why multi-tenant agent infrastructure is the platform the next wave of SaaS is built on.',
+    id: 'booking',
+    messageKey: 'revenue.items.bookingSystem',
     image: '/reference/the-happenings-cheeky-pint-mobile.png',
   },
   {
-    id: 'crypto',
-    title: 'Crypto-native billing lands for agent platforms.',
-    description:
-      'Meter agent usage and settle in stablecoins or traditional rails — the choice is per tenant.',
+    id: 'long-running',
+    messageKey: 'engine.items.longRunningAgents',
     image: '/reference/the-happenings-crypto-mobile.png',
   },
-];
+] as const;
 
 export function Happenings() {
+  const t = useTranslations('landing.families');
+  const items: HappeningItem[] = NEWS_SLOTS.map((slot) => ({
+    id: slot.id,
+    title: t(`${slot.messageKey}.title`),
+    description: t(`${slot.messageKey}.description`),
+    image: slot.image,
+  }));
   return (
     <section className="the-happenings bg-[#0d0d0d] px-10 py-24">
       <div className="mx-auto max-w-[1232px]">
-        <SectionHeading
-          dark
-          lead="What's happening?"
-          rest="Product updates, milestones, and stories from the OpenFlow ecosystem."
-        />
+        <SectionHeading dark lead={t('studio.title')} rest={t('studio.intro')} />
 
-        <HappeningsCarousel items={NEWS} />
+        <HappeningsCarousel items={items} />
       </div>
     </section>
   );

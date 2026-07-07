@@ -1,13 +1,13 @@
 {
   "landing": {
     "hero": {
-      "title": "The multi-tenant cloud infrastructure for agents.",
+      "title": "The multi-tenant cloud for AI agents your customers pay for",
       "description": "You go to AWS to build your company. You come to OpenFlow to build the AI agents you sell. We run the infrastructure; you build the product.",
       "cta": "Start building"
     },
     "whatIsOpenflow": {
-      "title": "Agent infrastructure, multi-tenant from day one",
-      "description": "Build an agent once. Each customer you sell it to gets an isolated instance — their channels, their data, their bill. We run everything underneath.",
+      "title": "Build a support agent. Sell it to every hotel you serve.",
+      "description": "Each hotel gets its own WhatsApp number, its own guest history, its own knowledge base. You improve the agent once; every hotel gets the update.",
       "cta": "See how it works"
     },
     "families": {
@@ -17,11 +17,11 @@
         "items": {
           "multiTenancy": {
             "title": "One agent. A hundred isolated customers.",
-            "description": "Sell your agent to one customer or a hundred. Each gets their own conversations, channels, config, and bill. You build once. We isolate everything.",
+            "description": "Sell your agent to one customer or a hundred. Each gets their own channels, their own data, their own bill. You build once. We isolate everything.",
             "cta": "See how isolation works"
           },
           "multiChannel": {
-            "title": "Every channel your customers' users are on",
+            "title": "The channels each customer's audience already uses",
             "description": "Your agents answer on WhatsApp, web chat, Instagram, Telegram, Slack, Discord, Teams, and Google Chat. Each customer connects their own channels.",
             "cta": "Connect WhatsApp"
           },
@@ -34,151 +34,6 @@
             "title": "Know what every customer costs you",
             "description": "Spend is metered per customer, per conversation, per model call. Your margin stops being a guess. Spending caps and alerts included.",
             "cta": "See per-customer costs"
-          }
-        }
-      },
-      "studio": {
-        "title": "The Studio: Build Any Agent in Minutes",
-        "intro": "Everything you need to design, ship, and improve the agents you sell.",
-        "items": {
-          "agentBuilder": {
-            "title": "A customer-ready agent in minutes",
-            "description": "Define personality, knowledge, tools, and channels in a visual editor — no code. A tailored agent for each new customer takes minutes.",
-            "cta": "Build your first agent"
-          },
-          "workflowBuilder": {
-            "title": "Processes that run the same way, every time",
-            "description": "Drag steps and decisions onto a canvas. Agents handle open conversation; workflows run your fixed processes — returns, onboarding, escalation.",
-            "cta": "Open the canvas"
-          },
-          "agentOrchestration": {
-            "title": "Agents that delegate to specialist sub-agents",
-            "description": "A front-desk agent hands hard tasks to specialists and takes the conversation back when they finish. Complex behavior stays maintainable.",
-            "cta": "Compose agent teams"
-          },
-          "anyLlmProvider": {
-            "title": "Swap the brain. Keep the agent.",
-            "description": "OpenAI, Anthropic, Google, Mistral, Meta — switch models per agent whenever a better one ships. A dropdown, not a migration.",
-            "cta": "See supported models"
-          },
-          "agentSkills": {
-            "title": "Write it once. Attach it anywhere.",
-            "description": "Package know-how — refund policy, tone of voice, playbooks — as skills your agents use exactly when relevant.",
-            "cta": "Write your first skill"
-          },
-          "versionControl": {
-            "title": "Publish. Pin. Roll back in one click.",
-            "description": "Every published agent is a frozen, numbered version. Bad prompt at Friday 6pm? One click back, not one lost weekend.",
-            "cta": "See versioning"
-          }
-        }
-      },
-      "toolbox": {
-        "title": "The Toolbox: Connect to Everything",
-        "intro": "How your agents reach the outside world.",
-        "items": {
-          "connectAnyMcp": {
-            "title": "If it speaks MCP, your agent speaks it",
-            "description": "OpenFlow speaks MCP natively. Any tool that exposes a connector becomes an agent capability, with credentials managed per customer.",
-            "cta": "Plug in anything"
-          },
-          "outOfTheBoxMcps": {
-            "title": "GitHub to Stripe, one click away",
-            "description": "Around thirty pre-configured integrations — GitHub, Notion, Slack, Stripe, HubSpot, Linear, Figma, Zapier and more — installed in one click.",
-            "cta": "Browse the catalog"
-          },
-          "webSearch": {
-            "title": "Answers from today's web",
-            "description": "Agents search the live web, read pages, and explore entire sites. Built in, no setup required, and answers stay current.",
-            "cta": "Turn on web search"
-          },
-          "httpRequests": {
-            "title": "Call any API, even yours",
-            "description": "Internal tools, custom backends, niche software — if it has an endpoint, your agent reaches it.",
-            "cta": "Connect your API"
-          },
-          "externalSql": {
-            "title": "Ask the database directly",
-            "description": "Agents answer from each customer's own database — inventory, orders, account data — read-safe and isolated.",
-            "cta": "Query your data"
-          },
-          "browserAutomation": {
-            "title": "For the software with no API",
-            "description": "Agents operate a real browser — navigate, click, fill, extract — so systems without an API are still within reach.",
-            "cta": "See browser agents"
-          },
-          "codeSandboxes": {
-            "title": "A safe place for agents to run code",
-            "description": "Disposable, isolated environments where agents write and run code: crunch a spreadsheet, transform an export, verify the math.",
-            "cta": "Run code safely"
-          }
-        }
-      },
-      "knowledge": {
-        "title": "The Knowledge Layer: What Agents Know",
-        "intro": "Documents, structured facts, and memory — everything your agents know.",
-        "items": {
-          "multimodalRag": {
-            "title": "Documents — and images — actually understood",
-            "description": "PDFs, Office files, web pages, and images, parsed with full layout awareness. Tables, headings, and structure survive intact.",
-            "cta": "Upload your knowledge"
-          },
-          "kvStores": {
-            "title": "Prose in documents. Facts in tables.",
-            "description": "Price lists, catalogs, per-customer settings — structured records your agents read and update exactly, never approximately.",
-            "cta": "Create a KV store"
-          },
-          "userMemory": {
-            "title": "Agents that remember people",
-            "description": "Agents keep memory of each person across conversations — preferences, history, context — so returning users are treated as returning users.",
-            "cta": "Give agents memory"
-          }
-        }
-      },
-      "revenue": {
-        "title": "From Conversation to Revenue",
-        "intro": "Built-in blocks that turn conversations into business outcomes.",
-        "items": {
-          "formIntegration": {
-            "title": "The conversation is the form",
-            "description": "Agents collect structured data in the chat, validate it field by field, and store it cleanly. Export everything to CSV.",
-            "cta": "Collect data in chat"
-          },
-          "leadScoring": {
-            "title": "Every chat carries a 0–100 lead score",
-            "description": "Forty overnight conversations on Monday morning. The agent already scored them all while chatting. Sales calls the hot three first.",
-            "cta": "Score your leads"
-          },
-          "bookingSystem": {
-            "title": "Booked before the chat ends",
-            "description": "Agents check availability and confirm the appointment inside the conversation, while intent is at its highest.",
-            "cta": "Enable booking"
-          },
-          "payments": {
-            "title": "Take payment in the chat",
-            "description": "The moment a customer says yes, the agent closes — natively or through Stripe, PayPal, and Square.",
-            "cta": "Set up payments"
-          }
-        }
-      },
-      "engine": {
-        "title": "The Engine: Always-On Agents",
-        "intro": "Agents as running services, acting on their own schedule.",
-        "items": {
-          "longRunningAgents": {
-            "title": "Agents that work for hours",
-            "description": "A runtime built for real work: agents pause for human input, survive restarts, and resume exactly where they left off.",
-            "cta": "Run longer jobs"
-          },
-          "scheduledExecution": {
-            "title": "Set the schedule. It fires. Every time.",
-            "description": "Run agents every morning, every hour, or the first of the month — per customer, surviving deploys and outages.",
-            "cta": "Schedule an agent"
-          },
-          "webhookTriggers": {
-            "title": "Events wake your agents",
-            "description": "A new signup, a paid invoice, a support ticket — your agent acts the moment it happens.",
-            "cta": "Wire up events"
           }
         }
       },
@@ -203,9 +58,154 @@
           }
         }
       },
+      "revenue": {
+        "title": "The Storefront: Conversations Become Revenue",
+        "intro": "A chat that ends without a lead, a booking, or a sale is a cost.",
+        "items": {
+          "formIntegration": {
+            "title": "The conversation is the form",
+            "description": "Agents collect structured data in the chat, validate it field by field, and store it cleanly. Export everything to CSV.",
+            "cta": "Collect data in chat"
+          },
+          "leadScoring": {
+            "title": "Every chat carries a 0–100 lead score",
+            "description": "Forty overnight conversations on Monday morning. The agent already scored them all while chatting. Sales calls the hot three first.",
+            "cta": "Score your leads"
+          },
+          "bookingSystem": {
+            "title": "Booked before the chat ends",
+            "description": "Agents check availability and confirm the appointment inside the conversation, while intent is at its highest.",
+            "cta": "Enable booking"
+          },
+          "payments": {
+            "title": "Take payment in the chat",
+            "description": "The moment a customer says yes, the agent closes — natively or through Stripe, PayPal, and Square.",
+            "cta": "Set up payments"
+          }
+        }
+      },
+      "studio": {
+        "title": "The Studio: Build Any Agent in Minutes",
+        "intro": "A new customer should never mean a new engineering project.",
+        "items": {
+          "agentBuilder": {
+            "title": "A customer-ready agent in minutes",
+            "description": "Shared agent logic, tailored per customer — their config, their knowledge, their channels. Built in a visual editor, no code, in minutes.",
+            "cta": "Build your first agent"
+          },
+          "workflowBuilder": {
+            "title": "Processes that run the same way, every time",
+            "description": "Drag steps and decisions onto a canvas. Agents handle open conversation; workflows run your fixed processes — returns, onboarding, escalation.",
+            "cta": "Open the canvas"
+          },
+          "agentOrchestration": {
+            "title": "Agents that delegate to specialist sub-agents",
+            "description": "A front-desk agent hands hard tasks to specialists and takes the conversation back when they finish. No thousand-line prompt to babysit.",
+            "cta": "Compose agent teams"
+          },
+          "anyLlmProvider": {
+            "title": "Swap the brain. Keep the agent.",
+            "description": "OpenAI, Anthropic, Google, Mistral, Meta — switch models per agent whenever a better one ships. A dropdown, not a migration.",
+            "cta": "See supported models"
+          },
+          "agentSkills": {
+            "title": "Write it once. Attach it anywhere.",
+            "description": "Package know-how — refund policy, tone of voice, playbooks — as skills your agents use exactly when relevant.",
+            "cta": "Write your first skill"
+          },
+          "versionControl": {
+            "title": "Publish. Pin. Roll back in one click.",
+            "description": "Every published agent is a frozen, numbered version. Bad prompt at Friday 6pm? One click back, not one lost weekend.",
+            "cta": "See versioning"
+          }
+        }
+      },
+      "toolbox": {
+        "title": "The Toolbox: Connect to Everything",
+        "intro": "An agent that can't reach your systems is just a chatbot.",
+        "items": {
+          "connectAnyMcp": {
+            "title": "If it speaks MCP, your agent speaks it",
+            "description": "OpenFlow speaks MCP natively. Any tool that exposes a connector becomes an agent capability, with credentials managed per customer.",
+            "cta": "Plug in anything"
+          },
+          "outOfTheBoxMcps": {
+            "title": "GitHub to Stripe, one click away",
+            "description": "Around thirty pre-configured integrations — GitHub, Notion, Slack, Stripe, HubSpot, Linear, Figma, Zapier and more — installed in one click.",
+            "cta": "Browse the catalog"
+          },
+          "webSearch": {
+            "title": "Answers from today's web",
+            "description": "Agents search the live web, read pages, and explore entire sites — no setup, no stale prices quoted to a customer.",
+            "cta": "Turn on web search"
+          },
+          "httpRequests": {
+            "title": "Call any API, even yours",
+            "description": "Internal tools, custom backends, niche software — if it has an endpoint, your agent reaches it.",
+            "cta": "Connect your API"
+          },
+          "externalSql": {
+            "title": "Ask the database directly",
+            "description": "Agents answer from each customer's own database — inventory, orders, account data — read-safe and isolated.",
+            "cta": "Query your data"
+          },
+          "browserAutomation": {
+            "title": "For the software with no API",
+            "description": "Agents operate a real browser — navigate, click, fill, extract — even on the supplier portal last updated in 2009.",
+            "cta": "See browser agents"
+          },
+          "codeSandboxes": {
+            "title": "A safe place for agents to run code",
+            "description": "Disposable, isolated environments where agents write and run code: crunch a spreadsheet, transform an export, verify the math.",
+            "cta": "Run code safely"
+          }
+        }
+      },
+      "knowledge": {
+        "title": "The Library: What Agents Know",
+        "intro": "An agent that guesses is a liability.",
+        "items": {
+          "multimodalRag": {
+            "title": "Documents — and images — actually understood",
+            "description": "PDFs, Office files, web pages, and images, parsed with full layout awareness. Tables, headings, and structure survive intact.",
+            "cta": "Upload your knowledge"
+          },
+          "kvStores": {
+            "title": "Prose in documents. Facts in tables.",
+            "description": "Price lists, catalogs, per-customer settings — structured records your agents read and update exactly, never approximately.",
+            "cta": "Create a KV store"
+          },
+          "userMemory": {
+            "title": "Agents that remember people",
+            "description": "Agents keep memory of each person across conversations — preferences, history, context — so returning users are treated as returning users.",
+            "cta": "Give agents memory"
+          }
+        }
+      },
+      "engine": {
+        "title": "The Engine: Always-On Agents",
+        "intro": "The best agents don't wait to be messaged.",
+        "items": {
+          "longRunningAgents": {
+            "title": "Agents that work for hours",
+            "description": "A runtime built for real work: agents pause for human input, survive restarts, and resume exactly where they left off.",
+            "cta": "Run longer jobs"
+          },
+          "scheduledExecution": {
+            "title": "Set the schedule. It fires. Every time.",
+            "description": "Run agents every morning, every hour, or the first of the month — per customer, surviving deploys and outages.",
+            "cta": "Schedule an agent"
+          },
+          "webhookTriggers": {
+            "title": "Events wake your agents",
+            "description": "A new signup, a paid invoice, a support ticket — your agent acts the moment it happens.",
+            "cta": "Wire up events"
+          }
+        }
+      },
       "waysToUse": {
-        "title": "Build Your Way. Pay for What You Use.",
-        "intro": "Visual builder, APIs, or your own AI tools — metered pricing underneath.",
+        "title": "The Console: Build Your Way, Pay for What You Use",
+        "intro": "However you build, you only pay for what runs.",
         "items": {
           "noCodeLowCodeApi": {
             "title": "Three doors. Same platform.",
