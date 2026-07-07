@@ -5,6 +5,7 @@ import { GlobalScale } from './components/GlobalScale';
 import { Happenings } from './components/Happenings';
 import { Hero } from './components/Hero';
 import { Navbar } from './components/Navbar';
+import { Opening } from './components/Opening';
 import { SolutionsBento } from './components/SolutionsBento';
 import { StoryScroll } from './components/StoryScroll';
 
@@ -23,6 +24,7 @@ export default function Home() {
           revenue (scale points) → studio (deck) → toolbox (happenings) →
           knowledge + engine + waysToUse (developers band). */}
       <main id="main">
+        <Opening />
         <Hero />
         <SolutionsBento />
         <StoryScroll />

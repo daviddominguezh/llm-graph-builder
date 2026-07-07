@@ -57,7 +57,7 @@ export async function Navbar() {
 
   return (
     <nav className="absolute top-0 w-full bg-transparent border-b border-dashed border-neutral-800">
-      <div className="mx-auto flex h-[76px] max-w-[1240px] items-center justify-between px-6">
+      <div className="mx-auto flex h-[72px] max-w-[1240px] items-center justify-between px-6">
         <div className="flex items-center gap-12">
           <a href="#" className="flex items-center">
             <Image src={logoFull} alt="OpenFlow" height={24} priority />

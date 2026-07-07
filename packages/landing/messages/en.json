@@ -1,5 +1,8 @@
 {
   "landing": {
+    "opening": {
+      "title": "The world's most innovative startups\nneed proper AI infrastructure"
+    },
     "hero": {
       "title": "The cloud infrastructure your agents need.",
       "description": "We make it dead simple to build, test, run, scale, monitor and manage production-ready AI. We run the infrastructure; you build the product.",
