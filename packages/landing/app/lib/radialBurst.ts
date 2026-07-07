@@ -37,7 +37,8 @@ const PUSH = 62; // max px a tip is pushed
 const EASE = 0.12; // tip return/approach easing
 const TILT = 0.42; // fixed camera tilt (radians) — view the sphere at an angle
 const CAM = 5; // perspective camera distance (larger = flatter)
-const ROT_SPEED = 0.0001; // radians per ms — a slow spin that reads as 3D depth
+const ROT_SPEED = 0.0001; // radians per ms — slow Y-axis spin
+const ROT_SPEED_Z = 0.0001; // radians per ms — slow Z-axis (in-plane) roll
 
 // Even directions on a unit sphere (Fibonacci lattice) so the rotating burst
 // looks like a full 3D dandelion rather than a flat fan.
@@ -66,24 +67,30 @@ function buildLines(): Line[] {
   return lines;
 }
 
-// Spin the direction slowly around Y and tilt it a fixed amount around X, then
-// return the rotated vector plus a perspective factor — the depth cues that
-// turn the flat fan into a rotating 3D burst.
-function project(ln: Line, rot: number): { fx: number; fy: number; fz: number; persp: number } {
-  const cr = Math.cos(rot);
-  const sr = Math.sin(rot);
-  const rx = ln.dx * cr + ln.dz * sr;
-  const rz = -ln.dx * sr + ln.dz * cr;
+// Spin the direction around Y, tilt it a fixed amount around X, then roll it
+// around Z (the view axis), and return the rotated vector plus a perspective
+// factor — the depth cues that turn the flat fan into a tumbling 3D burst.
+function project(
+  ln: Line,
+  rotY: number,
+  rotZ: number
+): { fx: number; fy: number; fz: number; persp: number } {
+  const cy = Math.cos(rotY);
+  const sy = Math.sin(rotY);
+  const rx = ln.dx * cy + ln.dz * sy;
+  const rz = -ln.dx * sy + ln.dz * cy;
   const ct = Math.cos(TILT);
   const st = Math.sin(TILT);
-  const fy = ln.dy * ct - rz * st;
-  const fz = ln.dy * st + rz * ct;
-  return { fx: rx, fy, fz, persp: CAM / (CAM - fz) };
+  const ty = ln.dy * ct - rz * st;
+  const fz = ln.dy * st + rz * ct; // depth is unaffected by the in-plane Z roll
+  const cz = Math.cos(rotZ);
+  const sz = Math.sin(rotZ);
+  return { fx: rx * cz - ty * sz, fy: rx * sz + ty * cz, fz, persp: CAM / (CAM - fz) };
 }
 
 function seedLine(ln: Line, dim: Dim): void {
   const len = ln.lenFrac * dim.maxR;
-  const p = project(ln, 0);
+  const p = project(ln, 0, 0);
   ln.cx = dim.ox + p.fx * len * p.persp;
   ln.cy = dim.oy - p.fy * len * p.persp;
 }
@@ -101,7 +108,7 @@ function paintLine(ctx: CanvasRenderingContext2D, dim: Dim, ln: Line, mouse: Mou
   const pulse =
     1 + Math.sin(t * 0.00045 + ln.phase) * 0.06 + Math.sin(t * 0.001 + ln.phase * 1.7) * 0.03;
   const len = ln.lenFrac * dim.maxR * pulse;
-  const p = project(ln, t * ROT_SPEED);
+  const p = project(ln, t * ROT_SPEED, t * ROT_SPEED_Z);
   let tx = dim.ox + p.fx * len * p.persp;
   let ty = dim.oy - p.fy * len * p.persp;
   if (mouse.active) {

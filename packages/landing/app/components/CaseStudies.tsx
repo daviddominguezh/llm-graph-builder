@@ -94,7 +94,17 @@ const CARDS: DeckCardData[] = [
 // Clay's stacked segment pills: one collapsed pill per card, overlapping so
 // only slivers show, with THIS card's pill expanded and labelled. Pills before
 // the active one peek to the left, after it to the right — a "which of N" cue.
-function SegmentPills({ index, total, accent, label }: { index: number; total: number; accent: string; label: string }) {
+function SegmentPills({
+  index,
+  total,
+  accent,
+  label,
+}: {
+  index: number;
+  total: number;
+  accent: string;
+  label: string;
+}) {
   return (
     <div className="flex items-center">
       {Array.from({ length: total }).map((_, i) => {
@@ -144,7 +154,17 @@ function CardVisual({ card }: { card: DeckCardData }) {
 // One deck card. On desktop it pins (`lg:sticky lg:top-24`) and overlaps the
 // next by 3rem (`lg:-mb-12`), so cards slide up and stack — Clay's mechanism.
 // On mobile it falls back to normal flow (their `< lg` override).
-function DeckCard({ card, index, total, isLast }: { card: DeckCardData; index: number; total: number; isLast: boolean }) {
+function DeckCard({
+  card,
+  index,
+  total,
+  isLast,
+}: {
+  card: DeckCardData;
+  index: number;
+  total: number;
+  isLast: boolean;
+}) {
   const t = useTranslations('landing.families');
   // Accent-highlight the title's final word (the catalog stores whole titles).
   const words = t(`${card.messageKey}.title`).split(' ');
@@ -153,7 +173,10 @@ function DeckCard({ card, index, total, isLast }: { card: DeckCardData; index: n
   // slide over each other; the first card is the darker #0d0d0d.
   const background = index % 2 === 0 ? '#0d0d0d' : '#131313';
   return (
-    <div className={`relative lg:sticky lg:top-24 ${isLast ? '' : 'lg:-mb-12'}`} style={{ zIndex: index + 1 }}>
+    <div
+      className={`relative lg:sticky lg:top-24 ${isLast ? '' : 'lg:-mb-12'}`}
+      style={{ zIndex: index + 1 }}
+    >
       <div
         className={`relative flex flex-col overflow-hidden border border-white/8 px-8 py-12 rounded-t-[2.5rem] lg:px-14 ${isLast ? 'rounded-b-[2.5rem]' : ''}`}
         style={{ backgroundColor: background }}
@@ -163,7 +186,7 @@ function DeckCard({ card, index, total, isLast }: { card: DeckCardData; index: n
           className="pointer-events-none absolute -top-24 right-0 h-72 w-72 rounded-full opacity-25 blur-3xl"
           style={{ background: card.accent }}
         />
-             <div
+        <div
           aria-hidden="true"
           className="pointer-events-none absolute -bottom-24 left-0 h-72 w-72 rounded-full opacity-25 blur-3xl"
           style={{ background: card.accent }}
