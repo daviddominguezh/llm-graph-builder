@@ -93,6 +93,22 @@ body {
   animation: hero-intro-fade 1800ms ease-in-out both;
 }
 
+/* The navbar fades in on load with the exact same timing/easing as the opening
+   curtain, so the nav and the splash emerge from black together. */
+@keyframes intro-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.intro-fade-in {
+  animation: intro-fade-in 1800ms ease-in-out both;
+}
+
 /* While the opening splash covers the hero, the nav becomes a solid white bar
    with dark contents (the wave-knockout blend is meant for the hero, not the
    flat-black splash). Each `[attr] element …` selector outweighs the Tailwind
@@ -309,7 +325,8 @@ body {
   .hero-edge,
   .logo-marquee,
   .connector-flow,
-  .intro-curtain {
+  .intro-curtain,
+  .intro-fade-in {
     animation: none;
   }
 }

@@ -135,7 +135,7 @@ function BrandCard() {
       />
       <div className="relative flex flex-1 flex-col justify-between">
         <div className="flex h-full flex-col gap-4 justify-around">
-          <h2 className="max-w-[659px] text-[48px] leading-[1.03] font-light tracking-[-0.02em] text-white">
+          <h2 className="max-w-[659px] text-[26px] leading-[1.12] font-light tracking-[-0.01em] text-white">
             {t('title')}
           </h2>
           <p className="max-w-[520px] text-base leading-relaxed text-white/70">{t('description')}</p>
