@@ -181,7 +181,7 @@ export function WaveControls({ params, onChange, onReset, onCopy, onSetJson }: W
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="absolute bottom-23 left-59 z-[60] rounded-lg border border-white/15 bg-black/80 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur transition-colors hover:text-white"
+        className="hidden absolute bottom-23 left-59 z-[60] rounded-lg border border-white/15 bg-black/80 px-3 py-1.5 text-[11px] font-semibold text-white/80 backdrop-blur transition-colors hover:text-white"
       >
         Wave controls
       </button>
