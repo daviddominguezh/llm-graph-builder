@@ -112,7 +112,7 @@ function LogoBar() {
   return (
     <div className="border-y border-dashed border-neutral-800">
       <div className="mx-auto max-w-[1280px] overflow-hidden py-0">
-        <div className="logo-marquee relative -z-[1] flex w-max">
+        <div className="logo-marquee relative flex w-max">
           <LogoTiles />
           <LogoTiles hidden />
         </div>
