@@ -11,13 +11,7 @@ import { StoryScroll } from './components/StoryScroll';
 
 export default function Home() {
   return (
-    <div className="relative">
-      {/* Full-page layout guides. Painted before main so the hero wave
-          (positioned, later in DOM) passes over them. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-dashed border-neutral-800 lg:block"
-      />
+    <div className="relative">      
       {/* Section sequence follows the copy catalog (messages/en.json) exactly —
           every key renders in file order (see messages/KEY_USAGE.md):
           hero → whatIsOpenflow + foundation (bento) → controlRoom (story) →
