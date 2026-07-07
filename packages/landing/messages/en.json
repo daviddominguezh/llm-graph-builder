@@ -1,0 +1,229 @@
+{
+  "landing": {
+    "hero": {
+      "title": "AI infrastructure to power your SaaS",
+      "description": "Build AI agents and sell them to your customers. Each gets an isolated agent — channels, data, bill. You build the product. We run the rest.",
+      "cta": "Start building"
+    },
+    "whatIsOpenflow": {
+      "title": "The AI Cloud",
+      "description": "You go to AWS to build your company. You come to OpenFlow to build the AI agents you sell. Multi-tenant agent infrastructure, from day one.",
+      "cta": "See how it works"
+    },
+    "families": {
+      "foundation": {
+        "title": "The Foundation: Multi-Tenant by Design",
+        "intro": "One agent, many customers, zero mixing. Isolation is the default, not a feature you build.",
+        "items": {
+          "multiTenancy": {
+            "title": "One agent. A hundred isolated customers.",
+            "description": "Sell your agent to one client or a hundred. Each gets their own conversations, channels, config, and bill. You build once. We isolate everything.",
+            "cta": "See how isolation works"
+          },
+          "multiChannel": {
+            "title": "Where their audience already is",
+            "description": "WhatsApp and web chat, live today. Instagram next. Telegram, Slack, Discord, Teams, and Google Chat on the way. One agent, every channel.",
+            "cta": "Connect WhatsApp"
+          },
+          "deployToYourWebsite": {
+            "title": "One line of code. Live on their site.",
+            "description": "Paste a script tag — the agent is on your client's homepage. Branded, versioned, no cookies. Finished at 4:00, live at 4:05.",
+            "cta": "Get your embed line"
+          },
+          "expensesControlPerTenant": {
+            "title": "Know what every customer costs you",
+            "description": "Spend is metered per customer, per conversation, per model call. Your margin stops being a guess. Spending caps and alerts come next.",
+            "cta": "See per-customer costs"
+          }
+        }
+      },
+      "studio": {
+        "title": "The Studio: Build Any Agent in Minutes",
+        "intro": "Where a tailored agent for a new client takes minutes, not weeks.",
+        "items": {
+          "agentBuilder": {
+            "title": "A client-ready agent in minutes",
+            "description": "Personality, knowledge, tools, channels — defined visually, no code. New client signed this morning? Their agent ships this afternoon.",
+            "cta": "Build your first agent"
+          },
+          "workflowBuilder": {
+            "title": "A script, not improv",
+            "description": "Some conversations should wander. A returns process shouldn't. Agents improvise; workflows follow the script you drag onto a canvas.",
+            "cta": "Open the canvas"
+          },
+          "agentOrchestration": {
+            "title": "Teams of agents, not one giant prompt",
+            "description": "Your front-desk agent hands hard tasks to specialist sub-agents, then takes the conversation back. Delegation, not a prompt nobody dares touch.",
+            "cta": "Compose agent teams"
+          },
+          "anyLlmProvider": {
+            "title": "Swap the brain. Keep the agent.",
+            "description": "OpenAI, Anthropic, Google, Mistral, Meta — switchable per agent. A better model ships Tuesday? You run it Wednesday. A dropdown, not a migration.",
+            "cta": "See supported models"
+          },
+          "agentSkills": {
+            "title": "Write it once. Attach it anywhere.",
+            "description": "Refund policy, tone of voice, qualification playbook — packaged as skills your agents pull in exactly when relevant. A shared skill library is coming.",
+            "cta": "Write your first skill"
+          },
+          "versionControl": {
+            "title": "Publish. Pin. Roll back in one click.",
+            "description": "Every published agent is a frozen, numbered version. Bad prompt at Friday 6pm? One click back, not one lost weekend.",
+            "cta": "See versioning"
+          }
+        }
+      },
+      "toolbox": {
+        "title": "The Toolbox: Connect to Everything",
+        "intro": "How agents reach the outside world — through an open standard, not a walled garden.",
+        "items": {
+          "connectAnyMcp": {
+            "title": "If it speaks MCP, your agent speaks it",
+            "description": "MCP is the universal plug for AI tools — OpenFlow speaks it natively. Any connector becomes an agent capability. Zero glue code.",
+            "cta": "Plug in anything"
+          },
+          "outOfTheBoxMcps": {
+            "title": "GitHub to Stripe, one click away",
+            "description": "Around thirty pre-configured integrations: Notion, Slack, HubSpot, Linear, Figma, Zapier and more. Connecting means clicking, not reading docs.",
+            "cta": "Browse the catalog"
+          },
+          "webSearch": {
+            "title": "Answers from today's web",
+            "description": "Agents search the live web, read pages, explore entire sites. Built in, zero setup. No more confidently quoting last year's prices.",
+            "cta": "Turn on web search"
+          },
+          "httpRequests": {
+            "title": "Coming soon: call any API, even yours",
+            "description": "Internal tools, custom backends, the software only your client has ever heard of. If it has an endpoint, your agent will reach it.",
+            "cta": "Join the waitlist"
+          },
+          "externalSql": {
+            "title": "Coming soon: ask the database directly",
+            "description": "\"Is it in stock?\" — answered straight from your client's database, read-safe, per customer. Via database MCPs today; native and guided soon.",
+            "cta": "Get notified"
+          },
+          "browserAutomation": {
+            "title": "Coming soon: for software with no API",
+            "description": "Agents that operate a real browser — navigate, click, fill, extract. The login page from 2009 stops being a dead end.",
+            "cta": "Follow the roadmap"
+          },
+          "codeSandboxes": {
+            "title": "Coming soon: agents that run code",
+            "description": "Some answers are computed, not written — crunch the spreadsheet, verify the math. Safe, disposable environments for agent-written code.",
+            "cta": "Watch this ship"
+          }
+        }
+      },
+      "knowledge": {
+        "title": "The Knowledge Layer: What Agents Know",
+        "intro": "Agents that answer from your knowledge, not their guesses.",
+        "items": {
+          "multimodalRag": {
+            "title": "Documents — and images — actually understood",
+            "description": "PDFs, Office files, web pages, images. Parsing up to full layout awareness — tables and structure respected. Not the \"upload a PDF\" checkbox.",
+            "cta": "Upload your knowledge"
+          },
+          "kvStores": {
+            "title": "Prose in documents. Facts in tables.",
+            "description": "Price lists, catalogs, per-customer settings — structured records your agents read and update exactly, never approximately.",
+            "cta": "Create a KV store"
+          },
+          "userMemory": {
+            "title": "Coming soon: agents that remember people",
+            "description": "Fifth conversation, same person — they should feel known, not processed. Automatic memory across conversations is on the roadmap.",
+            "cta": "Get notified"
+          }
+        }
+      },
+      "revenue": {
+        "title": "From Conversation to Revenue",
+        "intro": "Pre-built blocks that turn chats into outcomes bosses care about.",
+        "items": {
+          "formIntegration": {
+            "title": "The conversation is the form",
+            "description": "Agents collect structured data mid-chat — validated field by field, exportable to CSV. No form link where customers quietly leave.",
+            "cta": "Collect data in chat"
+          },
+          "leadScoring": {
+            "title": "Every chat carries a 0–100 lead score",
+            "description": "Forty overnight conversations on Monday morning. The agent already scored them all while chatting. Sales calls the hot three first.",
+            "cta": "Score your leads"
+          },
+          "bookingSystem": {
+            "title": "Coming soon: booked before the chat ends",
+            "description": "A calendar link asks the prospect to cool off. Native booking lets the agent confirm the appointment inside the conversation.",
+            "cta": "Join the waitlist"
+          },
+          "payments": {
+            "title": "Coming soon: take payment in the chat",
+            "description": "The moment they say yes, the agent closes. Native checkout is on the roadmap; Stripe, PayPal, and Square work today via official integrations.",
+            "cta": "Explore payment integrations"
+          }
+        }
+      },
+      "engine": {
+        "title": "The Engine: Always-On, Not Just On-Demand",
+        "intro": "Agents as running services — acting on their own schedule, not only when spoken to.",
+        "items": {
+          "longRunningAgents": {
+            "title": "Coming soon: agents that work for hours",
+            "description": "Most platforms kill agents after minutes — fine for chat, useless for real work. Coming: a runtime that pauses, survives restarts, and resumes.",
+            "cta": "Follow the build"
+          },
+          "scheduledExecution": {
+            "title": "Set the schedule. It fires. Every time.",
+            "description": "Every morning, every hour, the first of the month — per customer, surviving deploys and outages. The daily summary that actually arrives daily.",
+            "cta": "Schedule an agent"
+          },
+          "webhookTriggers": {
+            "title": "Coming soon: events wake your agents",
+            "description": "New signup, paid invoice, support ticket — the agent acts the moment it happens. It stops waiting to be asked.",
+            "cta": "Get notified"
+          }
+        }
+      },
+      "controlRoom": {
+        "title": "The Control Room: See Everything, Trust Everything",
+        "intro": "You can't sell what you can't inspect.",
+        "items": {
+          "observability": {
+            "title": "\"Why did it say that?\" Answered in seconds.",
+            "description": "Every run recorded — prompts, tool calls, cost, latency — searchable across customers. Your client sends a screenshot; you send the trace.",
+            "cta": "Trace a run"
+          },
+          "conversationsDashboard": {
+            "title": "One inbox. Every customer, every channel.",
+            "description": "Read along live, take over when a moment needs a human, assign teammates, leave notes. Agents handle the volume; your people handle the moments.",
+            "cta": "Open the inbox"
+          },
+          "evals": {
+            "title": "Coming soon: test before your customers do",
+            "description": "Run every change against a battery of scenarios and score it before publishing. Today: a rich interactive simulator. Next: automated scoring.",
+            "cta": "Try the simulator"
+          }
+        }
+      },
+      "waysToUse": {
+        "title": "Ways to Use OpenFlow (and Pay for It)",
+        "intro": "The console, the APIs, and the meter.",
+        "items": {
+          "noCodeLowCodeApi": {
+            "title": "Three doors. Same platform.",
+            "description": "Build visually with no code. Call any published agent as an API. Extend through custom integrations. Start where your team is.",
+            "cta": "Pick your door"
+          },
+          "claudeCodeMcp": {
+            "title": "AI-operable, not just AI-powered",
+            "description": "OpenFlow ships as an MCP. Build, test, and publish agents from Claude Code — your AI tooling operating your AI platform.",
+            "cta": "Install the MCP"
+          },
+          "payAsYouGoPricing": {
+            "title": "Priced like a cloud. Readable like a receipt.",
+            "description": "No seats, no plans. Each feature has a price; you pay for what you use, itemized and metered per customer. Price your own product with confidence.",
+            "cta": "See the pricing model"
+          }
+        }
+      }
+    }
+  }
+}
