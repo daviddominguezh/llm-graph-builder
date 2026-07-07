@@ -102,29 +102,45 @@ function Legend({ card }: { card: StoryCard }) {
 function DesktopStory() {
   const trackRef = useRef<HTMLDivElement>(null);
   const { progress, active } = useStoryProgress(trackRef, CARDS.length);
-  const shift = ((progress * (CARDS.length - 1)) / CARDS.length) * 100;
+  const offset = progress * (CARDS.length - 1); // 0..count-1, continuous
+  const shift = (offset / CARDS.length) * 100;
 
   return (
     <div ref={trackRef} className="relative hidden lg:block" style={{ height: `${CARDS.length * 100}vh` }}>
       <div className="sticky top-0 flex h-screen items-center">
-        <div className="mx-auto grid w-full max-w-[1232px] grid-cols-2 items-center gap-16 px-10">
-          <div className="relative h-[86vh]">
-            {CARDS.map((card, i) => (
-              <div
-                key={card.eyebrow}
-                className={`absolute inset-0 flex flex-col justify-center transition-[opacity,transform] duration-500 ${i === active ? 'translate-y-0 opacity-100' : 'pointer-events-none translate-y-[240px] opacity-0'}`}
-              >
-                <Legend card={card} />
-              </div>
-            ))}
+        <div className="mx-auto grid w-full max-w-[1280px] grid-cols-[2fr_3fr] items-center gap-16 pl-10">
+          <div className="relative h-screen">
+            {CARDS.map((card, i) => {
+              const isActive = i === active;
+              // Incoming legend waits 600ms (the outgoing fade-out) before it
+              // fades in; the outgoing leaves immediately (no delay).
+              const delay = isActive ? 600 : 0;
+              return (
+                <div
+                  key={card.eyebrow}
+                  className={`absolute inset-0 flex flex-col justify-center ${isActive ? '' : 'pointer-events-none'}`}
+                  style={{
+                    opacity: isActive ? 1 : 0,
+                    transform: `translateY(${isActive ? 0 : 40}px)`,
+                    transition: `opacity 600ms ease ${delay}ms, transform 600ms ease ${delay}ms`,
+                  }}
+                >
+                  <Legend card={card} />
+                </div>
+              );
+            })}
           </div>
-          <div className="relative h-[86vh] overflow-hidden rounded-[28px]">
+          <div className="relative h-screen overflow-hidden rounded-[28px]">
             <div className="flex flex-col" style={{ transform: `translateY(-${shift}%)` }}>
               {CARDS.map((card, i) => (
-                <div key={card.eyebrow} className="relative h-[86vh] w-full shrink-0">
+                <div key={card.eyebrow} className="relative h-screen w-full shrink-0">
                   <Image src={card.image} alt="" fill sizes="620px" className="object-cover" />
+                  {/* Binary dim: a panel is either in focus (0) or darkened
+                      (0.6) — no distance-based gradient — fading between the
+                      two states so the switch still eases rather than flicks. */}
                   <div
-                    className={`absolute inset-0 bg-black transition-opacity duration-500 ${i === active ? 'opacity-0' : 'opacity-[0.55]'}`}
+                    className="absolute inset-0 bg-black"
+                    style={{ opacity: i === active ? 0 : 0.6, transition: 'opacity 500ms ease' }}
                   />
                 </div>
               ))}
