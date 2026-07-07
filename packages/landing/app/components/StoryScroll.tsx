@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
@@ -15,49 +16,41 @@ import { useEffect, useRef, useState } from 'react';
 
 type StoryCard = {
   eyebrow: string;
-  title: string;
-  description: string;
-  cta: string;
+  messageKey: string; // item key under landing.families (title/description/cta)
   image: string;
 };
 
 const CARDS: StoryCard[] = [
   {
     eyebrow: 'Agent builder',
-    title: 'Build powerful agents from anywhere.',
-    description:
-      'Describe what you want and ship a production-ready agent with security and governance built in.',
-    cta: 'Learn about the builder',
+    messageKey: 'studio.items.agentBuilder',
     image: '/reference/ConnectBentoBackground2.webp',
   },
   {
     eyebrow: 'MCP & tools',
-    title: 'Connect every tool your customers run on.',
-    description:
-      'Wire in MCP servers, internal tools, and channels so your agents act where the work already happens.',
-    cta: 'Explore integrations',
+    messageKey: 'toolbox.items.connectAnyMcp',
     image: '/reference/payment-bento-background.jpg',
   },
   {
     eyebrow: 'Multi-tenant',
-    title: 'Isolated instances for every client.',
-    description:
-      'Provision a dedicated tenant per customer — its own channels, memory, and billing — in a single call.',
-    cta: 'See the platform',
+    messageKey: 'foundation.items.multiTenancy',
     image: '/reference/platform-graphic-background_2x.png',
   },
 ];
 
 function Legend({ card }: { card: StoryCard }) {
+  const t = useTranslations('landing.families');
   return (
     <>
       <p className="text-sm font-medium tracking-tight text-white/55">{card.eyebrow}</p>
       <h3 className="mt-4 max-w-[440px] text-[40px] leading-[1.05] font-light tracking-[-0.02em] text-white">
-        {card.title}
+        {t(`${card.messageKey}.title`)}
       </h3>
-      <p className="mt-4 max-w-[420px] text-base leading-relaxed text-white/55">{card.description}</p>
+      <p className="mt-4 max-w-[420px] text-base leading-relaxed text-white/55">
+        {t(`${card.messageKey}.description`)}
+      </p>
       <a href="#" className="mt-6 inline-block text-sm font-medium text-white underline underline-offset-4">
-        {card.cta}
+        {t(`${card.messageKey}.cta`)}
       </a>
     </>
   );

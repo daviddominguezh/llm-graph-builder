@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale } from 'next-intl/server';
 import { Inter } from 'next/font/google';
 import { Geist, Geist_Mono } from 'next/font/google';
 
@@ -27,9 +29,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getLocale();
   return (
-    <html lang="en" className={`${inter.variable} ${geistSans.variable} ${geistMono.variable}`}>
+    <html lang={locale} className={`${inter.variable} ${geistSans.variable} ${geistMono.variable}`}>
       <body className="antialiased">
         <a
           href="#main"
@@ -37,7 +40,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         >
           Skip to content
         </a>
-        <SmoothScroll>{children}</SmoothScroll>
+        <NextIntlClientProvider>
+          <SmoothScroll>{children}</SmoothScroll>
+        </NextIntlClientProvider>
         <FilmGrain />
         <AnalyticsClient />
       </body>

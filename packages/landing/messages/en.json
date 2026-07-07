@@ -1,7 +1,7 @@
 {
   "landing": {
     "hero": {
-      "title": "The multi-tenant cloud for the AI agents you sell",
+      "title": "The multi-tenant cloud infrastructure for agents.",
       "description": "You go to AWS to build your company. You come to OpenFlow to build the AI agents you sell. We run the infrastructure; you build the product.",
       "cta": "Start building"
     },

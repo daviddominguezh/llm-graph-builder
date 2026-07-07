@@ -1,3 +1,5 @@
+import { useTranslations } from 'next-intl';
+
 import { RadialBurstCanvas } from './RadialBurstCanvas';
 import { SectionHeading } from './SectionHeading';
 
@@ -8,15 +10,12 @@ const SCALE_POINTS = [
 ] as const;
 
 export function GlobalScale() {
+  const t = useTranslations('landing.families.engine');
   return (
     <section className="stats-section__globe-host bg-[#070707] px-10 py-20">
       <div className="mx-auto grid max-w-[1232px] items-center gap-14 lg:grid-cols-2">
         <div>
-          <SectionHeading
-            dark
-            lead="The backbone of global agent commerce."
-            rest="OpenFlow tenants run everywhere your customers are — one deployment, isolated instances across every region and channel."
-          />
+          <SectionHeading dark lead={t('title')} rest={t('intro')} />
           <dl className="mt-12 space-y-8">
             {SCALE_POINTS.map((point) => (
               <div key={point.label} className="border-l-2 border-white/20 pl-5">

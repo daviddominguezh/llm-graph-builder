@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
 import { LogoShuffle, type ShuffleItem } from './LogoShuffle';
@@ -44,57 +45,41 @@ const SHUFFLE_ITEMS: ShuffleItem[] = [
 
 type DeckCardData = {
   eyebrow: string;
-  title: string;
-  highlight: string;
-  description: string;
-  cta: string;
+  messageKey: string; // item key under landing.families (title/description/cta)
   accent: string;
   visual: string; // 'shuffle' or an image path
 };
 
+// One flagship story per feature family — key assignments are tracked in
+// messages/KEY_USAGE.md (every key is used at most once across the site).
 const CARDS: DeckCardData[] = [
   {
-    eyebrow: 'Enterprise',
-    title: 'A global fleet unifies customer conversations with',
-    highlight: 'OpenFlow.',
-    description: 'One agent graph, hundreds of locations — each with its own channels, history, and usage billing.',
-    cta: 'Read the story',
+    eyebrow: 'Control room',
+    messageKey: 'controlRoom.items.observability',
     accent: '#7c72ff',
     visual: 'shuffle',
   },
   {
-    eyebrow: 'Startups',
-    title: 'Build a foundation for your startup that enables',
-    highlight: 'faster growth.',
-    description: 'Launch your agent product in days: tenants, channels, memory, and billing wired together from commit one.',
-    cta: 'Start building',
+    eyebrow: 'Studio',
+    messageKey: 'studio.items.agentOrchestration',
     accent: '#4aa8ff',
     visual: '/reference/card_startups.png',
   },
   {
-    eyebrow: 'Platforms',
-    title: 'Make your SaaS a complete agent',
-    highlight: 'operating system.',
-    description: 'Embed OpenFlow under your brand: customers configure agents inside your product while you keep the margin.',
-    cta: 'Explore platforms',
+    eyebrow: 'Knowledge',
+    messageKey: 'knowledge.items.multimodalRag',
     accent: '#3ddc97',
     visual: '/reference/platform-graphic-background_2x.png',
   },
   {
-    eyebrow: 'Developers',
-    title: 'Ship agents with typed SDKs and a',
-    highlight: 'single API call.',
-    description: 'Provision isolated tenants with channels, memory, and billing programmatically — no glue code required.',
-    cta: 'Read the docs',
+    eyebrow: 'Engine',
+    messageKey: 'engine.items.scheduledExecution',
     accent: '#f0a94a',
     visual: '/reference/bento-terminal.png',
   },
   {
-    eyebrow: 'Agencies',
-    title: 'Resell agent infrastructure under',
-    highlight: 'your own brand.',
-    description: 'White-label the whole runtime, meter every conversation, and turn agent traffic into recurring revenue.',
-    cta: 'Become a partner',
+    eyebrow: 'Revenue',
+    messageKey: 'revenue.items.leadScoring',
     accent: '#f06bb3',
     visual: '/reference/ConnectBentoBackground2.webp',
   },
@@ -154,6 +139,10 @@ function CardVisual({ card }: { card: DeckCardData }) {
 // next by 3rem (`lg:-mb-12`), so cards slide up and stack — Clay's mechanism.
 // On mobile it falls back to normal flow (their `< lg` override).
 function DeckCard({ card, index, total, isLast }: { card: DeckCardData; index: number; total: number; isLast: boolean }) {
+  const t = useTranslations('landing.families');
+  // Accent-highlight the title's final word (the catalog stores whole titles).
+  const words = t(`${card.messageKey}.title`).split(' ');
+  const highlight = words.pop() ?? '';
   // Alternate the surface so consecutive cards are distinguishable as they
   // slide over each other; the first card is the darker #0d0d0d.
   const background = index % 2 === 0 ? '#0d0d0d' : '#131313';
@@ -173,12 +162,14 @@ function DeckCard({ card, index, total, isLast }: { card: DeckCardData; index: n
             <div>
               <SegmentPills index={index} total={total} accent={card.accent} label={card.eyebrow} />
               <h3 className="mt-6 max-w-[26rem] text-[34px] leading-[1.08] font-light tracking-[-0.02em] text-white">
-                {card.title} <span style={{ color: card.accent }}>{card.highlight}</span>
+                {words.join(' ')} <span style={{ color: card.accent }}>{highlight}</span>
               </h3>
-              <p className="mt-4 max-w-[26rem] text-sm leading-relaxed text-white/55">{card.description}</p>
+              <p className="mt-4 max-w-[26rem] text-sm leading-relaxed text-white/55">
+                {t(`${card.messageKey}.description`)}
+              </p>
             </div>
             <span className="inline-block text-sm font-medium" style={{ color: card.accent }}>
-              {card.cta} ›
+              {t(`${card.messageKey}.cta`)} ›
             </span>
           </div>
           <CardVisual card={card} />

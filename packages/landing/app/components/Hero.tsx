@@ -10,6 +10,7 @@ import logoSupabase from '@/public/cloudicons/logo_supabase.png';
 import logoTavily from '@/public/cloudicons/logo_tavily.png';
 import logoUpstash from '@/public/cloudicons/logo_upstash.png';
 import logoVercel from '@/public/cloudicons/logo_vercel.png';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
 import { HeroWave } from './HeroWave';
@@ -66,6 +67,7 @@ function GitHubIcon() {
 }
 
 function HeroCtas() {
+  const t = useTranslations('landing.hero');
   return (
     <div className="my-[90px] flex flex-wrap items-center gap-4">
       <a
@@ -74,7 +76,7 @@ function HeroCtas() {
         rel="noopener noreferrer"
         className="inline-flex h-11 px-10 items-center justify-center gap-2 rounded-xl bg-white px-6 text-base text-black font-bold transition-colors hover:bg-white/90"
       >
-        Get started
+        {t('cta')}
         <ArrowIcon />
       </a>
       <a
@@ -121,9 +123,6 @@ function LogoBar() {
   );
 }
 
-const HEADING_LEAD = 'AI infrastructure to power your SaaS.';
-const HEADING_REST =
-  ' Build an agent, connect WhatsApp, Slack, or your own website, and give every customer their own isolated instance, from your first tenant to your last.';
 const HEADING_BASE = 'max-w-[961px] text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]';
 
 // The blend must live on the <h1>: its z-[2] makes it a stacking context, so a
@@ -136,10 +135,11 @@ const HEADING_BASE = 'max-w-[961px] text-[34px] leading-[1.15] font-light tracki
 //  - Lead (white): near-white over dark, darkening toward black on the wave.
 //  - Subtitle (light gray): a muted version of the same behaviour.
 function HeroHeading() {
+  const t = useTranslations('landing.hero');
   return (
     <h1 className={`${HEADING_BASE} relative z-[2] mt-[32px] mix-blend-plus-lighter`}>
-      <em className="font-normal not-italic text-white">{HEADING_LEAD}</em>
-      <span className="font-extralight text-white/40">{HEADING_REST}</span>
+      <em className="font-normal not-italic text-white">{t('title')}</em>{' '}
+      <span className="font-extralight text-white/40">{t('description')}</span>
     </h1>
   );
 }

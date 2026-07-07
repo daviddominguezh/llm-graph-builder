@@ -1,3 +1,4 @@
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 
 import { BentoCard } from './BentoCard';
@@ -174,14 +175,15 @@ function CodeSnippet() {
 }
 
 export function SolutionsBento() {
+  const t = useTranslations('landing');
   return (
     <div className="w-full bg-[#070707]">
       <ScrollFadeSection from="#070707" to="#101010" className="modular-solutions px-10 pt-25 pb-30">
         <div className="mx-auto max-w-[1232px]">
           <SectionHeading
             dark
-            lead="Flexible solutions for every agent business."
-            rest="Grow your company with a complete set of agent and monetization tools designed to work individually or together."
+            lead={t('families.foundation.title')}
+            rest={t('families.foundation.intro')}
           />
 
           {/* Exact reference layout: ONE flex-wrap container, gap 16px. Cards
@@ -205,34 +207,39 @@ export function SolutionsBento() {
                 <div className="self-start text-lg font-semibold tracking-tight text-white">OpenFlow</div>
                 <div className="flex flex-col gap-4">
                   <h2 className="max-w-[659px] text-[48px] leading-[1.03] font-light tracking-[-0.02em] text-white">
-                    Powering the businesses building AI agents.
+                    {t('whatIsOpenflow.title')}
                   </h2>
+                  <p className="max-w-[520px] text-base leading-relaxed text-white/70">
+                    {t('whatIsOpenflow.description')}
+                  </p>
                   <a
                     href="#"
                     className="inline-flex h-12 w-fit items-center rounded-[4px] bg-white px-6 text-base font-normal text-[#533afd] transition-colors duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] hover:text-[#3a1fd0]"
                   >
-                    Get started
+                    {t('whatIsOpenflow.cta')}
                   </a>
                 </div>
               </div>
             </BentoCard>
             
             <BentoCard
-              title="Deploy agents across every channel, in every tenant"
+              title={t('families.controlRoom.items.conversationsDashboard.title')}
+              description={t('families.controlRoom.items.conversationsDashboard.description')}
               className="grow basis-[calc(66.666%-8px)] lg:aspect-[816/600]"
             >
               <ChatMockup />
             </BentoCard>
             <BentoCard
-              title="Enable any billing model"
+              title={t('families.foundation.items.expensesControlPerTenant.title')}
+              description={t('families.foundation.items.expensesControlPerTenant.description')}
               className="grow basis-[calc(33.333%-8px)] lg:max-w-[400px]"
             >
               <BillingMockup />
             </BentoCard>
 
             <BentoCard
-              title="Monetize agent commerce"
-              description="Charge per plan, per seat, or per token — pricing that follows your agents."
+              title={t('families.revenue.items.payments.title')}
+              description={t('families.revenue.items.payments.description')}
               className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px] lg:aspect-[400/600]"
             >
               <ParticleFieldCanvas mode="scatter" />
@@ -241,15 +248,15 @@ export function SolutionsBento() {
               </div>
             </BentoCard>
             <BentoCard
-              title="Create per-tenant channels"
-              description="Every customer gets their own numbers, workspaces, and identities."
+              title={t('families.foundation.items.multiChannel.title')}
+              description={t('families.foundation.items.multiChannel.description')}
               className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px]"
             >
               <ChannelChips />
             </BentoCard>
             <BentoCard
-              title="Access usage-based revenue"
-              description="Meter every conversation and turn agent traffic into recurring revenue."
+              title={t('families.waysToUse.items.payAsYouGoPricing.title')}
+              description={t('families.waysToUse.items.payAsYouGoPricing.description')}
               className="grow basis-[calc(33.333%-11px)] lg:max-w-[400px]"
             >
               <ParticleFieldCanvas mode="globe" />
@@ -259,8 +266,8 @@ export function SolutionsBento() {
             </BentoCard>
 
             <BentoCard
-              title="Integrate agents into your platform"
-              description="A single API call provisions an isolated tenant with channels, memory, and billing."
+              title={t('families.foundation.items.deployToYourWebsite.title')}
+              description={t('families.foundation.items.deployToYourWebsite.description')}
               className="grow basis-full lg:aspect-[1232/456]"
             >
               <div className="flex items-start gap-8">

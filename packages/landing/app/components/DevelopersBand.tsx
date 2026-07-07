@@ -1,3 +1,5 @@
+import { useTranslations } from 'next-intl';
+
 import { FoldedSilkCanvas } from './FoldedSilkCanvas';
 import { IntegrationDiagram } from './IntegrationDiagram';
 
@@ -50,13 +52,12 @@ const INTEGRATION_PATHS = [
 ] as const;
 
 function ConnectBlock() {
+  const t = useTranslations('landing.families.toolbox');
   return (
     <div className="border-b border-dashed border-neutral-800 pb-16">
       <h2 className="max-w-2xl text-2xl leading-snug tracking-[-0.01em]">
-        <em className="font-normal not-italic text-white">Connect with existing systems.</em>{' '}
-        <span className="text-[#7d90b8]">
-          Your agents plug into the tools your customers already run on.
-        </span>
+        <em className="font-normal not-italic text-white">{t('title')}</em>{' '}
+        <span className="text-[#7d90b8]">{t('intro')}</span>
       </h2>
       <div className="mt-10">
         <IntegrationDiagram />
@@ -66,14 +67,12 @@ function ConnectBlock() {
 }
 
 function IntegrationPaths() {
+  const t = useTranslations('landing.families.waysToUse');
   return (
     <div className="mt-20 border-t border-dashed border-neutral-800 pt-16">
       <h2 className="max-w-2xl text-2xl leading-snug tracking-[-0.01em]">
-        <em className="font-normal not-italic text-white">Choose an integration path.</em>{' '}
-        <span className="text-[#7d90b8]">
-          With rich documentation and built-in debugging tools, you can get started quickly with the best
-          option for your business.
-        </span>
+        <em className="font-normal not-italic text-white">{t('title')}</em>{' '}
+        <span className="text-[#7d90b8]">{t('intro')}</span>
       </h2>
       <div className="mt-10 grid gap-4 sm:grid-cols-3">
         {INTEGRATION_PATHS.map((path) => (
