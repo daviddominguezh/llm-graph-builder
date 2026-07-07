@@ -93,20 +93,16 @@ body {
   animation: hero-intro-fade 1800ms ease-in-out both;
 }
 
-/* The navbar fades in on load with the exact same timing/easing as the opening
-   curtain, so the nav and the splash emerge from black together. */
-@keyframes intro-fade-in {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+/* The hero wave stays hidden while the opening splash covers the hero, then
+   fades in a moment (200ms) AFTER the hero is fully revealed — i.e. once the
+   opening flips `data-opening` to false. The attribute selector outweighs the
+   Tailwind opacity utility on the canvas, so no !important is needed. */
+html[data-opening='true'] .hero-wave-animation__canvas {
+  opacity: 0;
 }
 
-.intro-fade-in {
-  animation: intro-fade-in 1800ms ease-in-out both;
+.hero-wave-animation__canvas {
+  transition-delay: 200ms;
 }
 
 /* While the opening splash covers the hero, the nav becomes a solid white bar
@@ -325,8 +321,7 @@ body {
   .hero-edge,
   .logo-marquee,
   .connector-flow,
-  .intro-curtain,
-  .intro-fade-in {
+  .intro-curtain {
     animation: none;
   }
 }

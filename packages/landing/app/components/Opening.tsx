@@ -81,10 +81,12 @@ export function Opening() {
           style={{ opacity: veilOpacity }}
         />
 
-        {/* Load-time curtain: eases out on first paint so the opening emerges
-            from black (moved here from the hero). */}
-        <div aria-hidden="true" className="intro-curtain pointer-events-none absolute inset-0 bg-[#070707] opacity-0" />
       </div>
+
+      {/* Load-time curtain: a single black overlay ABOVE everything (nav + the
+          opening stage, z-70 > nav's z-60) that eases out on first paint, so the
+          whole screen emerges from black as one — nav and splash in lockstep. */}
+      <div aria-hidden="true" className="intro-curtain pointer-events-none fixed inset-0 z-[70] bg-[#070707] opacity-0" />
     </>
   );
 }

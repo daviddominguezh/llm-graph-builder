@@ -59,7 +59,7 @@ export async function Navbar() {
   const stars = await fetchGitHubStars();
 
   return (
-    <nav className="intro-fade-in absolute top-0 z-[60] w-full bg-transparent border-neutral-800">
+    <nav className="absolute top-0 z-[60] w-full bg-transparent border-neutral-800">
       <div className="mx-auto flex h-[72px] w-full px-8.5 items-center justify-between px-6">
         <div className="flex items-center gap-12">
           <a href="#" className="flex items-center">
