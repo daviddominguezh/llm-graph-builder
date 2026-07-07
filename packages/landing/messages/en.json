@@ -1,8 +1,8 @@
 {
   "landing": {
     "hero": {
-      "title": "The cloud infrastructure for your AI agents.",
-      "description": "You go to AWS to build your company. You come to OpenFlow to build the AI agents you sell. We run the infrastructure; you build the product.",
+      "title": "The cloud infrastructure for your agents.",
+      "description": "We make it dead simple to build, test, run, scale, monitor and manage production-ready AI. We run the infrastructure; you build the product.",
       "cta": "Join the Waitlist"
     },
     "whatIsOpenflow": {
