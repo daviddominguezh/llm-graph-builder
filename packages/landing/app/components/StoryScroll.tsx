@@ -52,31 +52,146 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-// Scroll-driven {progress 0..1, active index}. Only computes on lg+ screens.
-function useStoryProgress(trackRef: React.RefObject<HTMLDivElement | null>, count: number) {
-  const [state, setState] = useState({ progress: 0, active: 0 });
+type SnapState = { progress: number; active: number };
+type SnapCtx = {
+  track: HTMLElement;
+  count: number;
+  setState: (state: SnapState) => void;
+  indexRef: { current: number };
+  animatingRef: { current: boolean };
+  cooldownRef: { current: number };
+  wheelRef: { current: number };
+};
+
+const THRESHOLD = 0.3; // bias for which card reads as "active" (legend/dim)
+const SNAP_MS = 650; // our fixed advance duration — the ONLY scroll speed here
+const WHEEL_STEP = 26; // accumulated wheel delta needed to advance one card
+const COOLDOWN_MS = 150;
+
+function easeInOutCubic(p: number): number {
+  return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+}
+
+function isDesktop(): boolean {
+  return window.matchMedia('(min-width: 1024px)').matches;
+}
+
+// Pinned = the sticky column fully covers the viewport (section owns the scroll).
+function isEngaged(track: HTMLElement): boolean {
+  const rect = track.getBoundingClientRect();
+  return rect.top <= 0 && rect.bottom >= window.innerHeight;
+}
+
+function anchorY(track: HTMLElement, count: number, i: number): number {
+  const rect = track.getBoundingClientRect();
+  const slot = (rect.height - window.innerHeight) / Math.max(1, count - 1);
+  return rect.top + window.scrollY + i * slot;
+}
+
+// Animate the page to a card's anchor at our fixed rate, overriding the global
+// `scroll-behavior: smooth` so our per-frame scrollTo is the only animation.
+function snapTo(ctx: SnapCtx, target: number): void {
+  ctx.animatingRef.current = true;
+  ctx.indexRef.current = target;
+  ctx.wheelRef.current = 0;
+  const html = document.documentElement;
+  const prevBehavior = html.style.scrollBehavior;
+  html.style.scrollBehavior = 'auto';
+  const startY = window.scrollY;
+  const endY = anchorY(ctx.track, ctx.count, target);
+  const t0 = performance.now();
+  const step = (t: number) => {
+    const p = Math.min(1, (t - t0) / SNAP_MS);
+    window.scrollTo(0, startY + (endY - startY) * easeInOutCubic(p));
+    if (p < 1) {
+      requestAnimationFrame(step);
+      return;
+    }
+    html.style.scrollBehavior = prevBehavior;
+    ctx.animatingRef.current = false;
+    ctx.cooldownRef.current = performance.now() + COOLDOWN_MS;
+  };
+  requestAnimationFrame(step);
+}
+
+// Visuals only: image translate + which legend is active, read from scroll.
+function onFrame(ctx: SnapCtx): void {
+  const rect = ctx.track.getBoundingClientRect();
+  const scrollable = rect.height - window.innerHeight;
+  const progress = scrollable <= 0 ? 0 : clamp(-rect.top / scrollable, 0, 1);
+  const offset = progress * (ctx.count - 1);
+  ctx.setState({ progress, active: Math.min(ctx.count - 1, Math.floor(offset + THRESHOLD)) });
+  if (!isEngaged(ctx.track)) ctx.indexRef.current = Math.round(offset);
+}
+
+// Would advancing in `dir` leave the section? (then native scroll should carry
+// the page out instead of us capturing the wheel).
+function atEdge(ctx: SnapCtx, dir: number): boolean {
+  return (dir > 0 && ctx.indexRef.current >= ctx.count - 1) || (dir < 0 && ctx.indexRef.current <= 0);
+}
+
+// While pinned, the section owns the wheel: block native scroll and turn wheel
+// intent into one controlled card advance at a time (never a fast free scroll).
+function onWheel(ctx: SnapCtx, event: WheelEvent): void {
+  if (!isDesktop() || !isEngaged(ctx.track)) return;
+  if (ctx.animatingRef.current) {
+    event.preventDefault();
+    return;
+  }
+  if (atEdge(ctx, Math.sign(event.deltaY))) {
+    ctx.wheelRef.current = 0;
+    return; // let native scroll leave the section
+  }
+  event.preventDefault();
+  if (performance.now() < ctx.cooldownRef.current) return;
+  ctx.wheelRef.current += event.deltaY;
+  if (ctx.wheelRef.current >= WHEEL_STEP) snapTo(ctx, ctx.indexRef.current + 1);
+  else if (ctx.wheelRef.current <= -WHEEL_STEP) snapTo(ctx, ctx.indexRef.current - 1);
+}
+
+function onKey(ctx: SnapCtx, event: KeyboardEvent): void {
+  if (!isDesktop() || !isEngaged(ctx.track) || ctx.animatingRef.current) return;
+  const dir =
+    event.key === 'ArrowDown' || event.key === 'PageDown' || event.key === ' '
+      ? 1
+      : event.key === 'ArrowUp' || event.key === 'PageUp'
+        ? -1
+        : 0;
+  if (dir === 0 || atEdge(ctx, dir)) return;
+  event.preventDefault();
+  if (performance.now() >= ctx.cooldownRef.current) snapTo(ctx, ctx.indexRef.current + dir);
+}
+
+function useCardSnap(trackRef: React.RefObject<HTMLDivElement | null>, count: number): SnapState {
+  const [state, setState] = useState<SnapState>({ progress: 0, active: 0 });
+  const indexRef = useRef(0);
+  const animatingRef = useRef(false);
+  const cooldownRef = useRef(0);
+  const wheelRef = useRef(0);
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;
+    const ctx: SnapCtx = { track, count, setState, indexRef, animatingRef, cooldownRef, wheelRef };
     let raf = 0;
-    const update = () => {
-      raf = 0;
-      if (!window.matchMedia('(min-width: 1024px)').matches) return;
-      const rect = track.getBoundingClientRect();
-      const scrollable = rect.height - window.innerHeight;
-      const progress = scrollable <= 0 ? 0 : clamp(-rect.top / scrollable, 0, 1);
-      const offset = progress * (count - 1);
-      setState({ progress, active: Math.min(count - 1, Math.floor(offset + 0.3)) });
-    };
     const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        onFrame(ctx);
+      });
     };
+    const wheel = (event: WheelEvent) => onWheel(ctx, event);
+    const key = (event: KeyboardEvent) => onKey(ctx, event);
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
-    update();
+    window.addEventListener('wheel', wheel, { passive: false });
+    window.addEventListener('keydown', key);
+    onFrame(ctx);
     return () => {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
+      window.removeEventListener('wheel', wheel);
+      window.removeEventListener('keydown', key);
       if (raf) cancelAnimationFrame(raf);
     };
   }, [trackRef, count]);
@@ -101,7 +216,7 @@ function Legend({ card }: { card: StoryCard }) {
 // Desktop: pinned left legends (cross-fade) + right translating image stack.
 function DesktopStory() {
   const trackRef = useRef<HTMLDivElement>(null);
-  const { progress, active } = useStoryProgress(trackRef, CARDS.length);
+  const { progress, active } = useCardSnap(trackRef, CARDS.length);
   const offset = progress * (CARDS.length - 1); // 0..count-1, continuous
   const shift = (offset / CARDS.length) * 100;
 
