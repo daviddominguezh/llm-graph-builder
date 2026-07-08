@@ -6,7 +6,7 @@ import { FoldedSilkCanvas } from './FoldedSilkCanvas';
 import { WaveControls } from './WaveControls';
 
 // Holds the live wave parameters, wiring the tuning panel to the silk canvas.
-export function HeroWave({ className }: { className: string }) {
+export function HeroWave({ className, perspectiveOrbit = false }: { className: string; perspectiveOrbit?: boolean }) {
   const [params, setParams] = useState<WaveParams>(DEFAULT_WAVE_PARAMS);
 
   const setParam = useCallback((id: string, value: number) => {
@@ -25,7 +25,7 @@ export function HeroWave({ className }: { className: string }) {
 
   return (
     <>
-      <FoldedSilkCanvas variant="solid" className={className} params={params} />
+      <FoldedSilkCanvas variant="solid" className={className} params={params} perspectiveOrbit={perspectiveOrbit} />
       <WaveControls
         params={params}
         onChange={setParam}

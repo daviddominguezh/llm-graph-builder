@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { createSilkCamera, frameSilkCamera, orbitSilkCamera } from './foldedSilkCamera';
 import {
   FOLDED_SILK_FRAGMENT,
   FOLDED_SILK_LINES_FRAGMENT,
@@ -258,16 +259,19 @@ export function createFoldedSilk(
   variant: FoldedSilkVariant = 'solid',
   // Fired exactly once, right after the very first frame is painted — lets the
   // caller fade the canvas in only when there is actually something to show.
-  onReady?: () => void
+  onReady?: () => void,
+  // Opt-in perspective camera that orbits for true 3D depth as the wave rotates.
+  usePerspective = false,
+  // Pulled every frame (0→1) to drive the orbit; only used with perspective.
+  getViewRotation?: () => number
 ): FoldedSilk {
   const config = VARIANTS[variant];
   const scene = new THREE.Scene();
   scene.background = config.background === null ? null : new THREE.Color(config.background);
 
-  // Orthographic, pixel-space frustum — the mesh transform is in pixels.
-  const camera = new THREE.OrthographicCamera(0, 0, 0, 0, 1, 10000);
-  camera.position.set(100, 0, 5000);
-  camera.lookAt(0, 0, 0);
+  // See foldedSilkCamera.ts: orthographic pixel-space by default; perspective +
+  // orbit when the caller opts in.
+  const camera = createSilkCamera(usePerspective);
 
   // Alpha canvas like the reference's hero: only the silk is painted, so
   // content stacked below the canvas (logo bar, guides) stays visible where
@@ -317,11 +321,7 @@ export function createFoldedSilk(
   const resize = () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
-    camera.left = -width / 2;
-    camera.right = width / 2;
-    camera.top = height / 2;
-    camera.bottom = -height / 2;
-    camera.updateProjectionMatrix();
+    frameSilkCamera(camera, width, height);
     renderer.setSize(width, height);
     composer.setSize(width, height);
     material.uniforms.u_resolution?.value.set(width * renderer.getPixelRatio(), height * renderer.getPixelRatio());
@@ -364,6 +364,7 @@ export function createFoldedSilk(
   const update = (t: number) => {
     frame += 1;
     if (frame % 2 !== 0) return;
+    if (usePerspective && getViewRotation) orbitSilkCamera(camera, getViewRotation());
     if (firstDrawTime === null) firstDrawTime = t;
     renderFrame((t - firstDrawTime - pausedTime) * introTimeRamp);
     introTimeRamp = Math.min(introTimeRamp + 0.016, 1);

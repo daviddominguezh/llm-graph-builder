@@ -93,17 +93,14 @@ body {
   animation: hero-intro-fade 1800ms ease-in-out both;
 }
 
-/* The hero wave stays hidden through the opening, then fades in a moment
-   (200ms) after the intro is 85% revealed — the Opening flips `data-wave-in`
-   to true at that point. Hidden by default (attribute unset) so it never flashes
-   before the splash. The selector outweighs the Tailwind opacity utility on the
-   canvas, so no !important is needed. */
-html:not([data-wave-in='true']) .hero-wave-animation__canvas {
-  opacity: 0;
-}
+/* The hero wave's opacity is owned by the GSAP intro timeline (see IntroScene),
+   and its 3D rotation is driven inside the Three.js scene (perspective camera
+   orbit, foldedSilkCamera.ts) — no CSS transform here. */
 
-.hero-wave-animation__canvas {
-  transition-delay: 200ms;
+/* /test scratch page: strip the site chrome so only the wave + black remain. */
+[data-test-page='true'] nav,
+[data-test-page='true'] .film-grain {
+  display: none;
 }
 
 /* While the opening splash covers the hero, the nav becomes a solid white bar

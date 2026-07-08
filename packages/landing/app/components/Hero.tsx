@@ -69,7 +69,7 @@ function GitHubIcon() {
 function HeroCtas() {
   const t = useTranslations('landing.hero');
   return (
-    <div className="my-[90px] flex flex-wrap items-center gap-4">
+    <div data-intro="ctas" className="my-[90px] flex flex-wrap items-center gap-4 opacity-0">
       <a
         href={GITHUB_URL}
         target="_blank"
@@ -112,7 +112,7 @@ function LogoTiles({ hidden }: { hidden?: boolean }) {
 // and slides half its width per cycle for a seamless loop.
 function LogoBar() {
   return (
-    <div className="border-y border-dashed border-neutral-800">
+    <div data-intro="logobar" className="border-y border-dashed border-neutral-800 opacity-0">
       <div className="mx-auto max-w-[1280px] overflow-hidden py-0">
         <div className="logo-marquee relative flex w-max">
           <LogoTiles />
@@ -137,16 +137,19 @@ const HEADING_BASE = 'max-w-[961px] text-[34px] leading-[1.15] font-light tracki
 function HeroHeading() {
   const t = useTranslations('landing.hero');
   return (
-    <h1 className={`${HEADING_BASE} relative z-[2] mt-[32px] mix-blend-plus-lighter`}>
-      <em className="font-normal not-italic text-white">{t('title')}</em>{' '}
-      <span className="font-extralight text-white/40">{t('description')}</span>
-    </h1>
+    <div className={`${HEADING_BASE} relative z-[2] mt-[32px] mix-blend-plus-lighter flex flex-col gap-4`}>
+      <h1 data-intro="title" className="font-normal not-italic text-white leading-[1] opacity-0">{t('title')}</h1>
+      <h2 className="mt-0 pt-0 h-fit text-[34px] leading-[1.15] font-extralight text-white/60">
+        <span data-intro="subtitle" className="font-normal opacity-0">{t('subtitle')}</span>{' '}
+        <span data-intro="description" className="opacity-0">{t('description')}</span>
+      </h2>
+    </div>
   );
 }
 
 export function Hero() {
   return (
-    <section className="hero-wave-animation relative isolate overflow-hidden bg-[#070707]">
+    <section className="hero-wave-animation relative isolate min-h-screen overflow-hidden bg-[#070707]">
       {/* Hero-local guide rails: the section is isolated (for the marquee
           stacking), which paints it atomically above the page-level guides —
           so the rails are re-drawn here, under the silk. */}
@@ -157,11 +160,11 @@ export function Hero() {
       {/* Wave at z-1: sits ABOVE the background title copy (z-0) and BELOW the
           foreground copy (z-2), so the hard-light foreground blends against
           the silk. Also passes over the logo bar. */}
-      <HeroWave className="hero-wave-animation__canvas pointer-events-none fixed inset-0 z-[1]" />
+      <HeroWave className="hero-wave-animation__canvas pointer-events-none absolute inset-0 z-[1] opacity-0" perspectiveOrbit />
 
       {/* Content column stays z-auto (no stacking context) so the heading's
           two copies resolve around the wave. CTAs get z-2 to sit above it. */}
-      <div className="relative mx-auto w-full max-w-[994px] px-6 pt-[155px] pb-0 lg:px-0">
+      <div className="relative mx-auto w-full max-w-[994px] px-6 pt-[155px] pb-0 lg:px-0 h-[calc(100vh-72px)]">
         <HeroHeading />
         <div className="relative z-[2]">
           <HeroCtas />

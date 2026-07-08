@@ -1,96 +1,17 @@
-'use client';
-
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
 
-function clamp01(v: number): number {
-  return Math.min(1, Math.max(0, v));
-}
-
-// Opening splash + scroll-driven hand-off to the hero. A 100vh spacer gives the
-// intro its scroll distance; a fixed black "stage" sits on top of the hero and
-// the window scroll position (0 → 1 over one viewport) scrubs the whole thing:
-//   • p 0 → 0.5  — the rounded card shrinks and its content fades to black
-//   • p 0.55 → 1 — the black stage fades out, revealing the hero beneath
-// On first paint the `.intro-curtain` (moved here from the hero) eases the whole
-// thing up from black. All motion is attached to scroll, not time.
+// The opening splash — the intro's first frame. Rendered as an overlay inside
+// the pinned IntroScene (on top of the hero); GSAP fades its opacity to 0 as the
+// user begins to scroll, revealing the hero beneath. No scroll logic of its own.
 export function Opening() {
   const t = useTranslations('landing.opening');
-  const [p, setP] = useState(0);
-  const spacerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    let raf = 0;
-    const root = document.documentElement;
-    const update = () => {
-      raf = 0;
-      // Transition distance = the spacer's own height, so p reaches 1 exactly
-      // when the hero has scrolled fully into place (no lingering dark stage).
-      const dist = spacerRef.current?.offsetHeight || window.innerHeight || 1;
-      const prog = clamp01(window.scrollY / dist);
-      setP(prog);
-      // Flag the opening as covering the hero so the nav renders solid white
-      // (no wave knockout) while the splash is up. Consumed in globals.css.
-      const flag = prog < 1 ? 'true' : 'false';
-      if (root.dataset.opening !== flag) root.dataset.opening = flag;
-      // The hero wave reveals once the intro is 85% done (not fully at 100%).
-      const wave = prog >= 0.85 ? 'true' : 'false';
-      if (root.dataset.waveIn !== wave) root.dataset.waveIn = wave;
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
-    };
-    update();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-      root.removeAttribute('data-opening');
-      root.removeAttribute('data-wave-in');
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  const cardScale = 1 - clamp01(p / 0.6) * 0.22; // 1 → 0.78 (shrinks)
-  const cardOpacity = 1 - clamp01(p / 0.5); // 1 → 0 (fades to black)
-  const veilOpacity = clamp01(p / 0.5); // 0 → 1 (white frame darkens to black)
-  const stageOpacity = 1 - clamp01((p - 0.55) / 0.45); // 1 → 0 (reveals hero)
-
   return (
-    <>
-      {/* Scroll track: gives the pinned transition its scroll distance. */}
-      <div ref={spacerRef} aria-hidden="true" className="h-[70vh] bg-[#070707]" />
-
-      {/* Fixed black stage over the hero; scroll scrubs the whole intro. */}
-      <div
-        className="fixed inset-0 z-[45] flex justify-center bg-white"
-        style={{ opacity: stageOpacity, visibility: p >= 1 ? 'hidden' : 'visible', pointerEvents: 'none' }}
-      >
-        <div
-          className="mt-[72px] flex h-[calc(100%-calc(72px+var(--spacing)*7))] w-[calc(100%-var(--spacing)*14)] items-center justify-center rounded-3xl bg-black"
-          style={{ transform: `scale(${cardScale})`, opacity: cardOpacity }}
-        >
-          <h1 className="max-w-[960px] text-center text-[40px] leading-[1.12] font-medium tracking-[-0.02em] text-white sm:text-[56px]">
-            {t('title')}
-          </h1>
-        </div>
-
-        {/* Scroll veil: the white frame stays white at rest (the framed look),
-            then this black layer rises as you scroll so the screen turns to
-            black — not white — before the stage fades out to the hero. */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-black"
-          style={{ opacity: veilOpacity }}
-        />
-
+    <div data-intro="opening" className="absolute inset-0 z-[20] flex justify-center bg-white">
+      <div className="mt-[72px] flex h-[calc(100%-calc(72px+var(--spacing)*7))] w-[calc(100%-var(--spacing)*14)] items-center justify-center rounded-3xl bg-black">
+        <h1 className="max-w-[960px] text-center text-[40px] leading-[1.12] font-medium tracking-[-0.02em] text-white sm:text-[56px]">
+          {t('title')}
+        </h1>
       </div>
-
-      {/* Load-time curtain: a single black overlay ABOVE everything (nav + the
-          opening stage, z-70 > nav's z-60) that eases out on first paint, so the
-          whole screen emerges from black as one — nav and splash in lockstep. */}
-      <div aria-hidden="true" className="intro-curtain pointer-events-none fixed inset-0 z-[70] bg-[#070707] opacity-0" />
-    </>
+    </div>
   );
 }
