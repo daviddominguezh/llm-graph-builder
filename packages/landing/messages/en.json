@@ -1,11 +1,11 @@
 {
   "landing": {
     "opening": {
-      "title": "The world's most innovative startups\nneed proper AI infrastructure."
+      "title": "The world's most innovative startups\nneed serious AI infrastructure."
     },
     "hero": {
-      "title": "Yet proper AI infrastructure has no shortcuts.",
-      "description": "\nThat's why we made it dead simple to build, test, run, scale, monitor and manage production-ready AI. We run the infrastructure, so you can focus on building the product.",
+      "title": "And there are no shortcuts to building it.",
+      "description": "\nSo we built it for you: one platform to create, test, run, scale, monitor and manage production-ready AI. We run the infrastructure, so you can focus on building the product.",
       "cta": "Join the Waitlist"
     },
     "whatIsOpenflow": {
