@@ -41,10 +41,12 @@ export function frameSilkCamera(camera: SilkCamera, width: number, height: numbe
 }
 
 // Orbit the perspective camera around the sheet plane for the 3D swing.
-// progress 0→1 maps to 0→MAX_ORBIT. No-op for the orthographic rig.
+// progress 0→1 maps to MAX_ORBIT→0 (reversed): the wave starts at the far pose
+// and swings back to flat/front, finishing where the arc used to start. No-op
+// for the orthographic rig.
 export function orbitSilkCamera(camera: SilkCamera, progress: number): void {
   if (!(camera instanceof THREE.PerspectiveCamera)) return;
-  const angle = Math.min(1, Math.max(0, progress)) * MAX_ORBIT;
+  const angle = (1 - Math.min(1, Math.max(0, progress))) * MAX_ORBIT;
   camera.position.set(Math.sin(angle) * CAM_DIST, 0, Math.cos(angle) * CAM_DIST);
   camera.lookAt(0, 0, 0);
 }

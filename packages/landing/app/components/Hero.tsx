@@ -136,21 +136,33 @@ const HEADING_BASE = 'max-w-[961px] text-[34px] leading-[1.15] font-light tracki
 //  - Subtitle (light gray): a muted version of the same behaviour.
 function HeroHeading() {
   const t = useTranslations('landing.hero');
+
+  const titleStyle = 'h-fit col-start-1 row-start-1 font-normal not-italic text-white opacity-0';
+  const descriptionStyle = 'text-[34px] leading-[1.15] font-extralight text-white/60';
+
+  const [t1_1, t1_2] = t('title').split('\n');
+
   return (
     <div className={`${HEADING_BASE} relative z-[2] mt-[32px] mix-blend-plus-lighter flex flex-col gap-4`}>
       {/* title + title2 share one grid cell so they overlap exactly — the
           crossfade (see IntroScene) swaps them in place, not stacked. */}
-      <div className="grid">
-        <h1 data-intro="title" className="col-start-1 row-start-1 font-normal not-italic text-white leading-[1] opacity-0">
-          {t('title')}
+      <div className="h-fit grid">
+        <h1 data-intro="title" className={`${titleStyle} leading-[1.25]`}>
+          <span className={`${descriptionStyle} font-light`}>{t1_1}</span>
+          {'\n'}
+          <span>{t1_2}</span>
         </h1>
-        <h1 data-intro="title2" className="col-start-1 row-start-1 font-normal not-italic text-white leading-[1] opacity-0">
+        <h1 data-intro="title2" className={`${titleStyle} leading-[1] self-end`}>
           {t('title2')}
         </h1>
       </div>
-      <h2 className="mt-0 pt-0 h-fit text-[34px] leading-[1.15] font-extralight text-white/60">
-        <span data-intro="subtitle" className="font-normal opacity-0">{t('subtitle')}</span>{' '}
-        <span data-intro="description" className="opacity-0">{t('description')}</span>
+      <h2 className={`mt-0 pt-0 h-fit ${descriptionStyle}`}>
+        <span data-intro="subtitle" className="font-normal opacity-0">
+          {t('subtitle')}
+        </span>{' '}
+        <span data-intro="description" className="opacity-0">
+          {t('description')}
+        </span>
       </h2>
     </div>
   );
@@ -169,7 +181,10 @@ export function Hero() {
       {/* Wave at z-1: sits ABOVE the background title copy (z-0) and BELOW the
           foreground copy (z-2), so the hard-light foreground blends against
           the silk. Also passes over the logo bar. */}
-      <HeroWave className="hero-wave-animation__canvas pointer-events-none absolute inset-0 z-[1] opacity-0" perspectiveOrbit />
+      <HeroWave
+        className="hero-wave-animation__canvas pointer-events-none absolute inset-0 z-[1] opacity-0"
+        perspectiveOrbit
+      />
 
       {/* Content column stays z-auto (no stacking context) so the heading's
           two copies resolve around the wave. CTAs get z-2 to sit above it. */}
