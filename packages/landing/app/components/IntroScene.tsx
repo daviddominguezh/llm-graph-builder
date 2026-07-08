@@ -23,6 +23,7 @@ function buildIntroTimeline(scene: HTMLElement) {
   root.dataset.opening = 'true';
   gsap.set('.hero-wave-animation__canvas', { opacity: 0 });
   gsap.set(REVEAL_TARGETS, { opacity: 0 });
+  gsap.set('.marquee-logo', { filter: 'grayscale(100%)', opacity: 0.7 });
   gsap.set(root, { '--wave-rot': 0 });
 
   const tl = gsap.timeline({
@@ -53,8 +54,12 @@ function buildIntroTimeline(scene: HTMLElement) {
     // fade in (0.15) and keeps turning all the way to the end, so it's still
     // rotating through the description + CTAs reveals rather than stopping early.
     .to(root, { '--wave-rot': 1, duration: 0.85 }, 0.15)
-    .to('[data-intro="description"]', { opacity: 1, duration: 0.12 }, 0.8)
-    .to(['[data-intro="ctas"]', '[data-intro="logobar"]'], { opacity: 1, duration: 0.1 }, 0.92);
+    .to('[data-intro="description"]', { opacity: 1, duration: 0.12 }, 0.78)
+    .to('[data-intro="logobar"]', { opacity: 1, duration: 0.1 }, 0.82)
+    .to('[data-intro="ctas"]', { opacity: 1, duration: 0.1 }, 0.86)
+    // Once the marquee is in scene, the noir logos slowly bloom to full color
+    // (like hover, but color only — no scale) before the intro ends.
+    .to('.marquee-logo', { filter: 'grayscale(0%)', opacity: 1, duration: 0.16 }, 0.84);
 }
 
 // Pins the intro (opening overlay + hero) and scrubs the reveal choreography as

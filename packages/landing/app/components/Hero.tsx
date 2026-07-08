@@ -100,7 +100,7 @@ function LogoTiles({ hidden }: { hidden?: boolean }) {
           <Image
             src={logo.src}
             alt={logo.name}
-            className={`${LOGO_HEIGHT_OVERRIDES[logo.name] ?? DEFAULT_LOGO_HEIGHT} w-auto object-contain opacity-70 grayscale transition duration-300 ease-out hover:scale-110 hover:opacity-100 hover:grayscale-0`}
+            className={`marquee-logo ${LOGO_HEIGHT_OVERRIDES[logo.name] ?? DEFAULT_LOGO_HEIGHT} w-auto object-contain opacity-70 grayscale transition-transform duration-300 ease-out hover:scale-110 hover:opacity-100 hover:grayscale-0`}
           />
         </span>
       ))}

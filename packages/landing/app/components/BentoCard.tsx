@@ -96,7 +96,7 @@ export function BentoCard({ title, description, children, className = '' }: Bent
       >
         <span
           aria-hidden="true"
-          className="modular-solutions-bento-card__border pointer-events-none absolute -inset-[5px] overflow-hidden bg-white/10 transition-[clip-path] duration-[800ms] ease-[cubic-bezier(0.165,0.84,0.44,1)] [clip-path:inset(4px_4.8284px_round_6px)] group-hover:[clip-path:inset(0px_round_6px)]"
+          className="modular-solutions-bento-card__border pointer-events-none absolute -inset-[5px] overflow-hidden bg-white/10 transition-[clip-path] duration-[800ms] ease-[cubic-bezier(0.165,0.84,0.44,1)] [clip-path:inset(4px_4.8284px_round_16px)] group-hover:[clip-path:inset(0px_round_16px)]"
         >
           {/* 753px radial-gradient beam, opacity 0.5, centered on the cursor
               and gliding to it over 1s — the moving border glow. Positioned
@@ -111,9 +111,9 @@ export function BentoCard({ title, description, children, className = '' }: Bent
         </span>
         <span
           aria-hidden="true"
-          className="modular-solutions-bento-card__inner pointer-events-none absolute -inset-[4px] bg-black transition-[clip-path] duration-[800ms] ease-[cubic-bezier(0.165,0.84,0.44,1)] [clip-path:inset(4px_4.8284px_round_5px)] group-hover:[clip-path:inset(0px_round_5px)]"
+          className="modular-solutions-bento-card__inner pointer-events-none absolute -inset-[4px] bg-black transition-[clip-path] duration-[800ms] ease-[cubic-bezier(0.165,0.84,0.44,1)] [clip-path:inset(4px_4.8284px_round_15px)] group-hover:[clip-path:inset(0px_round_15px)]"
         />
-        <div className="modular-solutions-bento-card__content relative isolate flex h-full flex-col overflow-hidden rounded-[5px] p-6">
+        <div className="modular-solutions-bento-card__content relative isolate flex h-full flex-col overflow-hidden rounded-[15px] p-6">
           <DialogEntryIcon />
           {title !== undefined && (
             <h3 className="pr-9 text-[26px] font-light leading-[1.12] tracking-[-0.01em] text-white">
