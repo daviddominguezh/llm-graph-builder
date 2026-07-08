@@ -138,7 +138,16 @@ function HeroHeading() {
   const t = useTranslations('landing.hero');
   return (
     <div className={`${HEADING_BASE} relative z-[2] mt-[32px] mix-blend-plus-lighter flex flex-col gap-4`}>
-      <h1 data-intro="title" className="font-normal not-italic text-white leading-[1] opacity-0">{t('title')}</h1>
+      {/* title + title2 share one grid cell so they overlap exactly — the
+          crossfade (see IntroScene) swaps them in place, not stacked. */}
+      <div className="grid">
+        <h1 data-intro="title" className="col-start-1 row-start-1 font-normal not-italic text-white leading-[1] opacity-0">
+          {t('title')}
+        </h1>
+        <h1 data-intro="title2" className="col-start-1 row-start-1 font-normal not-italic text-white leading-[1] opacity-0">
+          {t('title2')}
+        </h1>
+      </div>
       <h2 className="mt-0 pt-0 h-fit text-[34px] leading-[1.15] font-extralight text-white/60">
         <span data-intro="subtitle" className="font-normal opacity-0">{t('subtitle')}</span>{' '}
         <span data-intro="description" className="opacity-0">{t('description')}</span>

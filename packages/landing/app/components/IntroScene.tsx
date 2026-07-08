@@ -7,6 +7,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 
 const REVEAL_TARGETS = [
   '[data-intro="title"]',
+  '[data-intro="title2"]',
   '[data-intro="subtitle"]',
   '[data-intro="description"]',
   '[data-intro="ctas"]',
@@ -42,14 +43,18 @@ function buildIntroTimeline(scene: HTMLElement) {
 
   tl.to('[data-intro="opening"]', { opacity: 0, duration: 0.15 }, 0)
     .to('.hero-wave-animation__canvas', { opacity: 1, duration: 0.15 }, 0.15)
-    .to('[data-intro="title"]', { opacity: 1, duration: 0.12 }, 0.24)
-    .to('[data-intro="subtitle"]', { opacity: 1, duration: 0.12 }, 0.36)
+    // Title crossfades to title2 before the subtitle appears: title in, out,
+    // then title2 in.
+    .to('[data-intro="title"]', { opacity: 1, duration: 0.1 }, 0.2)
+    .to('[data-intro="title"]', { opacity: 0, duration: 0.1 }, 0.38)
+    .to('[data-intro="title2"]', { opacity: 1, duration: 0.1 }, 0.5)
+    .to('[data-intro="subtitle"]', { opacity: 1, duration: 0.1 }, 0.64)
     // Wave rotates in place (WebGL orbit); starts the moment the wave begins to
     // fade in (0.15) and keeps turning all the way to the end, so it's still
     // rotating through the description + CTAs reveals rather than stopping early.
-    .to(root, { '--wave-rot': 1, duration: 0.83 }, 0.15)
-    .to('[data-intro="description"]', { opacity: 1, duration: 0.14 }, 0.72)
-    .to(['[data-intro="ctas"]', '[data-intro="logobar"]'], { opacity: 1, duration: 0.12 }, 0.86);
+    .to(root, { '--wave-rot': 1, duration: 0.85 }, 0.15)
+    .to('[data-intro="description"]', { opacity: 1, duration: 0.12 }, 0.8)
+    .to(['[data-intro="ctas"]', '[data-intro="logobar"]'], { opacity: 1, duration: 0.1 }, 0.92);
 }
 
 // Pins the intro (opening overlay + hero) and scrubs the reveal choreography as

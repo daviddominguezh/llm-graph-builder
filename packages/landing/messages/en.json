@@ -5,7 +5,8 @@
     },
     "hero": {
       "title": "And there are no shortcuts to building it.",
-      "subtitle": "So we built it for you:",
+      "title2": "So we did it for you.",
+      "subtitle": "Presenting Openflow:",
       "description": "one platform to create, test, run, scale, monitor and manage production-ready AI. We run the infrastructure, so you can focus on building the product.",
       "cta": "Join the Waitlist"
     },
