@@ -41,12 +41,12 @@ function Modal({ onClose, children }: { onClose: () => void; children: ReactNode
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 p-6"
+      className="fixed w-full h-full inset-0 z-[90] flex items-center justify-center bg-black/70 p-6 px-34"
       onClick={onClose}
     >
       <div
         data-lenis-prevent
-        className="relative max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-[#141519] p-10 shadow-2xl"
+        className="relative h-[85vh] w-full overflow-y-auto rounded-xl bg-[#222222] p-10 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
