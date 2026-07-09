@@ -65,7 +65,7 @@ function FooterLinkItem({ link }: { link: FooterLink }) {
 
 export function Footer() {
   return (
-    <footer className="border-t border-dashed border-neutral-800 bg-[#070707] px-10 py-16">
+    <footer className="border-t border-dashed border-neutral-800 bg-[#000] px-10 py-16">
       <div className="mx-auto max-w-[1232px]">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:[&>div]:border-l lg:[&>div]:border-dashed lg:[&>div]:border-[#061b31]/10 lg:[&>div]:pl-8 lg:[&>div:first-child]:border-l-0 lg:[&>div:first-child]:pl-0">
           {COLUMNS.map((column) => (
@@ -84,7 +84,7 @@ export function Footer() {
 
         {/* Luminosity gradient: the white wordmark starts dim at the top and
             brightens to full toward the bottom via an alpha mask. */}
-        <div className="relative mt-14 mix-blend-color-dodge">
+        <div className="relative mt-14 mix-blend-screen">
           <Image
             src={openflowLogo}
             alt="OpenFlow"

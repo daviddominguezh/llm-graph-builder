@@ -54,13 +54,13 @@ export function Happenings() {
     image: slot.image,
   }));
   return (
-    <section className="the-happenings bg-[#0d0d0d] px-10 py-24">
+    <section className="the-happenings bg-[#0d0d0d] px-10 pt-25 pb-20">
       <div className="mx-auto max-w-[1232px]">
         <SectionHeading dark lead={t('toolbox.title')} rest={t('toolbox.intro')} />
         <div className="mt-14">
-          <IntegrationDiagram />
+          <HappeningsCarousel items={items} />
         </div>
-        <HappeningsCarousel items={items} />
+        <IntegrationDiagram />
       </div>
     </section>
   );

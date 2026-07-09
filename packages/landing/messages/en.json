@@ -58,8 +58,8 @@
         }
       },
       "revenue": {
-        "title": "Conversations become revenue.",
-        "intro": "A chat that ends without a lead, a booking, or a sale is a cost. This is how we solved it:",
+        "title": "Ready for turning AI into revenue?",
+        "intro": "\nEven with a great agent, when the chat ends without a lead, a booking, or a sale, it was just a cost. We solved it:",
         "items": {
           "formIntegration": {
             "title": "The conversation is the form",
@@ -116,8 +116,8 @@
         }
       },
       "toolbox": {
-        "title": "Connect to Everything.",
-        "intro": "An agent that can't reach your systems is just a chatbot.",
+        "title": "Make your agents ready for the world out there.",
+        "intro": "An agent that can't reach your systems is just a chatbot. Our platform allows your agents to connect to everything.",
         "items": {
           "connectAnyMcp": {
             "title": "If it speaks MCP, your agent speaks it",
