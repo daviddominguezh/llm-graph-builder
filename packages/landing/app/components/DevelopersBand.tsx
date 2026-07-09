@@ -13,9 +13,9 @@ import { FoldedSilkCanvas } from './FoldedSilkCanvas';
 // right column is an angled gradient graphic flush to the card edge, clipped
 // by the card. Dark-adapted to our surface tokens.
 const PROGRAM_CARDS = [
-  { messageKey: 'knowledge.items.multimodalRag', variant: 'wedge' },
-  { messageKey: 'knowledge.items.kvStores', variant: 'peaks' },
-  { messageKey: 'knowledge.items.userMemory', variant: 'prism' },
+  { messageKey: 'knowledge.items.multimodalRag', variant: 'wedge', color: '#f06bb3' },
+  { messageKey: 'knowledge.items.kvStores', variant: 'peaks', color: '#f0a94a' },
+  { messageKey: 'knowledge.items.userMemory', variant: 'prism', color: '#4aa8ff' },
 ] as const;
 
 type ProgramVariant = (typeof PROGRAM_CARDS)[number]['variant'];
@@ -59,7 +59,7 @@ function ProgramCards() {
               <strong className="font-semibold text-white">{t(`${card.messageKey}.title`)}.</strong>{' '}
               <span className="text-white/55">{t(`${card.messageKey}.description`)}</span>
             </p>
-            <span className="mt-4 inline-block text-sm font-medium text-[#8b9df7]">
+            <span className="mt-4 inline-block text-sm font-medium" style={{ color: card.color }}>
               {t(`${card.messageKey}.cta`)} ›
             </span>
           </div>

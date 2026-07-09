@@ -1,7 +1,6 @@
 import { useTranslations } from 'next-intl';
 
 import { type HappeningItem, HappeningsCarousel } from './HappeningsCarousel';
-import { IntegrationDiagram } from './IntegrationDiagram';
 import { SectionHeading } from './SectionHeading';
 
 // The toolbox family in catalog order: the standard → the catalog → the
@@ -47,12 +46,22 @@ const NEWS_SLOTS = [
 
 export function Happenings() {
   const t = useTranslations('landing.families');
-  const items: HappeningItem[] = NEWS_SLOTS.map((slot) => ({
-    id: slot.id,
-    title: t(`${slot.messageKey}.title`),
-    description: t(`${slot.messageKey}.description`),
-    image: slot.image,
-  }));
+  const items: HappeningItem[] = [
+    // First card: the integration map itself (scaled to fit inside the card).
+    {
+      id: 'integration-map',
+      title: t('toolbox.title'),
+      description: t('toolbox.intro'),
+      image: '',
+      diagram: true,
+    },
+    ...NEWS_SLOTS.map((slot) => ({
+      id: slot.id,
+      title: t(`${slot.messageKey}.title`),
+      description: t(`${slot.messageKey}.description`),
+      image: slot.image,
+    })),
+  ];
   return (
     <section className="the-happenings bg-[#0d0d0d] px-10 pt-25 pb-20">
       <div className="mx-auto max-w-[1232px]">
@@ -60,7 +69,6 @@ export function Happenings() {
         <div className="mt-14">
           <HappeningsCarousel items={items} />
         </div>
-        <IntegrationDiagram />
       </div>
     </section>
   );

@@ -3,11 +3,16 @@
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
+import { IntegrationDiagram, VH as DIAGRAM_H, VW as DIAGRAM_W } from './IntegrationDiagram';
+
 export type HappeningItem = {
   id: string;
   title: string;
   description: string;
   image: string;
+  // When true, the card shows the IntegrationDiagram (scaled to fit) instead
+  // of an image.
+  diagram?: boolean;
 };
 
 // Port of the reference's squeezy-carousel (SqueezyImagesCanvas, chunk
@@ -43,6 +48,28 @@ const COL0_BASE = (HEIGHT * 16) / 9;
 // Image window = the widest col-0 can ever be (stretched fraction 0), so the
 // image always fills the expanded card and its rounded corners stay clipped.
 const IMAGE_W = Math.ceil(COL0_BASE) + 4;
+
+// The diagram is drawn at its natural size and scaled uniformly to fit the
+// window (contain — the smaller of the two ratios), so it never distorts and
+// the fixed-px nodes/lines keep their proportions.
+const DIAGRAM_SCALE = Math.min(IMAGE_W / DIAGRAM_W, HEIGHT / DIAGRAM_H);
+
+// Card face: the scaled integration diagram, or the item's image.
+function CardVisual({ item }: { item: HappeningItem }) {
+  if (item.diagram) {
+    return (
+      <span className="absolute inset-0 flex items-center justify-center bg-[#0d0d0d]">
+        <span
+          className="block shrink-0"
+          style={{ width: `${DIAGRAM_W}px`, height: `${DIAGRAM_H}px`, transform: `scale(${DIAGRAM_SCALE})` }}
+        >
+          <IntegrationDiagram />
+        </span>
+      </span>
+    );
+  }
+  return <Image src={item.image} alt="" fill sizes="840px" unoptimized className="object-cover" />;
+}
 
 function colWidth(c: number, containerW: number, hovered: number): number {
   const medium = containerW - COL0_BASE - (3 * SMALL_GAP + 3 * LARGE_GAP) - 3 * SMALL_W;
@@ -154,7 +181,7 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
                 className="absolute top-0 left-1/2 h-full -translate-x-1/2"
                 style={{ width: `${IMAGE_W}px` }}
               >
-                <Image src={item.image} alt="" fill sizes="840px" unoptimized className="object-cover" />
+                <CardVisual item={item} />
                 <span
                   className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-6 text-left text-lg font-medium whitespace-nowrap text-white transition-opacity duration-200 ${expanded ? 'opacity-100 delay-200' : 'opacity-0'}`}
                 >

@@ -55,7 +55,7 @@ const RIGHT: Category[] = [
   { name: 'Internal tools', items: ['Web search', 'HTTP Requests', 'Forms'] },
 ];
 
-const VW = 1400;
+export const VW = 1400;
 const CX = 700;
 const ITEM_H = 46;
 const CAT_GAP = 30;
@@ -63,7 +63,7 @@ const CAT_GAP = 30;
 const zoneH = (cats: Category[]) =>
   cats.reduce((s, c) => s + c.items.length * ITEM_H, 0) + (cats.length - 1) * CAT_GAP;
 const MID_H = Math.max(zoneH(LEFT), zoneH(RIGHT));
-const VH = 420 + MID_H;
+export const VH = 420 + MID_H;
 const CY = VH / 2;
 
 type Node = {
