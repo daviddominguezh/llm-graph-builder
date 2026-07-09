@@ -94,12 +94,12 @@
             "cta": "Open the canvas"
           },
           "agentOrchestration": {
-            "title": "Manage a team of agents.\nDelegate to specialists.",
+            "title": "Break down complex tasks.\nManage an agentic team.",
             "description": "A front-desk agent hands hard tasks to specialists and takes the conversation back when they finish. No thousand-line prompt to babysit.",
             "cta": "Compose agent teams"
           },
           "anyLlmProvider": {
-            "title": "Swap the model.\nEverything keeps running.",
+            "title": "Swap the model.\nRefactor? Not needed.",
             "description": "OpenAI, Anthropic, Google, Mistral, Meta — switch models per agent whenever a better one ships. A dropdown, not a refactor.",
             "cta": "See supported models"
           },

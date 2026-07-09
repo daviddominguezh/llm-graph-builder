@@ -168,7 +168,8 @@ function DeckCard({
   const t = useTranslations('landing.families');
   // Accent-highlight the title's final word (the catalog stores whole titles).
   const words = t(`${card.messageKey}.title`).split(' ');
-  const highlight = words.pop() ?? '';
+  let highlight = words.pop() ?? '';
+  highlight = `${words.pop() ?? ''} ${highlight}`.trim();
   // Alternate the surface so consecutive cards are distinguishable as they
   // slide over each other; the first card is the darker #0d0d0d.
   const background = index % 2 === 0 ? '#0d0d0d' : '#131313';
