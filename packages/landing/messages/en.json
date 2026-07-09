@@ -1,7 +1,8 @@
 {
   "landing": {
     "opening": {
-      "title": "The world's most innovative startups\nneed serious AI infrastructure."
+      "title": "The world's most innovative startups\nneed serious AI infrastructure.",
+      "scroll": "Scroll Down"
     },
     "hero": {
       "title": "Every hour you spend building it\nis an hour you're not shipping.",

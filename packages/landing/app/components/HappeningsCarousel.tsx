@@ -51,26 +51,41 @@ const COL0_BASE = ((HEIGHT * 16) / 9) * 1.1;
 // image always fills the expanded card and its rounded corners stay clipped.
 const IMAGE_W = Math.ceil(COL0_BASE) + 4;
 
-// The diagram is drawn at its natural size and scaled uniformly to fit the
-// window (contain — the smaller of the two ratios), so it never distorts and
-// the fixed-px nodes/lines keep their proportions. The 0.85 leaves padding
-// between the diagram and the card edges.
-const DIAGRAM_SCALE = Math.min(IMAGE_W / DIAGRAM_W, HEIGHT / DIAGRAM_H) * 0.95;
+// Inset padding when fitting the diagram inside a card.
+const DIAGRAM_FIT = 0.95;
 
-// Card face: the scaled integration diagram, or the item's image.
+// Scales the natural-size integration diagram to fit its container (contain, no
+// distortion), measured live — so one component works for both the wide desktop
+// card and the narrow mobile card.
+function DiagramFit() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => {
+      setScale(Math.min(el.clientWidth / DIAGRAM_W, el.clientHeight / DIAGRAM_H) * DIAGRAM_FIT);
+    };
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    measure();
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <div ref={ref} className="absolute inset-0 flex items-center justify-center bg-black">
+      <div
+        className="block shrink-0"
+        style={{ width: `${DIAGRAM_W}px`, height: `${DIAGRAM_H}px`, transform: `scale(${scale})` }}
+      >
+        <IntegrationDiagram />
+      </div>
+    </div>
+  );
+}
+
+// Card face: the fitted integration diagram, or the item's image.
 function CardVisual({ item }: { item: HappeningItem }) {
-  if (item.diagram) {
-    return (
-      <span className="absolute inset-0 flex items-center justify-center bg-black">
-        <span
-          className="block shrink-0"
-          style={{ width: `${DIAGRAM_W}px`, height: `${DIAGRAM_H}px`, transform: `scale(${DIAGRAM_SCALE})` }}
-        >
-          <IntegrationDiagram />
-        </span>
-      </span>
-    );
-  }
+  if (item.diagram) return <DiagramFit />;
   return <Image src={item.image} alt="" fill sizes="840px" unoptimized className="object-cover" />;
 }
 
@@ -95,7 +110,7 @@ function layout(containerW: number, hovered: number, lo: number, hi: number) {
 type Card = { key: number; itemIndex: number };
 type Deck = { cards: Card[]; baseCol: number; nextKey: number };
 
-export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] }) {
+function DesktopCarousel({ items }: { items: readonly HappeningItem[] }) {
   const n = items.length;
   const [deck, setDeck] = useState<Deck>(() => {
     const cards: Card[] = [];
@@ -160,7 +175,7 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
   const transition = `left ${DUR_MS}ms ${EASE}, width ${DUR_MS}ms ${EASE}`;
 
   return (
-    <div className="squeezy-carousel mt-14">
+    <div className="squeezy-carousel mt-14 hidden lg:block">
       <div
         ref={rowRef}
         onMouseLeave={() => setHovered(-1)}
@@ -206,5 +221,34 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
         </div>
       </div>
     </div>
+  );
+}
+
+// Mobile (< lg): no carousel — just the cards stacked one after another, each
+// with its visual above the title + description.
+function MobileList({ items }: { items: readonly HappeningItem[] }) {
+  return (
+    <div className="mt-8 flex flex-col gap-10 lg:hidden">
+      {items.map((item) => (
+        <div key={item.id}>
+          <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-black">
+            <CardVisual item={item} />
+          </div>
+          <p className="mt-4 text-base leading-snug">
+            <span className="font-medium text-white">{item.title} </span>
+            <span className="text-white/55">{item.description}</span>
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] }) {
+  return (
+    <>
+      <DesktopCarousel items={items} />
+      <MobileList items={items} />
+    </>
   );
 }
