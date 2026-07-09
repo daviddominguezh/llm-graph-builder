@@ -4,12 +4,13 @@ import { RadialBurstCanvas } from './RadialBurstCanvas';
 import { SectionHeading } from './SectionHeading';
 
 // revenue items in catalog order — the capture → qualify → book → close
-// funnel (see messages/KEY_USAGE.md).
+// funnel (see messages/KEY_USAGE.md). Each gets its own accent (deck palette),
+// used for the left border.
 const SCALE_POINTS = [
-  'revenue.items.formIntegration',
-  'revenue.items.leadScoring',
-  'revenue.items.bookingSystem',
-  'revenue.items.payments',
+  { key: 'revenue.items.formIntegration', accent: '#4aa8ff' },
+  { key: 'revenue.items.leadScoring', accent: '#f06bb3' },
+  { key: 'revenue.items.bookingSystem', accent: '#f0a94a' },
+  { key: 'revenue.items.payments', accent: '#3ddc97' },
 ] as const;
 
 export function GlobalScale() {
@@ -20,8 +21,8 @@ export function GlobalScale() {
         <div>
           <SectionHeading dark lead={t('revenue.title')} rest={t('revenue.intro')} />
           <dl className="mt-12 space-y-8">
-            {SCALE_POINTS.map((key) => (
-              <div key={key} className="border-l-2 border-white/20 pl-5">
+            {SCALE_POINTS.map(({ key, accent }) => (
+              <div key={key} className="border-l-2 pl-5" style={{ borderColor: accent }}>
                 <dt className="text-2xl font-light tracking-tight text-white">{t(`${key}.title`)}</dt>
                 <dd className="mt-1 text-sm text-white/55">{t(`${key}.description`)}</dd>
               </div>
