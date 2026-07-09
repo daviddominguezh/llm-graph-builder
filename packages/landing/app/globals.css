@@ -90,7 +90,7 @@ body {
 }
 
 .intro-curtain {
-  animation: hero-intro-fade 1800ms ease-in-out both;
+  animation: hero-intro-fade 200ms linear both;
 }
 
 /* The hero wave's opacity is owned by the GSAP intro timeline (see IntroScene),

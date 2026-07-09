@@ -43,7 +43,7 @@ function buildIntroTimeline(scene: HTMLElement) {
   });
 
   tl.to('[data-intro="opening"]', { opacity: 0, duration: 0.15 }, 0)
-    .to('.hero-wave-animation__canvas', { opacity: 1, duration: 0.15 }, 0.15)
+    .to('.hero-wave-animation__canvas', { opacity: 1, duration: 0.4 }, 0.15)
     // Title crossfades to title2 before the subtitle appears: title in, out,
     // then title2 in.
     .to('[data-intro="title"]', { opacity: 1, duration: 0.1 }, 0.2)

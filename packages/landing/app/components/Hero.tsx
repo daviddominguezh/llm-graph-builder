@@ -1,3 +1,4 @@
+import openflowLogo from '@/app/openflowLogoWhite.png';
 import logoBrowserbase from '@/public/cloudicons/logo_browserbase.png';
 import logoCloudflare from '@/public/cloudicons/logo_cloudflare.png';
 import logoFly from '@/public/cloudicons/logo_fly.png';
@@ -157,9 +158,11 @@ function HeroHeading() {
         </h1>
       </div>
       <h2 className={`mt-0 pt-0 h-fit ${descriptionStyle}`}>
-        <span data-intro="subtitle" className="font-normal opacity-0">
+        <span data-intro="subtitle" className="opacity-0">
           {t('subtitle')}
-        </span>{' '}
+          {' '}
+          <Image src={openflowLogo} alt="OpenFlow" className="h-[32px] w-auto inline" />
+        </span>{': '}
         <span data-intro="description" className="opacity-0">
           {t('description')}
         </span>

@@ -34,6 +34,11 @@ export default function Home() {
           stacking context would isolate the nav's blend-mode knockout text
           from the wave canvas behind it. */}
       <Navbar />
+      {/* Load curtain: the whole first frame (opening + navbar) emerges from
+          black on page load. Pure CSS (see .intro-curtain) so it runs at first
+          paint regardless of hydration; above everything, click-through, and
+          absent under reduced motion (base opacity-0 + animation disabled). */}
+      <div aria-hidden="true" className="intro-curtain pointer-events-none fixed inset-0 z-[90] bg-[#070707] opacity-0" />
     </div>
   );
 }
