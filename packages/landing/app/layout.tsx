@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';
-import { Geist, Geist_Mono, Noto_Sans } from 'next/font/google';
+import { Geist_Mono } from 'next/font/google';
+import localFont from 'next/font/local';
 
 import './globals.css';
 
@@ -9,8 +10,27 @@ import { AnalyticsClient } from './components/AnalyticsClient';
 import { FilmGrain } from './components/FilmGrain';
 import { SmoothScroll } from './components/SmoothScroll';
 
-const notoSans = Noto_Sans({ subsets: ['latin'], variable: '--font-noto-sans' });
-const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
+// Aeonik (static weights 100–900, normal + italic) served locally from app/fonts.
+const aeonik = localFont({
+  variable: '--font-aeonik',
+  display: 'swap',
+  src: [
+    { path: './fonts/Aeonik-Air.ttf', weight: '100', style: 'normal' },
+    { path: './fonts/Aeonik-AirItalic.ttf', weight: '100', style: 'italic' },
+    { path: './fonts/Aeonik-Thin.ttf', weight: '200', style: 'normal' },
+    { path: './fonts/Aeonik-ThinItalic.ttf', weight: '200', style: 'italic' },
+    { path: './fonts/Aeonik-Light.ttf', weight: '300', style: 'normal' },
+    { path: './fonts/Aeonik-LightItalic.ttf', weight: '300', style: 'italic' },
+    { path: './fonts/Aeonik-Regular.ttf', weight: '400', style: 'normal' },
+    { path: './fonts/Aeonik-RegularItalic.ttf', weight: '400', style: 'italic' },
+    { path: './fonts/Aeonik-Medium.ttf', weight: '500', style: 'normal' },
+    { path: './fonts/Aeonik-MediumItalic.ttf', weight: '500', style: 'italic' },
+    { path: './fonts/Aeonik-Bold.ttf', weight: '700', style: 'normal' },
+    { path: './fonts/Aeonik-BoldItalic.ttf', weight: '700', style: 'italic' },
+    { path: './fonts/Aeonik-Black.ttf', weight: '900', style: 'normal' },
+    { path: './fonts/Aeonik-BlackItalic.ttf', weight: '900', style: 'italic' },
+  ],
+});
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -31,7 +51,7 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const locale = await getLocale();
   return (
-    <html lang={locale} className={`${notoSans.variable} ${geistSans.variable} ${geistMono.variable}`}>
+    <html lang={locale} className={`${aeonik.variable} ${geistMono.variable}`}>
       <body className="antialiased">
         <a
           href="#main"

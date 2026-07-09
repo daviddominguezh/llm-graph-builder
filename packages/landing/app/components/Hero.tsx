@@ -139,7 +139,7 @@ function HeroHeading() {
   const t = useTranslations('landing.hero');
 
   const titleStyle = 'h-fit col-start-1 row-start-1 font-normal not-italic text-white opacity-0';
-  const descriptionStyle = 'text-[34px] leading-[1.15] font-extralight text-white/60';
+  const descriptionStyle = 'text-[34px] leading-[1.15] font-light text-white/60';
 
   const [t1_1, t1_2] = t('title').split('\n');
 

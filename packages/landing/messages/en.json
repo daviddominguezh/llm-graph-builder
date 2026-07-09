@@ -5,23 +5,23 @@
     },
     "hero": {
       "title": "Every hour you spend building it\nis an hour you're not shipping.",
-      "title2": "We build the AI infra so you don't have to.",
+      "title2": "We built the AI infra so you don't have to.",
       "subtitle": "Presenting",
-      "description": "the platform to create, test, run, scale, monitor and manage production-ready AI. We run the infrastructure, so you can focus on building the product.",
+      "description": "the platform to create, test, run, scale, monitor and manage production-ready AI. We run the servers, so you can focus on building the product.",
       "cta": "Join the Waitlist"
     },
     "whatIsOpenflow": {
       "title": "Build an agent once.\nSell it to every client you serve.",
-      "description": "Each customer gets its own WhatsApp number, its own guest history, its own knowledge base. You improve the agent once; every client gets the update.",
+      "description": "Whether it is a WhatsApp number or a dedicated website, each customer gets its own isolated channel, its own guest history, its own knowledge base, its own billing, its own everything. You improve the agent once; every client gets the update.",
       "cta": "See how it works"
     },
     "families": {
       "foundation": {
-        "title": "The foundation: multi-tenant by design.",
-        "intro": "One agent, many customers, zero mixing. Isolation is the default, not a feature you build.",
+        "title": "The foundation: multi-tenancy is our default, not a feature you build.",
+        "intro": "\nWe keep your tenants fully isolated so you can sell your agents unlimited times at any business scale.\n",
         "items": {
           "multiTenancy": {
-            "title": "One agent. A hundred isolated customers.",
+            "title": "One agent. A hundred isolated tenants.",
             "description": "Sell your agent to one customer or a hundred. Each gets their own channels, their own data, their own bill. You build once. We isolate everything."
           },
           "multiChannel": {
@@ -29,7 +29,7 @@
             "description": "Your agents answer on WhatsApp, web chat, Instagram, Telegram, Slack, Discord, Teams, and Google Chat. Each customer connects their own channels."
           },
           "deployToYourWebsite": {
-            "title": "One line of code. Live on their site.",
+            "title": "One line of code. Live on any site.",
             "description": "Paste a script tag — the agent is on your customer's homepage. Branded, versioned, no cookies. Finished at 4:00, live at 4:05."
           },
           "expensesControlPerTenant": {
@@ -63,15 +63,15 @@
         "items": {
           "formIntegration": {
             "title": "The conversation is the form",
-            "description": "Agents collect structured data in the chat, validate it field by field, and store it cleanly. Export everything to CSV."
+            "description": "Agents collect structured data in the chat, validate it field by field, and store it cleanly. Export the submissions to your preferred format."
           },
           "leadScoring": {
             "title": "Every chat carries a 0–100 lead score",
             "description": "Forty overnight conversations on Monday morning. The agent already scored them all while chatting. Sales calls the hot three first."
           },
           "bookingSystem": {
-            "title": "Booked before the chat ends",
-            "description": "Agents check availability and confirm the appointment inside the conversation, while intent is at its highest."
+            "title": "Universal booking system",
+            "description": "Agents check availability and confirm bookings inside the conversation, while intent is at its highest."
           },
           "payments": {
             "title": "Take payment in the chat",
@@ -80,36 +80,36 @@
         }
       },
       "studio": {
-        "title": "Build any agent in minutes.",
-        "intro": "A new client should never mean having to copy/paste an re-deploy your project.",
+        "title": "Build an agent in minutes.",
+        "intro": "We already designed the tools that will make it powerful. Batteries included.",
         "items": {
           "agentBuilder": {
-            "title": "A customer-ready agent in minutes.",
+            "title": "Create complex agents.\nIn a few minutes.",
             "description": "Shared logic, customized per customer — set each one's personality, knowledge, and tools in a visual editor, no code.",
             "cta": "Build your first agent"
           },
           "workflowBuilder": {
-            "title": "Processes that run the same way, every time.",
+            "title": "Consistent processes.\nBecause control matters.",
             "description": "Drag steps and decisions onto a canvas. Agents handle open conversation; workflows run your fixed processes — returns, onboarding, escalation.",
             "cta": "Open the canvas"
           },
           "agentOrchestration": {
-            "title": "Agents that delegate to specialist sub-agents.",
+            "title": "Manage a team of agents.\nDelegate to specialists.",
             "description": "A front-desk agent hands hard tasks to specialists and takes the conversation back when they finish. No thousand-line prompt to babysit.",
             "cta": "Compose agent teams"
           },
           "anyLlmProvider": {
-            "title": "Swap the brain. Keep the agent.",
+            "title": "Swap the model.\nEverything keeps running.",
             "description": "OpenAI, Anthropic, Google, Mistral, Meta — switch models per agent whenever a better one ships. A dropdown, not a refactor.",
             "cta": "See supported models"
           },
           "agentSkills": {
-            "title": "Skills on: write them once. Attach'em anywhere.",
+            "title": "Write skills once.\nUse them many times.",
             "description": "Package know-how — refund policy, tone of voice, playbooks — as skills your agents use exactly when relevant.",
             "cta": "Write your first skill"
           },
           "versionControl": {
-            "title": "Publish. Pin. Roll back in one click.",
+            "title": "Publish or roll-back.\nIt's just one click.",
             "description": "Every published agent is a frozen, numbered version. Bad prompt at Friday 6pm? One click back, not one lost weekend.",
             "cta": "See versioning"
           }
@@ -150,16 +150,16 @@
         }
       },
       "knowledge": {
-        "title": "The Library: What Agents Know",
-        "intro": "An agent that guesses is a liability.",
+        "title": "An agent with proper business knowledge is effective,",
+        "intro": "an agent that guesses is a liability. Upload your documents, we'll feed them to your agent.",
         "items": {
           "multimodalRag": {
-            "title": "Documents — and images — actually understood",
-            "description": "PDFs, Office files, web pages, and images, parsed with full layout awareness. Tables, headings, and structure survive intact.",
+            "title": "Documents — actually understood",
+            "description": "PDFs, Office files, web pages, images, CSVs parsed with full layout awareness. Tables, headings, and structure survive intact.",
             "cta": "Upload your knowledge"
           },
           "kvStores": {
-            "title": "Prose in documents. Facts in tables.",
+            "title": "Prose in documents. Facts in tables",
             "description": "Price lists, catalogs, per-customer settings — structured records your agents read and update exactly, never approximately.",
             "cta": "Create a KV store"
           },
@@ -171,8 +171,8 @@
         }
       },
       "engine": {
-        "title": "Always-On agents.",
-        "intro": "The best agents don't wait to be messaged.",
+        "title": "Proactive, always-on agents.",
+        "intro": "This is not 2025 anymore, the best agents don't wait to be messaged. They execute.",
         "items": {
           "longRunningAgents": {
             "title": "Agents that work for hours",

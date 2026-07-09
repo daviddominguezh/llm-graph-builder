@@ -23,11 +23,11 @@ export default function Home() {
           <Opening />
         </IntroScene>
         <SolutionsBento />
-        <StoryScroll />
-        <GlobalScale />
         <CaseStudies />
-        <Happenings />
+        <StoryScroll />
         <DevelopersBand />
+        <Happenings />
+        <GlobalScale />
       </main>
       <Footer />
       {/* After main so it paints above the hero without a z-index — a
@@ -38,7 +38,10 @@ export default function Home() {
           black on page load. Pure CSS (see .intro-curtain) so it runs at first
           paint regardless of hydration; above everything, click-through, and
           absent under reduced motion (base opacity-0 + animation disabled). */}
-      <div aria-hidden="true" className="intro-curtain pointer-events-none fixed inset-0 z-[90] bg-[#070707] opacity-0" />
+      <div
+        aria-hidden="true"
+        className="intro-curtain pointer-events-none fixed inset-0 z-[90] bg-[#070707] opacity-0"
+      />
     </div>
   );
 }

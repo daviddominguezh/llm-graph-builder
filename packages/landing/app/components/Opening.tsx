@@ -8,7 +8,7 @@ export function Opening() {
   return (
     <div data-intro="opening" className="absolute inset-0 z-[20] flex justify-center bg-white">
       <div className="mt-[72px] flex h-[calc(100%-calc(72px+var(--spacing)*7))] w-[calc(100%-var(--spacing)*14)] items-center justify-center rounded-3xl bg-black">
-        <h1 className="max-w-[960px] text-center text-[40px] leading-[1.12] font-medium tracking-[-0.02em] text-white sm:text-[56px]">
+        <h1 className="max-w-6xl text-center tracking-[-.01em] text-white text-[56px] lg:text-[4rem] leading-[1.05] font-normal">
           {t('title')}
         </h1>
       </div>
