@@ -16,22 +16,22 @@ const SCALE_POINTS = [
 export function GlobalScale() {
   const t = useTranslations('landing.families');
   return (
-    <section className="stats-section__globe-host bg-[#070707] px-10 pt-25 pb-20">
+    <section className="stats-section__globe-host bg-[#070707] px-4 lg:px-10 pt-25 pb-20">
       <div className="mx-auto grid max-w-[1232px] items-center gap-14 lg:grid-cols-2">
         <div>
           <SectionHeading dark lead={t('revenue.title')} rest={t('revenue.intro')} />
           <dl className="mt-12 space-y-8">
             {SCALE_POINTS.map(({ key, accent }) => (
               <div key={key} className="border-l-[1px] pl-5" style={{ borderColor: accent }}>
-                <dt className="text-2xl font-light tracking-tight text-white">{t(`${key}.title`)}</dt>
-                <dd className="mt-1 text-sm text-white/55">{t(`${key}.description`)}</dd>
+                <dt className="text-xl lg:text-2xl font-light tracking-tight text-white">{t(`${key}.title`)}</dt>
+                <dd className="mt-1 text-base lg:text-sm text-white/55">{t(`${key}.description`)}</dd>
               </div>
             ))}
           </dl>
         </div>
         {/* Interactive line-burst radiating from the bottom centre; tips are
             repelled by the cursor. Replaces the CSS globe. */}
-        <RadialBurstCanvas className="h-[560px] w-full" />
+        <RadialBurstCanvas className="h-[320px] lg:h-[560px] w-full" />
       </div>
     </section>
   );

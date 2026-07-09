@@ -135,7 +135,7 @@ function BrandCard() {
       />
       <div className="relative flex flex-1 flex-col justify-between">
         <div className="flex h-full flex-col gap-4 justify-around">
-          <h2 className="max-w-[659px] text-[26px] leading-[1.12] font-light tracking-[-0.01em] text-white">
+          <h2 className="max-w-[659px] text-[20px] lg:text-[26px] leading-[1.12] font-light tracking-[-0.01em] text-white">
             {t('title')}
           </h2>
           <p className="max-w-[520px] text-base leading-relaxed text-white/70">{t('description')}</p>
@@ -161,7 +161,7 @@ export function SolutionsBento() {
   const t = useTranslations('landing.families.foundation');
   return (
     <div className="w-full bg-[#070707]">
-      <ScrollFadeSection from="#070707" to="#101010" className="modular-solutions px-10 pt-25 pb-30">
+      <ScrollFadeSection from="#070707" to="#101010" className="modular-solutions px-4 lg:px-10 pt-25 pb-30">
         <div className="mx-auto max-w-[1232px]">
           <div className="mb-10">
             <SectionHeading dark lead={t('title')} rest={t('intro')} />

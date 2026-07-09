@@ -179,7 +179,7 @@ function DeckCard({
       style={{ zIndex: index + 1 }}
     >
       <div
-        className={`relative flex flex-col overflow-hidden border border-white/8 px-8 py-12 rounded-t-[2.5rem] lg:px-14 ${isLast ? 'rounded-b-[2.5rem]' : ''}`}
+        className={`relative flex flex-col overflow-hidden border border-white/8 px-4 lg:px-8 py-6 lg:py-12 rounded-[24px] lg:rounded-[0px] lg:rounded-t-[2.5rem] lg:px-14 ${isLast ? 'lg:rounded-b-[2.5rem]' : ''}`}
         style={{ backgroundColor: background }}
       >
         <div
@@ -196,14 +196,14 @@ function DeckCard({
           <div className="flex flex-col gap-10">
             <div>
               <SegmentPills index={index} total={total} accent={card.accent} label={card.eyebrow} />
-              <h3 className="mt-6 max-w-[26rem] text-[34px] leading-[1.08] font-light tracking-[-0.02em] text-white">
+              <h3 className="mt-6 max-w-[26rem] text-[24px] lg:text-[34px] leading-[1.08] font-light tracking-[-0.02em] text-white">
                 {words.join(' ')} <span style={{ color: card.accent }}>{highlight}</span>
               </h3>
-              <p className="mt-4 max-w-[26rem] text-sm leading-relaxed text-white/55">
+              <p className="mt-4 max-w-[26rem] text-base leading-relaxed text-white/55">
                 {t(`${card.messageKey}.description`)}
               </p>
             </div>
-            <span className="inline-block text-sm font-medium" style={{ color: card.accent }}>
+            <span className="inline-block text-base font-medium" style={{ color: card.accent }}>
               {t(`${card.messageKey}.cta`)} ›
             </span>
           </div>
@@ -217,7 +217,7 @@ function DeckCard({
 export function CaseStudies() {
   const t = useTranslations('landing.families.studio');
   return (
-    <section className="bg-[#070707] px-10 pt-25 pb-30">
+    <section className="bg-[#070707] px-4 lg:px-10 pt-25 pb-30">
       <div className="mx-auto max-w-[1232px]">
         <SectionHeading dark lead={t('title')} rest={t('intro')} />
 
@@ -226,7 +226,7 @@ export function CaseStudies() {
             below the last one: their -mb-12 sits on the sticky wrappers, and
             sticky constrains the MARGIN box, so their border boxes may rest
             48px below the container bottom. Rounded to match the last card. */}
-        <div className="mt-14 flex flex-col gap-6 lg:gap-0 lg:overflow-clip lg:rounded-b-[2.5rem]">
+        <div className="mt-14 flex flex-col gap-4 lg:gap-6 lg:gap-0 lg:overflow-clip lg:rounded-b-[2.5rem]">
           {CARDS.map((card, index) => (
             <DeckCard
               key={card.eyebrow}

@@ -63,7 +63,7 @@ export function Happenings() {
     })),
   ];
   return (
-    <section className="the-happenings bg-[#0d0d0d] px-10 pt-25 pb-20">
+    <section className="the-happenings bg-[#0d0d0d] px-4 lg:px-10 pt-25 pb-20">
       <div className="mx-auto max-w-[1232px]">
         <SectionHeading dark lead={t('toolbox.title')} rest={t('toolbox.intro')} />
         <div className="mt-14">

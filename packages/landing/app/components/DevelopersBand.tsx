@@ -103,7 +103,7 @@ function IntegrationPaths() {
   const t = useTranslations('landing.families');
   return (
     <div className="mt-25 border-t border-neutral-800 pt-22">
-      <h2 className="max-w-2xl text-2xl leading-snug tracking-[-0.01em]">
+      <h2 className="max-w-2xl text-[24px] lg:text-2xl leading-snug tracking-[-0.01em]">
         <em className="font-normal not-italic text-white">{t('waysToUse.title')}</em>{' '}
         <span className="text-white/40">{t('waysToUse.intro')}</span>
       </h2>
@@ -129,16 +129,16 @@ export function DevelopersBand() {
         variant="fibrous"
       />
 
-      <div className="relative mx-auto w-full max-w-[1232px] px-0 pt-25 pb-30">
+      <div className="relative mx-auto w-full max-w-[1232px] px-4 lg:px-0 pt-25 pb-30">
         <div className="pb-25 border-b border-neutral-800">
-          <h2 className="max-w-2xl text-2xl leading-snug tracking-[-0.01em]">
+          <h2 className="max-w-2xl text-[24px] lg:text-2xl leading-snug tracking-[-0.01em]">
             <em className="font-normal not-italic text-white">{t('knowledge.title')}</em>{' '}
             <span className="text-white/40">{t('knowledge.intro')}</span>
           </h2>
           <ProgramCards />
         </div>
 
-        <h2 className="mt-20 max-w-2xl text-2xl leading-snug tracking-[-0.01em]">
+        <h2 className="mt-20 max-w-2xl text-[24px] lg:text-2xl leading-snug tracking-[-0.01em]">
           <em className="font-normal not-italic text-white">{t('engine.title')}</em>{' '}
           <span className="text-white/40">{t('engine.intro')}</span>
         </h2>

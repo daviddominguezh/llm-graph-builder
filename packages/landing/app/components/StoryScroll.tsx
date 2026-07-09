@@ -50,7 +50,7 @@ function Legend({ card }: { card: StoryCard }) {
       <p className="text-sm font-medium tracking-tight" style={{ color: card.accent }}>
         {card.eyebrow}
       </p>
-      <h3 className="mt-4 max-w-[440px] text-[40px] leading-[1.05] font-light tracking-[-0.02em] text-white">
+      <h3 className="mt-4 max-w-[440px] text-[24px] lg:text-[40px] leading-[1.05] font-light tracking-[-0.02em] text-white">
         {t(`${card.messageKey}.title`)}
       </h3>
       <p className="mt-4 max-w-[420px] text-base leading-relaxed text-white/55">
@@ -137,7 +137,7 @@ function DesktopStory() {
 // Mobile: plain stacked list — no pin, no cross-fade (matches Retool's < lg).
 function MobileStory() {
   return (
-    <div className="flex flex-col gap-16 px-6 py-16 lg:hidden">
+    <div className="flex flex-col gap-16 px-4 py-16 lg:hidden">
       {CARDS.map((card) => (
         <div key={card.eyebrow}>
           <Legend card={card} />
