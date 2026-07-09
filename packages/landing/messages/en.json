@@ -59,7 +59,7 @@
       },
       "revenue": {
         "title": "Ready for turning AI into revenue?",
-        "intro": "\nEven with a great agent, when the chat ends without a lead, a booking, or a sale, it was just a cost. We solved it:",
+        "intro": "Even with a great agent, when the chat ends without closing, you lost a lead. We solved it:",
         "items": {
           "formIntegration": {
             "title": "The conversation is the form",

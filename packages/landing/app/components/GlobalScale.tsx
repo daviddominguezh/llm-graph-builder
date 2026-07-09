@@ -8,9 +8,9 @@ import { SectionHeading } from './SectionHeading';
 // used for the left border.
 const SCALE_POINTS = [
   { key: 'revenue.items.formIntegration', accent: '#4aa8ff' },
-  { key: 'revenue.items.leadScoring', accent: '#f06bb3' },
+  { key: 'revenue.items.leadScoring', accent: '#7c72ff' },
   { key: 'revenue.items.bookingSystem', accent: '#f0a94a' },
-  { key: 'revenue.items.payments', accent: '#3ddc97' },
+  { key: 'revenue.items.payments', accent: '#f06bb3' },
 ] as const;
 
 export function GlobalScale() {
@@ -22,7 +22,7 @@ export function GlobalScale() {
           <SectionHeading dark lead={t('revenue.title')} rest={t('revenue.intro')} />
           <dl className="mt-12 space-y-8">
             {SCALE_POINTS.map(({ key, accent }) => (
-              <div key={key} className="border-l-2 pl-5" style={{ borderColor: accent }}>
+              <div key={key} className="border-l-[1px] pl-5" style={{ borderColor: accent }}>
                 <dt className="text-2xl font-light tracking-tight text-white">{t(`${key}.title`)}</dt>
                 <dd className="mt-1 text-sm text-white/55">{t(`${key}.description`)}</dd>
               </div>

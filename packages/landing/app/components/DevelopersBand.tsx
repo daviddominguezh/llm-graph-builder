@@ -134,7 +134,7 @@ export function DevelopersBand() {
   return (
     <section className="stats-section relative overflow-hidden bg-[#070707]">
       <FoldedSilkCanvas
-        className="developers-wave-animation__canvas absolute -bottom-20"
+        className="developers-wave-animation__canvas w-full h-full absolute"
         timeOffset={90000}
         variant="fibrous"
       />

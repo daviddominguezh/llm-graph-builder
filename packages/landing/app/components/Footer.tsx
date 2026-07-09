@@ -96,7 +96,7 @@ export function Footer() {
           />
         </div>
 
-        <div className="mt-14 flex items-center justify-between border-t border-dashed border-neutral-800 pt-6">
+        <div className="mt-14 flex items-center justify-between border-neutral-800 pt-6">
           <span className="text-xs text-[#666]">© 2026 OpenFlow</span>
           <span className="text-xs text-[#666]">Open Source · MIT Licensed</span>
         </div>

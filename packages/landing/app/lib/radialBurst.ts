@@ -1,8 +1,9 @@
 // Interactive radial line-burst: hundreds of thin lines fanning out from a
 // bottom-centre origin across the upper semicircle, each capped with a dot and
-// tinted blue→purple along its length. The mouse repels nearby line tips, which
-// ease back to rest when it leaves. Additive ('lighter') compositing makes the
-// dense core glow. Rendered on a plain 2D canvas.
+// tinted a soft sky (#38bdf8) along its length. The mouse repels nearby line
+// tips (which ease back to rest when it leaves), and lines near the cursor take
+// on the vivid active sky color (soft/desaturated at rest). Additive ('lighter')
+// compositing makes the dense core glow. Rendered on a 2D canvas.
 
 export type RadialBurst = {
   resize: () => void;
@@ -39,6 +40,11 @@ const TILT = 0.42; // fixed camera tilt (radians) — view the sphere at an angl
 const CAM = 5; // perspective camera distance (larger = flatter)
 const ROT_SPEED = 0.0001; // radians per ms — slow Y-axis spin
 const ROT_SPEED_Z = 0.0001; // radians per ms — slow Z-axis (in-plane) roll
+// Sky accent (#38bdf8 ≈ hsl(199,92%,60%)): soft/desaturated at rest, saturating
+// toward vivid as the hover glow (0→1) ramps up.
+const HUE = 199;
+const SAT_REST = 55;
+const SAT_HOVER = 92;
 
 // Even directions on a unit sphere (Fibonacci lattice) so the rotating burst
 // looks like a full 3D dandelion rather than a flat fan.
@@ -97,8 +103,8 @@ function seedLine(ln: Line, dim: Dim): void {
 
 function paintBloom(ctx: CanvasRenderingContext2D, dim: Dim): void {
   const g = ctx.createRadialGradient(dim.ox, dim.oy, 0, dim.ox, dim.oy, dim.maxR * 0.72);
-  g.addColorStop(0, 'rgba(255,255,255,0.13)');
-  g.addColorStop(1, 'rgba(255,255,255,0)');
+  g.addColorStop(0, `hsla(${HUE}, ${SAT_HOVER}%, 74%, 0.1)`);
+  g.addColorStop(1, `hsla(${HUE}, ${SAT_HOVER}%, 74%, 0)`);
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, dim.w, dim.h);
 }
@@ -111,12 +117,16 @@ function paintLine(ctx: CanvasRenderingContext2D, dim: Dim, ln: Line, mouse: Mou
   const p = project(ln, t * ROT_SPEED, t * ROT_SPEED_Z);
   let tx = dim.ox + p.fx * len * p.persp;
   let ty = dim.oy - p.fy * len * p.persp;
+  // prox 0→1: closeness of this line's tip to the cursor — drives both the
+  // repulsion and how much the line takes on the active (vivid) sky color.
+  let prox = 0;
   if (mouse.active) {
     const dx = tx - mouse.x;
     const dy = ty - mouse.y;
     const d = Math.hypot(dx, dy) || 0.001;
     if (d < INFLUENCE) {
-      const f = (1 - d / INFLUENCE) * PUSH;
+      prox = 1 - d / INFLUENCE;
+      const f = prox * PUSH;
       tx += (dx / d) * f;
       ty += (dy / d) * f;
     }
@@ -125,18 +135,19 @@ function paintLine(ctx: CanvasRenderingContext2D, dim: Dim, ln: Line, mouse: Mou
   ln.cy += (ty - ln.cy) * EASE;
   // Depth: 0 = pointing away (dim/thin/small tip), 1 = toward viewer (bright/big).
   const depth = (p.fz + 1) / 2;
+  const sat = SAT_REST + (SAT_HOVER - SAT_REST) * prox;
   const a = ln.alpha * (0.38 + 0.62 * depth);
   const tip = Math.min(96, ln.tipLight + depth * 18);
   const grad = ctx.createLinearGradient(dim.ox, dim.oy, ln.cx, ln.cy);
-  grad.addColorStop(0, `hsla(0,0%,94%,${a})`);
-  grad.addColorStop(1, `hsla(0,0%,${tip}%,${a})`);
+  grad.addColorStop(0, `hsla(${HUE},${sat}%,94%,${a})`);
+  grad.addColorStop(1, `hsla(${HUE},${sat}%,${tip}%,${a})`);
   ctx.strokeStyle = grad;
   ctx.lineWidth = ln.width * (0.7 + depth * 0.6);
   ctx.beginPath();
   ctx.moveTo(dim.ox, dim.oy);
   ctx.lineTo(ln.cx, ln.cy);
   ctx.stroke();
-  ctx.fillStyle = `hsla(0,0%,${Math.min(96, tip + 16)}%,${Math.min(1, a + 0.3)})`;
+  ctx.fillStyle = `hsla(${HUE},${sat}%,${Math.min(96, tip + 16)}%,${Math.min(1, a + 0.3)})`;
   ctx.beginPath();
   ctx.arc(ln.cx, ln.cy, ln.dot * (0.55 + depth * 0.9), 0, Math.PI * 2);
   ctx.fill();
