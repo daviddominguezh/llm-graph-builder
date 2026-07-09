@@ -169,7 +169,7 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
         {cards.map((card, idx) => {
           const c = baseCol + idx;
           const item = items[card.itemIndex]!;
-          const roundness = baseCol === 0 ? 'rounded-xl': baseCol === 1 ? 'rounded-lg' : 'rounded-md';
+          const roundness = c === 0 ? 'rounded-xl' : c === 1 ? 'rounded-lg' : 'rounded-md';
           return (
             <button
               key={card.key}
