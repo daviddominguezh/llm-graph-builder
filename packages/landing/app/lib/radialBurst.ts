@@ -44,7 +44,8 @@ const ROT_SPEED_Z = 0.0001; // radians per ms — slow Z-axis (in-plane) roll
 // toward vivid as the hover glow (0→1) ramps up.
 const HUE = 199;
 const SAT_REST = 55;
-const SAT_HOVER = 92;
+const SAT_HOVER = 76;
+const SKY_L = 68; // sky lightness hovered lines ease toward — kept high for a subtle tint
 
 // Even directions on a unit sphere (Fibonacci lattice) so the rotating burst
 // looks like a full 3D dandelion rather than a flat fan.
@@ -138,16 +139,20 @@ function paintLine(ctx: CanvasRenderingContext2D, dim: Dim, ln: Line, mouse: Mou
   const sat = SAT_REST + (SAT_HOVER - SAT_REST) * prox;
   const a = ln.alpha * (0.38 + 0.62 * depth);
   const tip = Math.min(96, ln.tipLight + depth * 18);
+  // Toward the cursor, drop lightness to the vivid sky level so the stick reads
+  // as actual blue rather than a pale near-white tint.
+  const coreL = 94 + (SKY_L - 94) * prox;
+  const tipL = tip + (SKY_L - tip) * prox;
   const grad = ctx.createLinearGradient(dim.ox, dim.oy, ln.cx, ln.cy);
-  grad.addColorStop(0, `hsla(${HUE},${sat}%,94%,${a})`);
-  grad.addColorStop(1, `hsla(${HUE},${sat}%,${tip}%,${a})`);
+  grad.addColorStop(0, `hsla(${HUE},${sat}%,${coreL}%,${a})`);
+  grad.addColorStop(1, `hsla(${HUE},${sat}%,${tipL}%,${a})`);
   ctx.strokeStyle = grad;
   ctx.lineWidth = ln.width * (0.7 + depth * 0.6);
   ctx.beginPath();
   ctx.moveTo(dim.ox, dim.oy);
   ctx.lineTo(ln.cx, ln.cy);
   ctx.stroke();
-  ctx.fillStyle = `hsla(${HUE},${sat}%,${Math.min(96, tip + 16)}%,${Math.min(1, a + 0.3)})`;
+  ctx.fillStyle = `hsla(${HUE},${sat}%,${Math.min(96, tipL + 16)}%,${Math.min(1, a + 0.3)})`;
   ctx.beginPath();
   ctx.arc(ln.cx, ln.cy, ln.dot * (0.55 + depth * 0.9), 0, Math.PI * 2);
   ctx.fill();
