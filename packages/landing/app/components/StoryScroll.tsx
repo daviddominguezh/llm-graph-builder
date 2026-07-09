@@ -18,6 +18,7 @@ type StoryCard = {
   eyebrow: string;
   messageKey: string; // item key under landing.families (title/description/cta)
   image: string;
+  accent: string; // colors the eyebrow + CTA label for this card
 };
 
 // controlRoom items in catalog order (see messages/KEY_USAGE.md).
@@ -26,16 +27,19 @@ const CARDS: StoryCard[] = [
     eyebrow: 'Observability',
     messageKey: 'controlRoom.items.observability',
     image: '/reference/ConnectBentoBackground2.webp',
+    accent: '#4aa8ff',
   },
   {
     eyebrow: 'Live inbox',
     messageKey: 'controlRoom.items.conversationsDashboard',
     image: '/reference/payment-bento-background.jpg',
+    accent: '#3ddc97',
   },
   {
     eyebrow: 'Evals',
     messageKey: 'controlRoom.items.evals',
     image: '/reference/platform-graphic-background_2x.png',
+    accent: '#f0a94a',
   },
 ];
 
@@ -43,14 +47,20 @@ function Legend({ card }: { card: StoryCard }) {
   const t = useTranslations('landing.families');
   return (
     <>
-      <p className="text-sm font-medium tracking-tight text-white/55">{card.eyebrow}</p>
+      <p className="text-sm font-medium tracking-tight" style={{ color: card.accent }}>
+        {card.eyebrow}
+      </p>
       <h3 className="mt-4 max-w-[440px] text-[40px] leading-[1.05] font-light tracking-[-0.02em] text-white">
         {t(`${card.messageKey}.title`)}
       </h3>
       <p className="mt-4 max-w-[420px] text-base leading-relaxed text-white/55">
         {t(`${card.messageKey}.description`)}
       </p>
-      <a href="#" className="mt-6 inline-block text-sm font-medium text-white underline underline-offset-4">
+      <a
+        href="#"
+        className="mt-6 inline-block text-sm font-medium underline underline-offset-4"
+        style={{ color: card.accent }}
+      >
         {t(`${card.messageKey}.cta`)}
       </a>
     </>

@@ -103,24 +103,24 @@ function Stat({ entry }: { entry: (typeof STATS)[number] }) {
 // waysToUse items in catalog order — the page-closing block, ending on
 // pay-as-you-go pricing (the cloud bookend back to the hero).
 const INTEGRATION_PATHS = [
+  'waysToUse.items.payAsYouGoPricing',
   'waysToUse.items.noCodeLowCodeApi',
   'waysToUse.items.claudeCodeMcp',
-  'waysToUse.items.payAsYouGoPricing',
 ] as const;
 
 function IntegrationPaths() {
   const t = useTranslations('landing.families');
   return (
-    <div className="mt-20 border-t border-dashed border-neutral-800 pt-16">
+    <div className="mt-25 border-t border-neutral-800 pt-22">
       <h2 className="max-w-2xl text-2xl leading-snug tracking-[-0.01em]">
         <em className="font-normal not-italic text-white">{t('waysToUse.title')}</em>{' '}
-        <span className="text-[#7d90b8]">{t('waysToUse.intro')}</span>
+        <span className="text-white/40">{t('waysToUse.intro')}</span>
       </h2>
       <div className="mt-10 grid gap-4 sm:grid-cols-3">
         {INTEGRATION_PATHS.map((key) => (
           <div key={key} className="rounded-lg border border-white/10 bg-white/4 p-6 lg:aspect-[400/294]">
             <h3 className="text-base font-medium text-white">{t(`${key}.title`)}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-[#7d90b8]">{t(`${key}.description`)}</p>
+            <p className="mt-2 text-sm leading-relaxed text-white/55">{t(`${key}.description`)}</p>
             <span className="mt-3 inline-block text-sm font-medium text-[#8b9df7]">{t(`${key}.cta`)} ›</span>
           </div>
         ))}
@@ -133,25 +133,27 @@ export function DevelopersBand() {
   const t = useTranslations('landing.families');
   return (
     <section className="stats-section relative overflow-hidden bg-[#070707]">
-      <FoldedSilkCanvas className="developers-wave-animation__canvas absolute inset-0" timeOffset={90000} variant="fibrous" />
+      <FoldedSilkCanvas
+        className="developers-wave-animation__canvas absolute -bottom-20"
+        timeOffset={90000}
+        variant="fibrous"
+      />
 
-      <div className="pointer-events-none absolute inset-y-0 left-1/2 hidden w-[1280px] -translate-x-1/2 border-x border-dashed border-neutral-800 lg:block" />
-
-      <div className="relative mx-auto w-full max-w-[1232px] px-0 pt-24 pb-24">
-        <div className="border-b border-dashed border-neutral-800 pb-16">
+      <div className="relative mx-auto w-full max-w-[1232px] px-0 pt-25 pb-30">
+        <div className="pb-25 border-b border-neutral-800">
           <h2 className="max-w-2xl text-2xl leading-snug tracking-[-0.01em]">
             <em className="font-normal not-italic text-white">{t('knowledge.title')}</em>{' '}
-            <span className="text-[#7d90b8]">{t('knowledge.intro')}</span>
+            <span className="text-white/40">{t('knowledge.intro')}</span>
           </h2>
           <ProgramCards />
         </div>
 
         <h2 className="mt-20 max-w-2xl text-2xl leading-snug tracking-[-0.01em]">
           <em className="font-normal not-italic text-white">{t('engine.title')}</em>{' '}
-          <span className="text-[#7d90b8]">{t('engine.intro')}</span>
+          <span className="text-white/40">{t('engine.intro')}</span>
         </h2>
 
-        <div className="mt-[360px] grid gap-x-4 gap-y-12 sm:grid-cols-3">
+        <div className="mt-30 grid gap-x-4 gap-y-12 sm:grid-cols-3">
           {STATS.map((entry) => (
             <Stat key={entry.messageKey} entry={entry} />
           ))}

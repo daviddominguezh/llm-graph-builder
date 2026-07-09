@@ -190,7 +190,7 @@
       },
       "waysToUse": {
         "title": "Build your way, pay for what you use.",
-        "intro": "However you build, you only pay for what runs.",
+        "intro": "Whatever you build, you only pay if it runs. Fund your account, we notify you when your balance is running low.",
         "items": {
           "noCodeLowCodeApi": {
             "title": "Three doors. Same platform.",
