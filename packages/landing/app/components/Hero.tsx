@@ -159,7 +159,7 @@ function HeroHeading() {
       </div>
       <h2 className={`mt-0 pt-0 h-fit ${descriptionStyle}`}>
         <span data-intro="subtitle" className="opacity-0">
-          {t('subtitle')} <Image src={openflowLogo} alt="OpenFlow" className="h-[32px] w-auto inline" />
+          {t('subtitle')} <Image src={openflowLogo} alt="OpenFlow" className="h-[28px] w-auto inline" />
           {': '}
         </span>
         <span data-intro="description" className="opacity-0">

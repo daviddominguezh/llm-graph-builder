@@ -55,7 +55,7 @@ const IMAGE_W = Math.ceil(COL0_BASE) + 4;
 // window (contain — the smaller of the two ratios), so it never distorts and
 // the fixed-px nodes/lines keep their proportions. The 0.85 leaves padding
 // between the diagram and the card edges.
-const DIAGRAM_SCALE = Math.min(IMAGE_W / DIAGRAM_W, HEIGHT / DIAGRAM_H) * 0.85;
+const DIAGRAM_SCALE = Math.min(IMAGE_W / DIAGRAM_W, HEIGHT / DIAGRAM_H) * 0.95;
 
 // Card face: the scaled integration diagram, or the item's image.
 function CardVisual({ item }: { item: HappeningItem }) {
