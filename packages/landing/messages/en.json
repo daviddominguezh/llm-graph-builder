@@ -188,7 +188,7 @@
           },
           "webhookTriggers": {
             "title": "Events wake your agents",
-            "description": "A new signup, a paid invoice, a support ticket — your agent acts the moment it happens."
+            "description": "A new signup, a paid invoice, a support ticket — your agent acts the moment it happens. Configure any trigger."
           }
         }
       },
