@@ -50,8 +50,8 @@ export function Happenings() {
     // First card: the integration map itself (scaled to fit inside the card).
     {
       id: 'integration-map',
-      title: t('toolbox.title'),
-      description: t('toolbox.intro'),
+      title: t('toolbox.diagram.title'),
+      description: t('toolbox.diagram.description'),
       image: '',
       diagram: true,
     },

@@ -58,7 +58,7 @@ const DIAGRAM_SCALE = Math.min(IMAGE_W / DIAGRAM_W, HEIGHT / DIAGRAM_H);
 function CardVisual({ item }: { item: HappeningItem }) {
   if (item.diagram) {
     return (
-      <span className="absolute inset-0 flex items-center justify-center bg-[#0d0d0d]">
+      <span className="absolute inset-0 flex items-center justify-center bg-black">
         <span
           className="block shrink-0"
           style={{ width: `${DIAGRAM_W}px`, height: `${DIAGRAM_H}px`, transform: `scale(${DIAGRAM_SCALE})` }}

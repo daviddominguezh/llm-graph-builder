@@ -121,7 +121,6 @@ function IntegrationPaths() {
           <div key={key} className="rounded-lg border border-white/10 bg-white/4 p-6 lg:aspect-[400/294]">
             <h3 className="text-base font-medium text-white">{t(`${key}.title`)}</h3>
             <p className="mt-2 text-sm leading-relaxed text-white/55">{t(`${key}.description`)}</p>
-            <span className="mt-3 inline-block text-sm font-medium text-[#8b9df7]">{t(`${key}.cta`)} ›</span>
           </div>
         ))}
       </div>

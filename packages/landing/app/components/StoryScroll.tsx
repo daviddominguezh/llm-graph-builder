@@ -27,19 +27,19 @@ const CARDS: StoryCard[] = [
     eyebrow: 'Observability',
     messageKey: 'controlRoom.items.observability',
     image: '/reference/ConnectBentoBackground2.webp',
-    accent: '#4aa8ff',
+    accent: '#f06bb3',
   },
   {
     eyebrow: 'Live inbox',
     messageKey: 'controlRoom.items.conversationsDashboard',
     image: '/reference/payment-bento-background.jpg',
-    accent: '#3ddc97',
+    accent: '#f0a94a',
   },
   {
     eyebrow: 'Evals',
     messageKey: 'controlRoom.items.evals',
     image: '/reference/platform-graphic-background_2x.png',
-    accent: '#f0a94a',
+    accent: '#4aa8ff',
   },
 ];
 

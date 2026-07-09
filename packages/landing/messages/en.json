@@ -118,6 +118,10 @@
       "toolbox": {
         "title": "Make your agents ready for the world out there.",
         "intro": "An agent that can't reach your systems is just a chatbot. Our platform allows your agents to connect to everything.",
+        "diagram": {
+          "title": "Everything your agents connect to, in one map.",
+          "description": "Channels, databases, MCP servers, internal tools, and orchestration — all wired to OpenFlow at the center."
+        },
         "items": {
           "connectAnyMcp": {
             "title": "If it speaks MCP, your agent speaks it",
@@ -194,18 +198,15 @@
         "items": {
           "noCodeLowCodeApi": {
             "title": "Three doors. Same platform.",
-            "description": "Build visually with no code. Call any published agent as an API. Extend through custom integrations. Start where your team is.",
-            "cta": "Pick your door"
+            "description": "Build visually with no code. Call any published agent as an API. Extend through custom integrations. Start where your team is."
           },
           "claudeCodeMcp": {
             "title": "AI-operable, not just AI-powered",
-            "description": "OpenFlow ships as an MCP. Build, test, and publish agents from Claude Code — your AI tooling operating your AI platform.",
-            "cta": "Install the MCP"
+            "description": "OpenFlow ships as an MCP. Build, test, and publish agents from Claude Code — your AI tooling operating your AI platform."
           },
           "payAsYouGoPricing": {
             "title": "Priced like a cloud. Readable like a receipt.",
-            "description": "No seats, no plans. Each feature has a price; you pay for what you use, itemized and metered per customer. Price your own product with confidence.",
-            "cta": "See the pricing model"
+            "description": "No seats, no plans. Each feature has a price; you pay for what you use, itemized and metered per customer. Price your own product with confidence."
           }
         }
       }
