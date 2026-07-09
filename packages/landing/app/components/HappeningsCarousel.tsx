@@ -169,6 +169,7 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
         {cards.map((card, idx) => {
           const c = baseCol + idx;
           const item = items[card.itemIndex]!;
+          const roundness = baseCol === 0 ? 'rounded-xl': baseCol === 1 ? 'rounded-lg' : 'rounded-md';
           return (
             <button
               key={card.key}
@@ -177,7 +178,7 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
               onMouseEnter={() => c >= 0 && c <= 3 && setHovered(c)}
               aria-label={item.title}
               style={{ left: `${x[c] ?? 0}px`, width: `${width[c] ?? SMALL_W}px`, transition }}
-              className="absolute top-0 h-full cursor-pointer overflow-hidden rounded-md"
+              className={`absolute top-0 h-full cursor-pointer overflow-hidden ${roundness}`}
             >
               <span
                 className="absolute top-0 left-1/2 h-full -translate-x-1/2"

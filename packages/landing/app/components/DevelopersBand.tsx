@@ -75,7 +75,7 @@ function ProgramCards() {
 // GlobalScale scale points, so they read as one design language.
 const STATS = [
   { messageKey: 'engine.items.longRunningAgents', accent: '#f06bb3' },
-  { messageKey: 'engine.items.scheduledExecution', accent: '#a05df0' },
+  { messageKey: 'engine.items.scheduledExecution', accent: '#f0a94a' },
   { messageKey: 'engine.items.webhookTriggers', accent: '#4aa8ff' },
 ] as const;
 
