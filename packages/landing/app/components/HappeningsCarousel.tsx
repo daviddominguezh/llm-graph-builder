@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 
-import { IntegrationDiagram, VH as DIAGRAM_H, VW as DIAGRAM_W } from './IntegrationDiagram';
+import { VH as DIAGRAM_H, VW as DIAGRAM_W, IntegrationDiagram } from './IntegrationDiagram';
 
 export type HappeningItem = {
   id: string;
@@ -44,7 +44,9 @@ function fractions(hovered: number): number[] {
   return BASE_FR.map((_, c) => (c === hovered ? STRETCHED_FR[c]! : SQUEEZED_FR[c]!));
 }
 
-const COL0_BASE = (HEIGHT * 16) / 9;
+// Expanded (active) card width: a 16:9 base, widened a touch (1.1) so the active
+// card reads noticeably larger than the others (which share the remaining space).
+const COL0_BASE = ((HEIGHT * 16) / 9) * 1.1;
 // Image window = the widest col-0 can ever be (stretched fraction 0), so the
 // image always fills the expanded card and its rounded corners stay clipped.
 const IMAGE_W = Math.ceil(COL0_BASE) + 4;
@@ -167,7 +169,6 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
         {cards.map((card, idx) => {
           const c = baseCol + idx;
           const item = items[card.itemIndex]!;
-          const expanded = c === 0;
           return (
             <button
               key={card.key}
@@ -183,11 +184,6 @@ export function HappeningsCarousel({ items }: { items: readonly HappeningItem[] 
                 style={{ width: `${IMAGE_W}px` }}
               >
                 <CardVisual item={item} />
-                <span
-                  className={`absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-6 text-left text-lg font-medium whitespace-nowrap text-white transition-opacity duration-200 ${expanded ? 'opacity-100 delay-200' : 'opacity-0'}`}
-                >
-                  {item.title}
-                </span>
               </span>
             </button>
           );
