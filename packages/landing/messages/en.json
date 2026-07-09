@@ -8,7 +8,8 @@
       "title2": "We built the AI infra so you don't have to.",
       "subtitle": "Presenting",
       "description": "the platform to create, test, run, scale, monitor and manage production-ready AI. We run the servers, so you can focus on building the product.",
-      "cta": "Join the Waitlist"
+      "cta": "Join the Waitlist",
+      "ctaMobile": "Waitlist"
     },
     "whatIsOpenflow": {
       "title": "Build an agent once.\nSell it to every client you serve.",

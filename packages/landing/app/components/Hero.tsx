@@ -70,7 +70,7 @@ function GitHubIcon() {
 function HeroCtas() {
   const t = useTranslations('landing.hero');
   return (
-    <div data-intro="ctas" className="my-[90px] flex flex-wrap items-center gap-4 opacity-0">
+    <div data-intro="ctas" className="my-6 lg:my-[90px] flex flex-wrap items-center gap-4 opacity-0">
       <a
         href={GITHUB_URL}
         target="_blank"
@@ -124,7 +124,8 @@ function LogoBar() {
   );
 }
 
-const HEADING_BASE = 'max-w-[961px] text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]';
+const HEADING_BASE =
+  'max-w-[961px] text-[24px] lg:text-[34px] leading-[1.15] font-light tracking-[-0.02em] sm:text-[44px]';
 
 // The blend must live on the <h1>: its z-[2] makes it a stacking context, so a
 // mix-blend on a child would only blend against the h1's own (empty) backdrop,
@@ -139,7 +140,7 @@ function HeroHeading() {
   const t = useTranslations('landing.hero');
 
   const titleStyle = 'h-fit col-start-1 row-start-1 font-normal not-italic text-white opacity-0';
-  const descriptionStyle = 'text-[34px] leading-[1.15] font-light text-white/60';
+  const descriptionStyle = 'text-[24px] lg:text-[34px] leading-[1.15] font-light text-white/60';
 
   const [t1_1, t1_2] = t('title').split('\n');
 
@@ -159,7 +160,8 @@ function HeroHeading() {
       </div>
       <h2 className={`mt-0 pt-0 h-fit ${descriptionStyle}`}>
         <span data-intro="subtitle" className="opacity-0">
-          {t('subtitle')} <Image src={openflowLogo} alt="OpenFlow" className="h-[28px] w-auto inline" />
+          {t('subtitle')}{' '}
+          <Image src={openflowLogo} alt="OpenFlow" className="h-[20px] lg:h-[28px] w-auto inline" />
           {': '}
         </span>
         <span data-intro="description" className="opacity-0">

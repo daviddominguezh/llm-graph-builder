@@ -43,15 +43,26 @@ function GitHubStarButton({ stars }: { stars: number | null }) {
 function JoinWaitlistButton() {
   const t = useTranslations();
   return (
-    <a
-      href={GITHUB_URL}
-      target="_blank"
-      rel="noopener noreferrer"
-      data-nav="waitlist"
-      className="inline-flex h-7.5 items-center rounded-lg bg-white hover:bg-white/90 px-3 text-sm font-medium text-black mix-blend-lighten font-bold"
-    >
-      {t('landing.hero.cta')}
-    </a>
+    <>
+      <a
+        href={GITHUB_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-nav="waitlist"
+        className="hidden lg:inline-flex h-7.5 items-center rounded-lg bg-white hover:bg-white/90 px-3 text-sm font-medium text-black mix-blend-lighten font-bold"
+      >
+        {t('landing.hero.cta')}
+      </a>
+      <a
+        href={GITHUB_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-nav="waitlist"
+        className="inline-flex lg:hidden h-7.5 items-center rounded-lg bg-white hover:bg-white/90 px-3 text-sm font-medium text-black mix-blend-lighten font-bold"
+      >
+        {t('landing.hero.ctaMobile')}
+      </a>
+    </>
   );
 }
 
@@ -60,11 +71,21 @@ export async function Navbar() {
 
   return (
     <nav className="absolute top-0 z-[60] w-full bg-transparent border-neutral-800">
-      <div className="mx-auto flex h-[72px] w-full px-8.5 items-center justify-between px-6">
+      <div className="mx-auto flex h-[72px] w-full px-3 lg:px-8.5 items-center justify-between px-6">
         <div className="flex items-center gap-12">
           <a href="#" className="flex items-center">
-            <Image src={logoFull} alt="OpenFlow" height={24} priority className="nav-logo-white" />
-            <Image src={logoDark} alt="" aria-hidden="true" height={24} className="nav-logo-dark hidden" />
+            <Image
+              src={logoFull}
+              alt="OpenFlow"
+              priority
+              className="h-[20px] lg:h-[24px] w-auto nav-logo-white"
+            />
+            <Image
+              src={logoDark}
+              alt=""
+              aria-hidden="true"
+              className="h-[20px] lg:h-[24px] w-auto nav-logo-dark hidden"
+            />
           </a>
         </div>
 
