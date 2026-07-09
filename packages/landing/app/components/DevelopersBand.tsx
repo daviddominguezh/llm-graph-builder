@@ -57,7 +57,7 @@ function ProgramCards() {
           <div className="flex flex-col justify-between px-5 py-6">
             <p className="text-sm leading-relaxed">
               <strong className="font-semibold text-white">{t(`${card.messageKey}.title`)}.</strong>{' '}
-              <span className="text-[#7d90b8]">{t(`${card.messageKey}.description`)}</span>
+              <span className="text-white/55">{t(`${card.messageKey}.description`)}</span>
             </p>
             <span className="mt-4 inline-block text-sm font-medium text-[#8b9df7]">
               {t(`${card.messageKey}.cta`)} ›
