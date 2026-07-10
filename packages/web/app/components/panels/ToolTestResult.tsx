@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
 import type { ToolCallResponse } from '../../lib/api';
+import { DISCOVERY_ERROR_CATEGORIES, discoveryErrorRelativeKey } from '../../lib/discoveryErrorCopy';
 import { JsonBlock, extractMcpPayload, isJsonObject } from './JsonDisplay';
 
 type ResultState = 'empty' | 'loading' | 'done';
@@ -117,6 +118,11 @@ function ErrorResult({
   durationMs: number | null;
 }) {
   const t = useTranslations('toolTest');
+  const tMcp = useTranslations('mcpLibrary');
+  // MCP tool-call failures carry a redacted category as `error.code`; localize it
+  // (matches the discover path). Builtin/exception errors keep their raw message.
+  const category = DISCOVERY_ERROR_CATEGORIES.find((c) => c === error.code);
+  const message = category !== undefined ? tMcp(discoveryErrorRelativeKey(category)) : error.message;
   return (
     <div className="min-w-0 flex min-h-0 flex-1 flex-col animate-in fade-in-0 duration-300">
       <div className="shrink-0 px-5 pt-5 pb-3">
@@ -124,7 +130,7 @@ function ErrorResult({
       </div>
       <div className="flex-1 overflow-y-auto px-5 pb-5">
         <div className="flex flex-col gap-3">
-          <p className="text-sm font-medium">{error.message}</p>
+          <p className="text-sm font-medium">{message}</p>
           {error.code !== undefined && (
             <div className="flex items-baseline gap-2 text-xs">
               <span className="text-muted-foreground">{t('errorCode')}</span>

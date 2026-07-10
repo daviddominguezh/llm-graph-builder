@@ -93,6 +93,7 @@ export interface ToolCallOptions {
   variableValues?: Record<string, unknown>;
   orgId?: string;
   libraryItemId?: string;
+  agentId?: string;
 }
 
 export interface ToolCallResult {
@@ -107,17 +108,26 @@ export interface ToolCallError {
 
 export type ToolCallResponse = ToolCallResult | ToolCallError;
 
-const ToolCallResponseSchema = z.union([
+// `/mcp/tools/call` returns a REDACTED response: on failure it sends only a
+// closed-taxonomy `errorCategory` (never a raw message — the route is
+// unauthenticated with a client-supplied transport). Normalize it into the shared
+// ToolCallResponse, carrying the category as `code` so the UI can localize it.
+const McpToolCallResponseSchema = z.union([
   z.object({ success: z.literal(true), result: z.unknown() }),
-  z.object({
-    success: z.literal(false),
-    error: z.object({
-      message: z.string(),
-      code: z.string().optional(),
-      details: z.unknown().optional(),
-    }),
-  }),
+  z.object({ success: z.literal(false), errorCategory: z.string() }),
 ]);
+
+function mcpErrorResponse(rawCategory: unknown): ToolCallError {
+  const category = toDiscoveryErrorCategory(rawCategory);
+  return { success: false, error: { message: category, code: category } };
+}
+
+function normalizeMcpResponse(raw: unknown): ToolCallResponse {
+  const parsed = McpToolCallResponseSchema.safeParse(raw);
+  if (!parsed.success) return mcpErrorResponse(undefined);
+  if (parsed.data.success) return { success: true, result: parsed.data.result };
+  return mcpErrorResponse(parsed.data.errorCategory);
+}
 
 export async function callMcpTool(
   transport: McpTransport,
@@ -136,11 +146,12 @@ export async function callMcpTool(
       variableValues: options?.variableValues,
       orgId: options?.orgId,
       libraryItemId: options?.libraryItemId,
+      agentId: options?.agentId,
     }),
     signal,
   });
   const raw = await fetchJsonUnknown(res);
-  return ToolCallResponseSchema.parse(raw) as ToolCallResponse;
+  return normalizeMcpResponse(raw);
 }
 
 const BuiltinResponseSchema = z.union([

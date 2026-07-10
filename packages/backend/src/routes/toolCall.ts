@@ -152,6 +152,22 @@ function logError(category: DiscoveryErrorCategory): void {
   process.stderr.write(`[toolCall] ERROR: ${category}\n`);
 }
 
+/** DEBUG (remove before merge): redacted view of whether the transport that
+ * reached the backend still carries an Authorization header. */
+function authHeaderDebug(transport: McpTransport): string {
+  if (transport.type !== 'http' && transport.type !== 'sse') return 'n/a';
+  const auth = transport.headers?.Authorization ?? transport.headers?.authorization ?? '';
+  return auth === '' ? 'MISSING' : `present(len=${String(auth.length)})`;
+}
+
+/** DEBUG (remove before merge): the real error behind the redacted category. */
+function logErrorDebug(body: ToolCallBody, errorCategory: DiscoveryErrorCategory, err: unknown): void {
+  const rawMsg = err instanceof Error ? err.message : String(err);
+  process.stdout.write(
+    `[toolCall][DEBUG] tool=${body.toolName} category=${errorCategory} auth=${authHeaderDebug(body.transport)} raw="${rawMsg}"\n`
+  );
+}
+
 function logSuccess(toolName: string): void {
   process.stdout.write(`[toolCall] OK: ${toolName} executed\n`);
 }
@@ -178,6 +194,7 @@ export async function runToolCall(req: Request, res: Response, deps: ToolCallDep
   } catch (err) {
     const errorCategory = classifyDiscoveryError(err);
     logError(errorCategory);
+    logErrorDebug(body, errorCategory, err);
     res.status(HTTP_BAD_REQUEST).json(errorResponse(errorCategory));
   }
 }

@@ -126,12 +126,17 @@ function PanelTabs({ value, onChange, t, isAgent, hasMcpError }: PanelTabsProps)
   );
 }
 
-function buildCallOptions(server: McpServerConfig | undefined, orgId: string): ToolCallOptions | undefined {
+function buildCallOptions(
+  server: McpServerConfig | undefined,
+  orgId: string,
+  agentId: string
+): ToolCallOptions | undefined {
   if (server === undefined) return undefined;
   return {
     variableValues: server.variableValues as Record<string, unknown> | undefined,
     orgId,
     libraryItemId: server.libraryItemId,
+    agentId,
   };
 }
 
@@ -189,7 +194,7 @@ function buildRunner(tool: RegistryTool | null, args: UseToolTestArgs): RunTool 
   const builtin = findBuiltinProvider(tool, args.groups);
   if (builtin !== null) return buildBuiltinRunner(builtin.providerId, args.agentId);
   const server = args.servers.find((s) => s.id === tool.sourceId);
-  const callOptions = buildCallOptions(server, args.orgId);
+  const callOptions = buildCallOptions(server, args.orgId, args.agentId);
   return buildMcpRunner(server?.transport ?? null, callOptions);
 }
 

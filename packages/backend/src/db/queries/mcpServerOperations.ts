@@ -1,4 +1,10 @@
-import type { McpTransport, Operation } from '@daviddh/graph-types';
+import {
+  type McpTransport,
+  type Operation,
+  type VariableValue,
+  VariableValueSchema,
+} from '@daviddh/graph-types';
+import { z } from 'zod';
 
 import { staleDiscoveryAfterServerEdit } from '../../routes/mcp-server/mcpDiscoveryInvalidation.js';
 import type { SupabaseClient } from './operationHelpers.js';
@@ -60,6 +66,51 @@ export async function updateMcpServer(
   throwOnMutationError(result, 'updateMcpServer');
   // A transport/definition edit changes the discovery surface for all tenants.
   await staleDiscoveryAfterServerEdit(supabase, agentId, data.serverId);
+}
+
+const StoredVariableValuesSchema = z.record(z.string(), VariableValueSchema);
+
+function readJsonField(data: unknown, key: string): unknown {
+  if (typeof data !== 'object' || data === null || !(key in data)) return undefined;
+  return Object.getOwnPropertyDescriptor(data, key)?.value;
+}
+
+function readStringField(data: unknown, key: string): string | undefined {
+  const value = readJsonField(data, key);
+  return typeof value === 'string' ? value : undefined;
+}
+
+function parseStoredVariableValues(raw: unknown): Record<string, VariableValue> | undefined {
+  const result = StoredVariableValuesSchema.safeParse(raw);
+  return result.success ? result.data : undefined;
+}
+
+export interface McpServerBinding {
+  serverId: string;
+  variableValues: Record<string, VariableValue> | undefined;
+}
+
+/**
+ * Load the stored per-installation binding for an MCP library item on an agent:
+ * the base `server_id` and its `variable_values`. The FE cannot decrypt secret
+ * `env_ref` values, so the authoritative binding (with the real refs) must be
+ * read server-side. Returns undefined when no binding row exists.
+ */
+export async function getMcpServerBinding(
+  supabase: SupabaseClient,
+  agentId: string,
+  libraryItemId: string
+): Promise<McpServerBinding | undefined> {
+  const result = await supabase
+    .from('graph_mcp_servers')
+    .select('server_id, variable_values')
+    .eq('agent_id', agentId)
+    .eq('library_item_id', libraryItemId)
+    .maybeSingle();
+  if (result.error !== null || result.data === null) return undefined;
+  const serverId = readStringField(result.data, 'server_id');
+  if (serverId === undefined) return undefined;
+  return { serverId, variableValues: parseStoredVariableValues(readJsonField(result.data, 'variable_values')) };
 }
 
 export async function deleteMcpServer(

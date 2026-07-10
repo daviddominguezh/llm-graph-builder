@@ -60,6 +60,30 @@ export async function getTenantsByOrg(
   return { result: mapRows(rows), error: null };
 }
 
+function readIdField(data: unknown): string | undefined {
+  if (typeof data !== 'object' || data === null || !('id' in data)) return undefined;
+  const value: unknown = Object.getOwnPropertyDescriptor(data, 'id')?.value;
+  return typeof value === 'string' ? value : undefined;
+}
+
+/**
+ * The org's default tenant id (`tenants.is_default = true`). Used to pick the
+ * tenant scope for tool-test resolution. Returns undefined when the org has none.
+ */
+export async function getDefaultTenantId(
+  supabase: SupabaseClient,
+  orgId: string
+): Promise<string | undefined> {
+  const { data, error } = await supabase
+    .from('tenants')
+    .select('id')
+    .eq('org_id', orgId)
+    .eq('is_default', true)
+    .maybeSingle();
+  if (error !== null || data === null) return undefined;
+  return readIdField(data);
+}
+
 export async function createTenant(
   supabase: SupabaseClient,
   orgId: string,
