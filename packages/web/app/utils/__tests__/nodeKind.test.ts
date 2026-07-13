@@ -47,6 +47,10 @@ describe('getRowModeSourceIds', () => {
     expect(ids.has('A')).toBe(true);
     expect(ids.has('T')).toBe(false);
   });
+  it('never treats the start node (INITIAL_STEP) as row-mode, even with user_said edges', () => {
+    const edges = [edge('INITIAL_STEP-A-0', 'INITIAL_STEP', 'A', userSaid)];
+    expect(getRowModeSourceIds(edges).has('INITIAL_STEP')).toBe(false);
+  });
 });
 
 describe('normalizeRowModeHandles', () => {

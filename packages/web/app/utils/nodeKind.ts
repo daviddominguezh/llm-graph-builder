@@ -6,6 +6,12 @@ export type NodeKind = 'agent' | 'user_routing' | 'agent_decision' | 'tool_call'
 
 const ROW_MODE_KINDS: ReadonlySet<NodeKind> = new Set<NodeKind>(['agent_decision', 'user_routing']);
 
+// The start node routes user_said edges (so getNodeKind reads it as user_routing) but is
+// rendered by StartNode, which exposes a single `right-source` handle — not per-option row
+// handles. It must never be treated as row-mode, or its edges get rewritten to a handle id
+// that doesn't exist and disappear. (Declared locally, matching graphValidation.ts.)
+const START_NODE_ID = 'INITIAL_STEP';
+
 export function isRowModeNodeKind(kind: NodeKind): boolean {
   return ROW_MODE_KINDS.has(kind);
 }
@@ -32,6 +38,7 @@ export function getNodeKind(nodeId: string, edges: Edge<RFEdgeData>[]): NodeKind
 export function getRowModeSourceIds(edges: Edge<RFEdgeData>[]): Set<string> {
   const result = new Set<string>();
   for (const source of new Set(edges.map((e) => e.source))) {
+    if (source === START_NODE_ID) continue;
     if (isRowModeNodeKind(getNodeKind(source, edges))) result.add(source);
   }
   return result;
