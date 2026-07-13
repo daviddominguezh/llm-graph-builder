@@ -4,40 +4,12 @@ import { memo } from "react";
 import { type NodeProps, useEdges } from "@xyflow/react";
 import { Separator } from "@/components/ui/separator";
 import type { RFNodeData, RFEdgeData } from "../../utils/graphTransformers";
-import { NodeHeader, type NodeKind } from "./NodeHeader";
+import { getNodeKind } from "../../utils/nodeKind";
+import { NodeHeader } from "./NodeHeader";
 import { NodeBody } from "./NodeBody";
 import { Handles } from "./Handles";
 import type { Edge } from "@xyflow/react";
 import { AlertCircle } from "lucide-react";
-
-function getNodeKind(nodeId: string, edges: Edge<RFEdgeData>[]): NodeKind {
-  // Find outgoing edges from this node
-  const outgoingEdges = edges.filter((e) => e.source === nodeId);
-
-  // If no outgoing edges, it's an agent node
-  if (outgoingEdges.length === 0) {
-    return "agent";
-  }
-
-  // Check preconditions on outgoing edges
-  for (const edge of outgoingEdges) {
-    const preconditions = edge.data?.preconditions;
-    if (preconditions && preconditions.length > 0) {
-      const preconditionType = preconditions[0].type;
-      switch (preconditionType) {
-        case "user_said":
-          return "user_routing";
-        case "agent_decision":
-          return "agent_decision";
-        case "tool_call":
-          return "tool_call";
-      }
-    }
-  }
-
-  // No preconditions on outgoing edges
-  return "agent";
-}
 
 function AgentNodeComponent({ data, id, selected }: NodeProps) {
   const nodeData = data as RFNodeData;

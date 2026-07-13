@@ -2,9 +2,9 @@ import { Button } from '@/components/ui/button';
 import { Play, Send, Shrink, Split, UserRoundPen } from 'lucide-react';
 import { memo } from 'react';
 
-import { useHandleContext } from './HandleContext';
+import type { NodeKind } from '../../utils/nodeKind';
 
-export type NodeKind = 'agent' | 'user_routing' | 'agent_decision' | 'tool_call';
+import { useHandleContext } from './HandleContext';
 
 interface NodeHeaderProps {
   nodeKind: NodeKind;
@@ -23,17 +23,17 @@ const NodeHeaderComponent = ({ nodeKind, nodeId }: NodeHeaderProps) => {
   switch (nodeKind) {
     case 'user_routing':
       headerLabel = 'User Input';
-      colorClass = 'bg-green-700';
+      colorClass = 'bg-green-600';
       headerIcon = <UserRoundPen className={iconClass} />;
       break;
     case 'agent_decision':
       headerLabel = 'LLM Decision';
-      colorClass = 'bg-purple-700';
+      colorClass = 'bg-purple-600';
       headerIcon = <Split className={iconClass} />;
       break;
     case 'tool_call':
       headerLabel = 'Tool call';
-      colorClass = 'bg-orange-700';
+      colorClass = 'bg-orange-600';
       headerIcon = <Play className={iconClass} />;
       break;
     default:
@@ -45,10 +45,10 @@ const NodeHeaderComponent = ({ nodeKind, nodeId }: NodeHeaderProps) => {
   return (
     <div className="flex justify-between items-center group">
       <div className="flex items-center gap-2 px-4 py-3">
-        <div className={`${colorClass} rounded-sm flex items-center justify-center p-1`}>{headerIcon}</div>
-        <div className="flex flex-col gap-0.5">
+        <div className={`${colorClass} rounded-sm flex items-center justify-center p-1.5`}>{headerIcon}</div>
+        <div className="flex flex-col gap-0">
           <span className={`text-[10px] font-medium uppercase text-foreground/70`}>{headerLabel}</span>
-          <p className="text-xs uppercase font-semibold text-foreground">{nodeId}</p>
+          <p className="text-[10px] uppercase font-semibold text-foreground">{nodeId}</p>
         </div>
       </div>
 
