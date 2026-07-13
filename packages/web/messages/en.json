@@ -490,6 +490,7 @@
   "nodePanel": {
     "addOption": "Add option",
     "deleteOption": "Delete option",
+    "toolPrefix": "Tool:",
     "disabledByToolCall": "Disabled — this node routes through a tool call edge.",
     "outputSchema": "Output Schema",
     "outputSchemaDescription": "Define the structured output format for this agent node.",

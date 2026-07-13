@@ -2,6 +2,7 @@
 
 import { memo } from "react";
 import { type NodeProps, useEdges } from "@xyflow/react";
+import { useTranslations } from "next-intl";
 import { Separator } from "@/components/ui/separator";
 import type { RFNodeData, RFEdgeData } from "../../utils/graphTransformers";
 import { getNodeKind, isRowModeNodeKind, type NodeKind } from "../../utils/nodeKind";
@@ -11,7 +12,7 @@ import { NodeBody } from "./NodeBody";
 import { NodeOptions } from "./NodeOptions";
 import { Handles } from "./Handles";
 import type { Edge } from "@xyflow/react";
-import { AlertCircle, Wrench } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 function getToolNameForNode(id: string, edges: Edge<RFEdgeData>[]): string | undefined {
   const toolEdge = edges.find(
@@ -32,6 +33,7 @@ interface NodeShellProps {
 }
 
 function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolName, selected }: NodeShellProps) {
+  const t = useTranslations("nodePanel");
   const width = nodeData.nodeWidth ?? 180;
   const muted = nodeData.muted ?? false;
   const hasError = nodeData.hasError ?? false;
@@ -61,10 +63,10 @@ function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolName, selecte
       <Separator />
       <NodeBody nodeId={nodeData.nodeId} description={nodeData.description} text={nodeData.text} />
       {toolName !== undefined && (
-        <div className="flex items-center gap-1.5 px-3 pb-2 text-xs text-orange-700">
-          <Wrench className="h-3 w-3 shrink-0" />
-          <span className="line-clamp-1! font-medium">{toolName}</span>
-        </div>
+        <p className="line-clamp-1! px-3 pb-2 text-xs text-foreground">
+          <span className="text-muted-foreground">{t("toolPrefix")} </span>
+          {toolName}
+        </p>
       )}
       {rowMode && <NodeOptions nodeId={id} nodeKind={nodeKind} options={options} />}
     </div>
