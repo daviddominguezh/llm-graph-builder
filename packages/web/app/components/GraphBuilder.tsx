@@ -600,15 +600,17 @@ function LoadedEditor(props: LoadedEditorProps) {
   const toolStores = useLoadedEditorToolStores(props);
   const router = useRouter();
 
+  const isReadOnly = props.readOnly === true;
+
   const handleContextValue = {
     onSourceHandleClick: h.graphActions.onSourceHandleClick,
     onAddOption: h.graphActions.onAddOption,
     onZoomToNode: h.zoomView.handleZoomToNode,
     onDeleteOption: (edgeId: string, from: string, to: string) =>
       h.deleteConfirmation.requestDeleteEdge(edgeId, from, to),
+    readOnly: isReadOnly,
   };
 
-  const isReadOnly = props.readOnly === true;
   const isAgentMode = h.agentConfig !== undefined;
 
   const { panelInsets, toolbarPortal, settingsPortal, dataPortal, activeEditorId } = useEditorCache();
