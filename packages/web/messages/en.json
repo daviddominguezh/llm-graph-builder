@@ -159,7 +159,9 @@
     "createFirstDescription": "Create your first app from scratch or start from a template.",
     "createError": "Failed to create agent. Please try again.",
     "hideSidebar": "Hide sidebar",
-    "showSidebar": "Show sidebar"
+    "showSidebar": "Show sidebar",
+    "isLive": "LIVE",
+    "isNotLive": "DRFT"
   },
   "editor": {
     "publish": "Publish",
@@ -850,7 +852,7 @@
     "oauthSuccess": "Successfully connected!",
     "oauthError": "Failed to connect. Please try again.",
     "oauthBadge": "OAuth",
-    "simConnectError": "MCP server '{name}' couldn't connect: {reason} Check its credentials and configuration.",
+    "simConnectError": "MCP server “{name}” couldn’t connect: {reason} Check its credentials and configuration.",
     "discoveryErrors": {
       "title": "Failed to discover tools",
       "blocked": "This server's address is not allowed.",
