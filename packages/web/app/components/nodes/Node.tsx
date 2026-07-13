@@ -63,7 +63,7 @@ function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolName, selecte
       <Separator />
       <NodeBody nodeId={nodeData.nodeId} description={nodeData.description} text={nodeData.text} />
       {toolName !== undefined && (
-        <p className="line-clamp-1! px-3 pb-2 text-xs text-foreground">
+        <p className="line-clamp-1! p-3 text-xs text-foreground">
           <span className="text-muted-foreground">{t("toolPrefix")} </span>
           {toolName}
         </p>

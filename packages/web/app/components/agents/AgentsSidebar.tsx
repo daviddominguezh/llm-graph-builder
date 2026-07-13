@@ -107,7 +107,7 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
           <div className="flex justify-between items-center text-[10px] text-muted-foreground">
             <span className="shrink-0 line-clamp-2 flex-1 min-w-[0px] truncate">{agent.description}</span>
             <span className="shrink-0" suppressHydrationWarning>
-              <span className="font-bold">{'  · '}</span>
+              <span>{'  - '}</span>
               {t('edited')} {formatRelativeTime(agent.updated_at, 'en', 'compact')} {t('ago')}
             </span>
           </div>
