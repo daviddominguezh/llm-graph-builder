@@ -1,13 +1,10 @@
-import { memo } from "react";
-import { UserRoundPen, Play, Send, Shrink, Split } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useHandleContext } from "./HandleContext";
+import { Button } from '@/components/ui/button';
+import { Play, Send, Shrink, Split, UserRoundPen } from 'lucide-react';
+import { memo } from 'react';
 
-export type NodeKind =
-  | "agent"
-  | "user_routing"
-  | "agent_decision"
-  | "tool_call";
+import { useHandleContext } from './HandleContext';
+
+export type NodeKind = 'agent' | 'user_routing' | 'agent_decision' | 'tool_call';
 
 interface NodeHeaderProps {
   nodeKind: NodeKind;
@@ -21,35 +18,35 @@ const NodeHeaderComponent = ({ nodeKind, nodeId }: NodeHeaderProps) => {
   let headerIcon: React.ReactNode;
   let colorClass: string;
 
+  const iconClass = 'h-3.5 w-3.5 text-white';
+
   switch (nodeKind) {
-    case "user_routing":
-      headerLabel = "User";
-      colorClass = "text-green-700";
-      headerIcon = <UserRoundPen className={`h-4 w-4 ${colorClass}`} />;
+    case 'user_routing':
+      headerLabel = 'User Input';
+      colorClass = 'bg-green-700';
+      headerIcon = <UserRoundPen className={iconClass} />;
       break;
-    case "agent_decision":
-      headerLabel = "Decision";
-      colorClass = "text-purple-700";
-      headerIcon = <Split className={`h-4 w-4 ${colorClass}`} />;
+    case 'agent_decision':
+      headerLabel = 'LLM Decision';
+      colorClass = 'bg-purple-700';
+      headerIcon = <Split className={iconClass} />;
       break;
-    case "tool_call":
-      headerLabel = "Tool";
-      colorClass = "text-orange-700";
-      headerIcon = <Play className={`h-4 w-4 ${colorClass}`} />;
+    case 'tool_call':
+      headerLabel = 'Tool call';
+      colorClass = 'bg-orange-700';
+      headerIcon = <Play className={iconClass} />;
       break;
     default:
-      headerLabel = "Agent";
-      colorClass = "text-muted-foreground";
-      headerIcon = <Send className={`h-4 w-4 ${colorClass}`} />;
+      headerLabel = 'Execution';
+      colorClass = 'bg-muted-foreground';
+      headerIcon = <Send className={iconClass} />;
   }
 
   return (
     <div className="flex justify-between items-center group">
       <div className="flex items-center gap-2 px-4 py-3">
-        {headerIcon}
-        <span className={`text-xs font-medium uppercase ${colorClass}`}>
-          {headerLabel}
-        </span>
+        <div className={`${colorClass} rounded-sm flex items-center justify-center p-1`}>{headerIcon}</div>
+        <span className={`text-xs font-medium uppercase`}>{headerLabel}</span>
       </div>
 
       <Button
@@ -69,8 +66,5 @@ const NodeHeaderComponent = ({ nodeKind, nodeId }: NodeHeaderProps) => {
 
 export const NodeHeader = memo(
   NodeHeaderComponent,
-  (prev, next) =>
-    prev.nodeKind === next.nodeKind &&
-    prev.agent === next.agent &&
-    prev.nodeId === next.nodeId,
+  (prev, next) => prev.nodeKind === next.nodeKind && prev.agent === next.agent && prev.nodeId === next.nodeId
 );
