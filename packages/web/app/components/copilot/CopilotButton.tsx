@@ -20,7 +20,7 @@ export function CopilotButton() {
   return (
     <div className="relative flex w-full shrink-0 h-5">
       <div className="flex w-full justify-between items-center">
-        <div className="text-[11px] font-semibold text-foreground flex gap-1 items-center ml-17 cursor-default">
+        <div className="text-[11px] font-semibold text-foreground flex gap-1 items-center ml-17 cursor-default -mt-[1.5px]">
           <Image unoptimized className="dark:hidden" src={iconBlack} alt="OpenFlow" height={11} priority />
           <Image unoptimized className="mt-[3px] dark:hidden" src={logoBlack} alt="OpenFlow" height={11} priority />
           <Image
