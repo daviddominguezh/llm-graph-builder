@@ -17,6 +17,7 @@ import { type BuildDebugGraphOptions, PREV_EXEC_NODE_ID, buildDebugGraph } from 
 import type { RFEdgeData, RFNodeData } from '@/app/utils/graphTransformers';
 import { schemaEdgeToRFEdge, schemaNodeToRFNode } from '@/app/utils/graphTransformers';
 import { layoutGraph } from '@/app/utils/layoutGraph';
+import { normalizeRowModeHandles } from '@/app/utils/nodeKind';
 
 import { edgeTypes } from '../edges';
 import { nodeTypes } from '../nodes';
@@ -111,7 +112,7 @@ function toRFEdges(
   layouted: { nodes: Graph['nodes']; edges: Graph['edges'] },
   mutedEdgeIds: Set<string>
 ) {
-  return layouted.edges.map((edge, i) => {
+  const rfEdges: Edge<RFEdgeData>[] = layouted.edges.map((edge, i) => {
     const rfEdge = schemaEdgeToRFEdge(edge, i, layouted.nodes);
     const edgeId = `${edge.from}-${edge.to}`;
 
@@ -124,6 +125,7 @@ function toRFEdges(
       focusable: !isMuted,
     };
   });
+  return normalizeRowModeHandles(rfEdges);
 }
 
 function handleNodeClick(

@@ -53,6 +53,7 @@ import { getSourceEdgeType } from '../utils/edgeTypeUtils';
 import { buildInitialEdges, buildInitialNodes } from '../utils/graphInitializer';
 import { serializeGraphData } from '../utils/graphSerializer';
 import type { RFNodeData } from '../utils/graphTransformers';
+import { normalizeRowModeHandles } from '../utils/nodeKind';
 import { AgentEditorWrapper } from './AgentEditorWrapper';
 import { GraphBuilderLoading } from './GraphBuilderLoading';
 import { GraphCanvas } from './GraphCanvas';
@@ -624,6 +625,8 @@ function LoadedEditor(props: LoadedEditorProps) {
   const showToolbar =
     !isReadOnly && toolbarPortal !== null && isActiveEditor && (isAgentMode || !h.simulation.active);
 
+  const displayEdges = useMemo(() => normalizeRowModeHandles(h.edges), [h.edges]);
+
   return (
     <HandleContext.Provider value={handleContextValue}>
       <ToolRegistryProvider agentId={props.agentId ?? ''}>
@@ -649,7 +652,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                 agentId={props.agentId ?? ''}
                 reactFlowWrapper={h.reactFlowWrapper}
                 displayNodes={h.displayNodes}
-                edges={h.edges}
+                edges={displayEdges}
                 onNodesChange={isReadOnly ? () => {} : h.onNodesChange}
                 onEdgesChange={isReadOnly ? () => {} : h.onEdgesChange}
                 onConnect={isReadOnly ? () => {} : h.graphActions.onConnect}
