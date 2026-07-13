@@ -1,7 +1,6 @@
 import {
   buildResolvedVars,
   type McpTransport,
-  McpTransportSchema,
   resolveTransport,
   type VariableValue,
   VariableValueSchema,
@@ -10,7 +9,7 @@ import type { Request } from 'express';
 import { z } from 'zod';
 
 import { getDecryptedEnvVariables } from '../../db/queries/executionAuthQueries.js';
-import { getLibraryItemById, type McpLibraryRow } from '../../db/queries/mcpLibraryQueries.js';
+import { getLibraryItemById, parseLibraryTransport } from '../../db/queries/mcpLibraryQueries.js';
 import { getMcpServerBinding } from '../../db/queries/mcpServerOperations.js';
 import { getTenantConfigs } from '../../db/queries/mcpTenantConfigQueries.js';
 import type { SupabaseClient } from '../../db/queries/operationHelpers.js';
@@ -35,12 +34,6 @@ async function getLibraryItemAuthType(
   if (result.error !== null || result.data === null) return null;
   const { auth_type: authType } = result.data as { auth_type: string | null };
   return authType;
-}
-
-function parseLibraryTransport(row: McpLibraryRow): McpTransport | null {
-  const raw = { type: row.transport_type, ...row.transport_config };
-  const parsed = McpTransportSchema.safeParse(raw);
-  return parsed.success ? parsed.data : null;
 }
 
 function findAuthorizationHeader(headers: Record<string, string> | undefined): string | undefined {

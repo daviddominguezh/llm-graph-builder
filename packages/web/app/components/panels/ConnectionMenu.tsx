@@ -13,7 +13,7 @@ import {
   ComboboxEmpty,
   ComboboxCollection,
 } from '@/components/ui/combobox';
-import { ChevronDown, Info, Plus } from 'lucide-react';
+import { Info, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -22,7 +22,7 @@ import type { ToolStoresState } from '../../hooks/useToolStoresState';
 import type { ExistingEdgeType } from '../../utils/edgeTypeUtils';
 import { IfElseDialog, LoopDialog, ToolNodeDialog, UserNodeDialog } from './nodeCreationDialogs';
 import type { LoopConnection } from './nodeCreationDialogs/LoopDialog';
-import { NodeTypeDropdown, type NodeCreationType } from './NodeTypeDropdown';
+import { NodeTypeOptions, type NodeCreationType } from './NodeTypeOptions';
 
 const START_NODE_ID = 'INITIAL_STEP';
 
@@ -178,23 +178,22 @@ export function ConnectionMenu({
 
         <Separator />
 
+        <div className="p-2 pt-2">
+          <NodeTypeOptions sourceEdgeType={sourceEdgeType} isStartNode={isStart} onSelect={handleTypeSelect} />
+        </div>
+
+        <Separator />
+
         <div className="p-2 py-3">
-          <div className="flex">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 justify-start gap-2 rounded-r-none border-r-0"
-              onClick={onCreateNode}
-            >
-              <Plus className="h-4 w-4" />
-              {t('createNewNode')}
-            </Button>
-            <NodeTypeDropdown sourceEdgeType={sourceEdgeType} isStartNode={isStart} onSelect={handleTypeSelect}>
-              <Button variant="outline" size="sm" className="rounded-l-none px-1.5">
-                <ChevronDown className="h-3.5 w-3.5" />
-              </Button>
-            </NodeTypeDropdown>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full justify-start gap-2"
+            onClick={onCreateNode}
+          >
+            <Plus className="h-4 w-4" />
+            {t('createNewNode')}
+          </Button>
         </div>
       </GlassPanel>
 

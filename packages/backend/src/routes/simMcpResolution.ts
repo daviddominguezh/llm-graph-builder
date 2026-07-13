@@ -1,7 +1,8 @@
-import type { McpServerConfig, VariableValue } from '@daviddh/graph-types';
+import type { McpServerConfig, McpTransport, VariableValue } from '@daviddh/graph-types';
 
 import type { DecryptedEnvVars } from '../db/queries/executionAuthQueries.js';
 import { getDecryptedEnvVariables } from '../db/queries/executionAuthQueries.js';
+import { getLibraryItemById, parseLibraryTransport } from '../db/queries/mcpLibraryQueries.js';
 import type { McpTenantConfigRow } from '../db/queries/mcpTenantConfigQueries.js';
 import { getTenantConfigs } from '../db/queries/mcpTenantConfigQueries.js';
 import type { SupabaseClient } from '../db/queries/operationHelpers.js';
@@ -22,28 +23,76 @@ function tenantVarsForServer(
 }
 
 /**
- * Resolve each sim MCP server's transport in place: pick the default-tenant
- * `variable_values` (falling back to the server's own `variableValues`), then
- * substitute `{{VAR}}` templates — including secret env `ref`s — via the decrypted
- * env maps. Mirrors production `resolveBinding`, but never re-loads the DB graph:
- * it resolves the caller-supplied (possibly unsaved) servers.
+ * The transport to resolve against. For a library-backed server we use the
+ * library item's PRISTINE template (its `{{VAR}}` secret refs survive, unlike
+ * the FE transport, which the `/api/simulate` proxy flattens to `Bearer `
+ * client-side). Custom servers (no `libraryItemId`) keep their FE transport.
  */
-export function applyTenantResolution(
-  servers: McpServerConfig[],
-  tenantConfigs: McpTenantConfigRow[],
-  defaultTenantId: string | undefined,
-  env: DecryptedEnvVars
-): McpServerConfig[] {
-  return servers.map((server) => {
-    const tenantVars = tenantVarsForServer(tenantConfigs, server.id, defaultTenantId);
-    const withVars = tenantVars === undefined ? server : { ...server, variableValues: tenantVars };
-    return resolveServerTransport(withVars, env.byName, env.byId);
-  });
+function pristineTransportFor(
+  server: McpServerConfig,
+  pristineTransports: Map<string, McpTransport>
+): McpTransport {
+  if (server.libraryItemId === undefined) return server.transport;
+  return pristineTransports.get(server.libraryItemId) ?? server.transport;
+}
+
+export interface SimResolveContext {
+  tenantConfigs: McpTenantConfigRow[];
+  defaultTenantId: string | undefined;
+  env: DecryptedEnvVars;
+  pristineTransports: Map<string, McpTransport>;
 }
 
 /**
- * Load the DEFAULT tenant, its MCP tenant config, and the org's decrypted env
- * vars, then resolve every sim server's transport under that scope.
+ * Resolve ONE sim server: take the default-tenant `variable_values` (falling
+ * back to the server's own), pair them with the pristine library transport, then
+ * substitute `{{VAR}}` templates — secret env `ref`s included — via the decrypted
+ * env maps. Mirrors production `resolveBinding` / the tool-test `resolveStaticToken`.
+ */
+export function resolveOneSimServer(server: McpServerConfig, ctx: SimResolveContext): McpServerConfig {
+  const tenantVars = tenantVarsForServer(ctx.tenantConfigs, server.id, ctx.defaultTenantId);
+  const withVars: McpServerConfig = {
+    ...server,
+    transport: pristineTransportFor(server, ctx.pristineTransports),
+    variableValues: tenantVars ?? server.variableValues,
+  };
+  return resolveServerTransport(withVars, ctx.env.byName, ctx.env.byId);
+}
+
+/** Never re-loads the DB graph: resolves the caller-supplied (possibly unsaved) servers. */
+export function applyTenantResolution(servers: McpServerConfig[], ctx: SimResolveContext): McpServerConfig[] {
+  return servers.map((server) => resolveOneSimServer(server, ctx));
+}
+
+/** Distinct `libraryItemId`s across the sim servers. */
+function libraryItemIds(servers: McpServerConfig[]): string[] {
+  const ids = servers.map((s) => s.libraryItemId).filter((id): id is string => id !== undefined);
+  return [...new Set(ids)];
+}
+
+/**
+ * Load each referenced library item's pristine transport, keyed by libraryItemId.
+ * A failed lookup or unparsable row is simply omitted (the server then falls back
+ * to its FE transport).
+ */
+async function loadPristineTransports(
+  supabase: SupabaseClient,
+  servers: McpServerConfig[]
+): Promise<Map<string, McpTransport>> {
+  const entries = await Promise.all(
+    libraryItemIds(servers).map(async (id): Promise<readonly [string, McpTransport] | null> => {
+      const { result, error } = await getLibraryItemById(supabase, id);
+      if (error !== null || result === null) return null;
+      const transport = parseLibraryTransport(result);
+      return transport === null ? null : ([id, transport] as const);
+    })
+  );
+  return new Map(entries.filter((e): e is readonly [string, McpTransport] => e !== null));
+}
+
+/**
+ * Load the DEFAULT tenant, its MCP tenant config, the org's decrypted env vars,
+ * and each server's pristine library transport, then resolve every sim server.
  */
 export async function resolveSimMcpServers(
   supabase: SupabaseClient,
@@ -51,10 +100,11 @@ export async function resolveSimMcpServers(
   orgId: string,
   servers: McpServerConfig[]
 ): Promise<McpServerConfig[]> {
-  const [defaultTenantId, tenantConfigs, env] = await Promise.all([
+  const [defaultTenantId, tenantConfigs, env, pristineTransports] = await Promise.all([
     getDefaultTenantId(supabase, orgId),
     getTenantConfigs(supabase, agentId),
     getDecryptedEnvVariables(supabase, orgId),
+    loadPristineTransports(supabase, servers),
   ]);
-  return applyTenantResolution(servers, tenantConfigs, defaultTenantId, env);
+  return applyTenantResolution(servers, { tenantConfigs, defaultTenantId, env, pristineTransports });
 }

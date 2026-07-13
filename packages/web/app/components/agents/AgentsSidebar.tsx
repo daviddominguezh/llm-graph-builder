@@ -7,11 +7,13 @@ import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { Input } from '@/components/ui/input';
+import { Separator } from '@/components/ui/separator';
 import { Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import React from 'react';
 
 import { useAgentsSidebar } from './AgentsSidebarContext';
 import { CreateAgentWizard } from './CreateAgentWizard';
@@ -70,9 +72,13 @@ function StatusBar({ active }: { active: boolean }) {
 }
 
 function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: string; active: boolean }) {
+  const t = useTranslations('agents');
+
   const href = `/orgs/${orgSlug}/editor/${agent.slug}`;
   const status = getAgentStatus(agent);
   const colorClass = STATUS_COLORS[status];
+
+  const agentIsLive: boolean = status === 'published' || agent.version > 0;
 
   return (
     <Link
@@ -83,17 +89,23 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
     >
       <StatusBar active={active} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1">
-        <span className="flex items-center gap-1 justify-between">
-          <div className="flex items-center gap-1 shrink-0 flex-1">
+        <span className="w-full flex items-center gap-1 justify-between">
+          <div className="flex items-center gap-1 shrink-0 flex-1 min-w-[0px]">
             <span className={`shrink-0 size-[7px] ml-[2px] shrink-0 rounded-full ${colorClass}`} />
             <span className="shrink-0 flex-1 min-w-[0px] truncate text-[10px] font-medium">{agent.name}</span>
           </div>
-          <div className="w-[20px] shrink-0 flex justify-end items-center ml-[2px] gap-1 text-[9px] text-muted-foreground">
-            <span>v{agent.version}</span>
+          <div
+            className={`w-[54px] border border-[0.5px] rounded-[4px] shrink-0 flex justify-center items-center ml-[2px] gap-1 text-[9px] text-muted-foreground border-[1px] ${agentIsLive ? 'border-red-700 text-red-700 dark:border-red-400 dark:text-red-400' : 'border-primary/60 text-primary/60'}`}
+          >
+            <span className="uppercase font-mono font-medium">
+              {agentIsLive ? t('isLive') : t('isNotLive')}
+            </span>
+            <span className="font-bold">·</span>
+            <span className="font-mono">v{agent.version}</span>
           </div>
         </span>
         {agent.description ? (
-          <div className="flex justify-between items-center ml-[2px] text-[10px] text-muted-foreground">
+          <div className="flex justify-between items-center text-[10px] text-muted-foreground">
             <span className="shrink-0 line-clamp-2 flex-1 min-w-[0px] truncate">{agent.description}</span>
             <span className="shrink-0" suppressHydrationWarning>
               Edited {formatRelativeTime(agent.updated_at, 'en', 'compact')} ago
@@ -136,14 +148,15 @@ function AgentList({
   }
 
   return (
-    <nav className="flex flex-col gap-1.5 px-2 mt-1">
+    <nav className="flex flex-col gap-2.5 px-2 mt-1">
       {filtered.map((agent) => (
-        <AgentCard
-          key={agent.id}
-          agent={agent}
-          orgSlug={orgSlug}
-          active={pathname === `/orgs/${orgSlug}/editor/${agent.slug}`}
-        />
+        <React.Fragment key={agent.id}>
+          <AgentCard
+            agent={agent}
+            orgSlug={orgSlug}
+            active={pathname === `/orgs/${orgSlug}/editor/${agent.slug}`}
+          />
+        </React.Fragment>
       ))}
     </nav>
   );

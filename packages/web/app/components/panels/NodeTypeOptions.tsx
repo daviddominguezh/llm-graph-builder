@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { GitFork, MessageSquare, Repeat, Send, Wrench } from 'lucide-react';
@@ -64,7 +59,7 @@ function getDisabledReason(
   return t('disabledIncompatibleEdges', { edgeType: sourceEdgeType });
 }
 
-function DropdownOption({
+function NodeTypeOption({
   config,
   disabled,
   disabledReason,
@@ -80,13 +75,20 @@ function DropdownOption({
   hint?: string;
 }) {
   const item = (
-    <DropdownMenuItem disabled={disabled} onClick={onSelect}>
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      disabled={disabled}
+      onClick={onSelect}
+      className="h-auto w-full justify-start gap-2 py-1.5 font-normal"
+    >
       <span className={config.colorClass}>{config.icon}</span>
-      <span className="flex flex-col">
+      <span className="flex flex-col items-start">
         <span>{label}</span>
         {hint && <span className="text-[10px] text-muted-foreground leading-tight">{hint}</span>}
       </span>
-    </DropdownMenuItem>
+    </Button>
   );
 
   if (disabledReason === null) return item;
@@ -101,11 +103,10 @@ function DropdownOption({
   );
 }
 
-interface NodeTypeDropdownProps {
+interface NodeTypeOptionsProps {
   sourceEdgeType: ExistingEdgeType;
   isStartNode: boolean;
   onSelect: (type: NodeCreationType) => void;
-  children: React.ReactNode;
 }
 
 function renderOptions(
@@ -119,7 +120,7 @@ function renderOptions(
     const disabled = !isOptionEnabled(config.type, sourceEdgeType, startNode);
     const reason = getDisabledReason(config.type, sourceEdgeType, startNode, t);
     return (
-      <DropdownOption
+      <NodeTypeOption
         key={config.type}
         config={config}
         disabled={disabled}
@@ -132,18 +133,15 @@ function renderOptions(
   });
 }
 
-export function NodeTypeDropdown({ sourceEdgeType, isStartNode: startNode, onSelect, children }: NodeTypeDropdownProps) {
+export function NodeTypeOptions({ sourceEdgeType, isStartNode: startNode, onSelect }: NodeTypeOptionsProps) {
   const t = useTranslations('connectionMenu');
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger render={children as React.ReactElement} />
-      <DropdownMenuContent align="end" className="w-60">
-        {renderOptions(SINGLE_OPTIONS, sourceEdgeType, startNode, onSelect, t)}
-        <Separator className="my-1" />
-        {renderOptions(STRUCTURE_OPTIONS, sourceEdgeType, startNode, onSelect, t)}
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex flex-col gap-0.5">
+      {renderOptions(SINGLE_OPTIONS, sourceEdgeType, startNode, onSelect, t)}
+      <Separator className="my-1" />
+      {renderOptions(STRUCTURE_OPTIONS, sourceEdgeType, startNode, onSelect, t)}
+    </div>
   );
 }
 

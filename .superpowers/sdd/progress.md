@@ -167,3 +167,16 @@ lint gate 0 errors on every implementer AND fix dispatch).
 - DN-Task 4: add-option flow + default precondition — NOT STARTED
 - DN-Task 5: per-row delete via confirm modal — NOT STARTED
 - DN-Task 6: layout height for row-mode nodes — NOT STARTED
+
+### DN progress log
+- DN-Task 1: COMPLETE (commit a1f7773d, review clean — Spec ✅, quality Approved).
+  Minors for final triage: (a) nodeKind.test.ts double-cast tool fixture (from brief, test-only);
+  (b) nodeKind.test.ts one line >110 Prettier width — run `npm run format` on feature files before finishing.
+  Lesson: this Jest version needs `--testPathPatterns` (plural), not `--testPathPattern`.
+- DN-Task 2: COMPLETE (commit 87b4c5ea, review clean — Spec ✅, quality Approved).
+  Minor for final triage: DebugCanvas toRFEdges lacks explicit return type (inference correct).
+- DN-Task 3: COMPLETE (commit 41d13379, review clean — Spec ✅, quality Approved).
+  Minor for final triage: NodeOptionRow line-clamp-1! important modifier (matches NodeBody convention).
+- DN-REGRESSION FIX (commit d6cc9402): start node (INITIAL_STEP) edges vanished — user_said edges made
+  getNodeKind classify it user_routing → normalize rewrote sourceHandle to edge.id (StartNode has no such
+  handle). Fixed: exclude START_NODE_ID in getRowModeSourceIds + regression test. 8/8 nodeKind tests pass.

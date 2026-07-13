@@ -1,3 +1,5 @@
+import { type McpTransport, McpTransportSchema } from '@daviddh/graph-types';
+
 import type { SupabaseClient } from './operationHelpers.js';
 
 /* ------------------------------------------------------------------ */
@@ -145,6 +147,18 @@ export async function browseLibrary(
   const { data, error } = await query;
   if (error !== null) return { result: [], error: error.message };
   return { result: mapRows(toSafeArray(data)), error: null };
+}
+
+/**
+ * Reconstruct the PRISTINE `McpTransport` from a library row's stored
+ * `transport_type` + `transport_config` — i.e. with its original `{{VAR}}`
+ * templates intact (unlike a FE-supplied transport, whose secret templates are
+ * flattened client-side). Returns null when the row doesn't parse.
+ */
+export function parseLibraryTransport(row: McpLibraryRow): McpTransport | null {
+  const raw = { type: row.transport_type, ...row.transport_config };
+  const parsed = McpTransportSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
 }
 
 export async function getLibraryItemById(

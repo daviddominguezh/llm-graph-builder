@@ -1,4 +1,4 @@
-import type { VariableValue } from '@daviddh/graph-types';
+import { McpTransportSchema, type VariableValue } from '@daviddh/graph-types';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import type { DecryptedEnvVars } from '../../db/queries/executionAuthQueries.js';
@@ -38,8 +38,14 @@ const mockGetMcpServerBinding = jest.fn<GetMcpServerBindingFn>();
 const mockGetDefaultTenantId = jest.fn<GetDefaultTenantIdFn>();
 const mockGetTenantConfigs = jest.fn<GetTenantConfigsFn>();
 
+// `parseLibraryTransport` is pure (no DB); reimplement it in the mock rather than
+// `requireActual`-ing the module we're mocking (that self-import path OOMs under ESM).
 jest.unstable_mockModule('../../db/queries/mcpLibraryQueries.js', () => ({
   getLibraryItemById: mockGetLibraryItemById,
+  parseLibraryTransport: (row: McpLibraryRow) => {
+    const parsed = McpTransportSchema.safeParse({ type: row.transport_type, ...row.transport_config });
+    return parsed.success ? parsed.data : null;
+  },
 }));
 
 jest.unstable_mockModule('../../db/queries/executionAuthQueries.js', () => ({
