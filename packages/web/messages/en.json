@@ -161,7 +161,9 @@
     "hideSidebar": "Hide sidebar",
     "showSidebar": "Show sidebar",
     "isLive": "LIVE",
-    "isNotLive": "DRFT"
+    "isNotLive": "DRFT",
+    "edited": "Edited",
+    "ago": "ago"
   },
   "editor": {
     "publish": "Publish",
