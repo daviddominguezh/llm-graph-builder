@@ -1,10 +1,5 @@
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-
-import { memo } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { memo } from 'react';
 
 interface NodeBodyProps {
   nodeId: string;
@@ -12,7 +7,7 @@ interface NodeBodyProps {
   text: string;
 }
 
-const NodeBodyComponent = ({ nodeId, description, text }: NodeBodyProps) => {
+const NodeBodyComponent = ({ description, text }: NodeBodyProps) => {
   const renderTooltip = (text: string, classStyle: string) => {
     return (
       <Tooltip>
@@ -30,8 +25,8 @@ const NodeBodyComponent = ({ nodeId, description, text }: NodeBodyProps) => {
 
   return (
     <div className="px-4 py-0">
-      {description && renderTooltip(description, "line-clamp-3! font-medium")}
-      {text && renderTooltip(text, "line-clamp-4!")}
+      {description && renderTooltip(description, 'line-clamp-3! font-medium')}
+      {text && renderTooltip(text, 'line-clamp-4!')}
     </div>
   );
 };
@@ -39,5 +34,5 @@ const NodeBodyComponent = ({ nodeId, description, text }: NodeBodyProps) => {
 export const NodeBody = memo(
   NodeBodyComponent,
   (prev, next) =>
-    prev.nodeId === next.nodeId && prev.description === next.description && prev.text === next.text,
+    prev.nodeId === next.nodeId && prev.description === next.description && prev.text === next.text
 );

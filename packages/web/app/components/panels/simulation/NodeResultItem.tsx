@@ -1,14 +1,14 @@
 'use client';
 
+import '@/app/styles/starry-night.css';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, Braces, Brain, ChevronRight, Wrench } from 'lucide-react';
+import { AlertTriangle, Braces, Brain, ChevronRight, Play } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { MarkdownHooks } from 'react-markdown';
 import rehypeStarryNight from 'rehype-starry-night';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
-import '@/app/styles/starry-night.css';
-import { useState } from 'react';
 
 import type { NodeResult, SimulationToolCall } from '../../../types/simulation';
 import { SmallJsonBlock, extractMcpPayload, isJsonObject } from '../JsonDisplay';
@@ -63,7 +63,7 @@ function ToolCallRow({ call }: { call: SimulationToolCall }) {
         <ChevronRight
           className={`size-3 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''} ${hasContent ? '' : 'invisible'}`}
         />
-        <Wrench className="size-3 text-muted-foreground" />
+        <Play className="size-3 text-muted-foreground" />
         <span className="font-mono text-[11px]">{call.toolName}</span>
       </Button>
       {open && <ToolCallDetails call={call} />}
@@ -113,7 +113,12 @@ function OutputRow({ data }: { data: unknown }) {
 
   return (
     <div className="flex flex-col">
-      <Button variant="ghost" type="button" onClick={() => setOpen((prev) => !prev)} className="h-auto justify-start gap-1.5 p-0 px-1 rounded-sm text-left">
+      <Button
+        variant="ghost"
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="h-auto justify-start gap-1.5 p-0 px-1 rounded-sm text-left"
+      >
         <ChevronRight
           className={`size-3 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''}`}
         />
@@ -139,15 +144,15 @@ function AgentText({ text }: { text: string }) {
   if (text === '') return null;
   return (
     <div className="markdown-content text-xs leading-relaxed bg-input/70 rounded-md p-2 px-3 pb-1 mt-1">
-      <MarkdownHooks remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeStarryNight]}>{text}</MarkdownHooks>
+      <MarkdownHooks remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeStarryNight]}>
+        {text}
+      </MarkdownHooks>
     </div>
   );
 }
 
 export function NodeResultItem({ result }: { result: NodeResult }) {
-  const borderClass = result.error !== undefined
-    ? 'border-destructive/50'
-    : 'border-border';
+  const borderClass = result.error !== undefined ? 'border-destructive/50' : 'border-border';
 
   return (
     <div className={`max-w-[100%] flex flex-col gap-0.5 border-l-2 ${borderClass} py-0 pl-2`}>

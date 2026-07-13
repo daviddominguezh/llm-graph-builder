@@ -1,9 +1,8 @@
 import { Button } from '@/components/ui/button';
-import { Play, Send, Shrink, Split, UserRoundPen } from 'lucide-react';
+import { ListTodo, Play, Shrink, Split, UserRoundPen } from 'lucide-react';
 import { memo } from 'react';
 
 import type { NodeKind } from '../../utils/nodeKind';
-
 import { useHandleContext } from './HandleContext';
 
 interface NodeHeaderProps {
@@ -39,7 +38,7 @@ const NodeHeaderComponent = ({ nodeKind, nodeId }: NodeHeaderProps) => {
     default:
       headerLabel = 'Execution';
       colorClass = 'bg-muted-foreground';
-      headerIcon = <Send className={iconClass} />;
+      headerIcon = <ListTodo className={iconClass} />;
   }
 
   return (

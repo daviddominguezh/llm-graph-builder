@@ -20,19 +20,19 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { Edge, Node } from '@xyflow/react';
-import { ArrowLeft, ArrowRight, Box, Brain, Cable, MessageCircle, Send, Trash2, Wrench } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Box, Cable, ListTodo, Play, Split, Trash2, UserRoundPen } from 'lucide-react';
 import { useState } from 'react';
 
 import type { Agent, PreconditionType } from '../../schemas/graph.schema';
 import type { ContextPreset } from '../../types/preset';
 import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
 import type { PushOperation } from '../../utils/operationBuilders';
+import { getPreconditionDisplayValue } from '../../utils/preconditionHelpers';
 import { FallbackNodeSelect } from './FallbackNodeSelect';
 import { NodePanelOutputSchema } from './NodePanelOutputSchema';
 import { NodePromptDialog } from './NodePromptDialog';
 import { pushDeleteNode, pushRenameNode, pushUpdateNode } from './nodePanelOps';
 import { hasToolCallEdge } from './toolCallGuard';
-import { getPreconditionDisplayValue } from '../../utils/preconditionHelpers';
 
 interface NodePanelProps {
   nodeId: string;
@@ -135,15 +135,15 @@ export function NodePanel({
     const iconClass = 'h-3 w-3 mr-1';
 
     const preconditionType = edge.data?.preconditions?.[0]?.type as PreconditionType | undefined;
-    if (!preconditionType) return <Send className={`${iconClass} text-green-700`} />;
+    if (!preconditionType) return <ListTodo className={`${iconClass} text-green-700`} />;
 
     switch (preconditionType) {
       case 'user_said':
-        return <MessageCircle className={`${iconClass} text-green-700`} />;
+        return <UserRoundPen className={`${iconClass} text-green-700`} />;
       case 'agent_decision':
-        return <Brain className={`${iconClass} text-purple-700`} />;
+        return <Split className={`${iconClass} text-purple-700`} />;
       case 'tool_call':
-        return <Wrench className={`${iconClass} text-orange-700`} />;
+        return <Play className={`${iconClass} text-orange-700`} />;
       default:
         return null;
     }
@@ -262,7 +262,9 @@ export function NodePanel({
               <div className="flex flex-col gap-1 border-l-2 pl-2 border-input">
                 {incomingEdges.map((edge) => {
                   const firstPrecondition = edge.data?.preconditions?.[0];
-                  const value = firstPrecondition ? getPreconditionDisplayValue(firstPrecondition) : undefined;
+                  const value = firstPrecondition
+                    ? getPreconditionDisplayValue(firstPrecondition)
+                    : undefined;
                   const contextPreconditions = edge.data?.contextPreconditions;
                   const hasContext = contextPreconditions && contextPreconditions.preconditions.length > 0;
                   return (
@@ -341,7 +343,9 @@ export function NodePanel({
               <div className="flex flex-col gap-1 pl-2 border-l-2 border-input">
                 {outgoingEdges.map((edge) => {
                   const firstPrecondition = edge.data?.preconditions?.[0];
-                  const value = firstPrecondition ? getPreconditionDisplayValue(firstPrecondition) : undefined;
+                  const value = firstPrecondition
+                    ? getPreconditionDisplayValue(firstPrecondition)
+                    : undefined;
                   const contextPreconditions = edge.data?.contextPreconditions;
                   const hasContext = contextPreconditions && contextPreconditions.preconditions.length > 0;
                   return (

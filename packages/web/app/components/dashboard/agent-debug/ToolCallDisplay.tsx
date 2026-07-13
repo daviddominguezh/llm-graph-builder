@@ -1,7 +1,7 @@
 'use client';
 
 import type { ExecutionMessageRow } from '@/app/lib/dashboard';
-import { Wrench } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { extractMessageText } from './agentDebugUtils';
@@ -58,7 +58,7 @@ function ToolCallEntryCard({ entry, result }: { entry: ToolCallEntry; result: st
   return (
     <div className="rounded-md border bg-muted/30 p-2.5 text-xs">
       <div className="flex items-center gap-1.5 font-semibold font-mono">
-        <Wrench className="size-3 text-muted-foreground" />
+        <Play className="size-3 text-muted-foreground" />
         {entry.name}
       </div>
       <div className="mt-1.5">

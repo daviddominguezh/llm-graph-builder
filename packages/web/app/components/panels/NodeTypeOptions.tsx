@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { GitFork, MessageSquare, Repeat, Send, Wrench } from 'lucide-react';
+import { GitFork, ListTodo, Play, Repeat, UserRoundPen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import type { ExistingEdgeType } from '../../utils/edgeTypeUtils';
@@ -21,19 +21,19 @@ const SINGLE_OPTIONS: OptionConfig[] = [
   {
     type: 'agent',
     labelKey: 'agentNode',
-    icon: <Send className="h-3.5 w-3.5" />,
+    icon: <ListTodo className="h-3.5 w-3.5" />,
     colorClass: 'text-muted-foreground',
   },
   {
     type: 'user',
     labelKey: 'userNode',
-    icon: <MessageSquare className="h-3.5 w-3.5" />,
+    icon: <UserRoundPen className="h-3.5 w-3.5" />,
     colorClass: 'text-green-600',
   },
   {
     type: 'tool',
     labelKey: 'toolNode',
-    icon: <Wrench className="h-3.5 w-3.5" />,
+    icon: <Play className="h-3.5 w-3.5" />,
     colorClass: 'text-orange-600',
   },
 ];

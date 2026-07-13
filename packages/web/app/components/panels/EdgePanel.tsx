@@ -24,7 +24,7 @@ import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
 import type { Node } from '@xyflow/react';
 import type { Edge } from '@xyflow/react';
-import { Brain, Info, MessageCircle, Pencil, Plus, Trash2, Wrench } from 'lucide-react';
+import { Info, Pencil, Play, Plus, Split, Trash2, UserRoundPen } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useRef } from 'react';
@@ -331,11 +331,11 @@ export function EdgePanel({
     const iconStyle = `w-3 h-3 ${getTypeColor(type)}`;
     switch (type) {
       case 'user_said':
-        return <MessageCircle className={iconStyle} />;
+        return <UserRoundPen className={iconStyle} />;
       case 'agent_decision':
-        return <Brain className={iconStyle} />;
+        return <Split className={iconStyle} />;
       case 'tool_call':
-        return <Wrench className={iconStyle} />;
+        return <Play className={iconStyle} />;
     }
   };
 
