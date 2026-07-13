@@ -178,17 +178,19 @@ export function ConnectionMenu({
 
         <Separator />
 
+        <p className="text-xs text-muted-foreground p-3 px-3 pb-0">{t('orCreateNew')}</p>
+
         <div className="p-2 pt-2">
           <NodeTypeOptions sourceEdgeType={sourceEdgeType} isStartNode={isStart} onSelect={handleTypeSelect} />
         </div>
 
         <Separator />
 
-        <div className="p-2 py-3">
+        <div className="p-2">
           <Button
             variant="outline"
             size="sm"
-            className="w-full justify-start gap-2"
+            className="w-full justify-start gap-2 rounded-sm"
             onClick={onCreateNode}
           >
             <Plus className="h-4 w-4" />

@@ -444,10 +444,11 @@
   },
   "connectionMenu": {
     "connectToExisting": "Connect to existing node:",
+    "orCreateNew": "Or create a new node:",
     "noNodesAvailable": "No other nodes available to connect to.",
     "searchNodes": "Search nodes...",
     "noNodesFound": "No nodes found.",
-    "createNewNode": "Create new node",
+    "createNewNode": "Create new basic node",
     "agentNode": "Agent node",
     "userNode": "User node",
     "toolNode": "Tool node",

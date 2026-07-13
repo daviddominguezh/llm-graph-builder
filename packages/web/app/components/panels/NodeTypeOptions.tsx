@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { GitFork, MessageSquare, Repeat, Send, Wrench } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -19,14 +18,41 @@ interface OptionConfig {
 }
 
 const SINGLE_OPTIONS: OptionConfig[] = [
-  { type: 'agent', labelKey: 'agentNode', icon: <Send className="h-3.5 w-3.5" />, colorClass: 'text-muted-foreground' },
-  { type: 'user', labelKey: 'userNode', icon: <MessageSquare className="h-3.5 w-3.5" />, colorClass: 'text-green-600' },
-  { type: 'tool', labelKey: 'toolNode', icon: <Wrench className="h-3.5 w-3.5" />, colorClass: 'text-orange-600' },
+  {
+    type: 'agent',
+    labelKey: 'agentNode',
+    icon: <Send className="h-3.5 w-3.5" />,
+    colorClass: 'text-muted-foreground',
+  },
+  {
+    type: 'user',
+    labelKey: 'userNode',
+    icon: <MessageSquare className="h-3.5 w-3.5" />,
+    colorClass: 'text-green-600',
+  },
+  {
+    type: 'tool',
+    labelKey: 'toolNode',
+    icon: <Wrench className="h-3.5 w-3.5" />,
+    colorClass: 'text-orange-600',
+  },
 ];
 
 const STRUCTURE_OPTIONS: OptionConfig[] = [
-  { type: 'ifElse', labelKey: 'ifElse', hintKey: 'ifElseHint', icon: <GitFork className="h-3.5 w-3.5" />, colorClass: 'text-purple-600' },
-  { type: 'loop', labelKey: 'loop', hintKey: 'loopHint', icon: <Repeat className="h-3.5 w-3.5" />, colorClass: 'text-purple-600' },
+  {
+    type: 'ifElse',
+    labelKey: 'ifElse',
+    hintKey: 'ifElseHint',
+    icon: <GitFork className="h-3.5 w-3.5" />,
+    colorClass: 'text-purple-600',
+  },
+  {
+    type: 'loop',
+    labelKey: 'loop',
+    hintKey: 'loopHint',
+    icon: <Repeat className="h-3.5 w-3.5" />,
+    colorClass: 'text-purple-600',
+  },
 ];
 
 const EDGE_TYPE_MAP: Record<NodeCreationType, ExistingEdgeType | 'special'> = {
@@ -81,11 +107,11 @@ function NodeTypeOption({
       size="sm"
       disabled={disabled}
       onClick={onSelect}
-      className="h-auto w-full justify-start gap-2 py-1.5 font-normal"
+      className="cursor-pointer h-auto w-full justify-start gap-2 py-0.5 font-normal rounded-sm"
     >
       <span className={config.colorClass}>{config.icon}</span>
-      <span className="flex flex-col items-start">
-        <span>{label}</span>
+      <span className="w-full flex justify-between items-center gap-1">
+        <span className="flex w-[82px]">{label}</span>
         {hint && <span className="text-[10px] text-muted-foreground leading-tight">{hint}</span>}
       </span>
     </Button>
@@ -139,7 +165,6 @@ export function NodeTypeOptions({ sourceEdgeType, isStartNode: startNode, onSele
   return (
     <div className="flex flex-col gap-0.5">
       {renderOptions(SINGLE_OPTIONS, sourceEdgeType, startNode, onSelect, t)}
-      <Separator className="my-1" />
       {renderOptions(STRUCTURE_OPTIONS, sourceEdgeType, startNode, onSelect, t)}
     </div>
   );
