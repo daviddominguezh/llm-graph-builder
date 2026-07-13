@@ -850,6 +850,7 @@
     "oauthSuccess": "Successfully connected!",
     "oauthError": "Failed to connect. Please try again.",
     "oauthBadge": "OAuth",
+    "simConnectError": "MCP server '{name}' couldn't connect: {reason} Check its credentials and configuration.",
     "discoveryErrors": {
       "title": "Failed to discover tools",
       "blocked": "This server's address is not allowed.",

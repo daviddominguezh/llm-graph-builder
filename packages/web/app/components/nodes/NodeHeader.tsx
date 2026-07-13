@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { MessageSquare, Brain, Wrench, Send, Shrink } from "lucide-react";
+import { UserRoundPen, Play, Send, Shrink, Split } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useHandleContext } from "./HandleContext";
 
@@ -25,17 +25,17 @@ const NodeHeaderComponent = ({ nodeKind, nodeId }: NodeHeaderProps) => {
     case "user_routing":
       headerLabel = "User";
       colorClass = "text-green-700";
-      headerIcon = <MessageSquare className={`h-4 w-4 ${colorClass}`} />;
+      headerIcon = <UserRoundPen className={`h-4 w-4 ${colorClass}`} />;
       break;
     case "agent_decision":
       headerLabel = "Decision";
       colorClass = "text-purple-700";
-      headerIcon = <Brain className={`h-4 w-4 ${colorClass}`} />;
+      headerIcon = <Split className={`h-4 w-4 ${colorClass}`} />;
       break;
     case "tool_call":
       headerLabel = "Tool";
       colorClass = "text-orange-700";
-      headerIcon = <Wrench className={`h-4 w-4 ${colorClass}`} />;
+      headerIcon = <Play className={`h-4 w-4 ${colorClass}`} />;
       break;
     default:
       headerLabel = "Agent";

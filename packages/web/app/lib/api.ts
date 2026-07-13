@@ -208,6 +208,8 @@ export interface SimulateRequestBody {
   quickReplies: Record<string, string>;
   structuredOutputs?: Record<string, unknown[]>;
   orgId?: string;
+  // Lets the backend resolve MCP transports under the org's default tenant.
+  agentId?: string;
 }
 
 interface SseToolCall {
@@ -251,8 +253,17 @@ export interface StreamCallbacks extends SimCompositionCallbacks {
   // RU3 T17 sim-state bridge: runtime is the sole authoritative writer.
   onStateSnapshot?: (state: Record<string, unknown>) => void;
   onStatePatch?: (path: string, value: unknown) => void;
-  onError?: (message: string) => void;
+  onError?: (message: string, meta?: SimErrorMeta) => void;
   onComplete?: () => void;
+}
+
+/**
+ * Extra, redacted metadata for a sim `error` event. Present when the failure is
+ * an MCP connect: the FE renders an actionable, localized message from these.
+ */
+export interface SimErrorMeta {
+  serverName?: string;
+  errorCategory?: DiscoveryErrorCategory;
 }
 
 const SseToolCallSchema = z.object({
@@ -293,6 +304,9 @@ const SseEventSchema = z.object({
   structuredOutput: StructuredOutputSchema.optional(),
   reasoning: z.string().optional(),
   error: z.string().optional(),
+  // Redacted MCP-connect failure metadata (workflow sim error path).
+  serverName: z.string().optional(),
+  errorCategory: z.enum(DISCOVERY_ERROR_CATEGORIES).optional(),
   // Agent-specific fields
   step: z.number().optional(),
   responseText: z.string().optional(),
@@ -409,6 +423,12 @@ function handleStatePatch(event: SseEvent, callbacks: StreamCallbacks): void {
   }
 }
 
+function handleError(event: SseEvent, callbacks: StreamCallbacks): void {
+  if (event.message === undefined) return;
+  const meta: SimErrorMeta = { serverName: event.serverName, errorCategory: event.errorCategory };
+  callbacks.onError?.(event.message, meta);
+}
+
 function dispatchSseEvent(event: SseEvent, callbacks: StreamCallbacks): void {
   if (dispatchSimCompositionEvent(event, callbacks)) return;
   if (event.type === 'simulation_state_snapshot') {
@@ -429,8 +449,8 @@ function dispatchSseEvent(event: SseEvent, callbacks: StreamCallbacks): void {
     handleChildDispatched(event, callbacks);
   } else if (event.type === 'child_completed') {
     handleChildCompleted(event, callbacks);
-  } else if (event.type === 'error' && event.message !== undefined) {
-    callbacks.onError?.(event.message);
+  } else if (event.type === 'error') {
+    handleError(event, callbacks);
   } else if (event.type === 'simulation_complete') {
     callbacks.onComplete?.();
   }

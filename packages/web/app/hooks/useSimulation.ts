@@ -2,8 +2,10 @@
 
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import type { Edge as RFEdge, Node as RFNode } from '@xyflow/react';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
+import { discoveryErrorRelativeKey } from '../lib/discoveryErrorCopy';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
 import type { ConversationEntry, NodeResult, SimulationTokens } from '../types/simulation';
@@ -15,6 +17,7 @@ import type {
   AgentSimConfig,
   FullSetters,
   GraphSnapshot,
+  McpErrorTranslator,
   SendMessageDeps,
   SimulationStartDeps,
 } from './useSimulationHelpers';
@@ -44,6 +47,7 @@ export interface UseSimulationParams {
   onSelectNode: (nodeId: string) => void;
   onExitZoomView: () => void;
   orgId?: string;
+  agentId?: string;
   appType?: 'workflow' | 'agent';
   agentConfig?: AgentSimConfig;
 }
@@ -140,7 +144,11 @@ function checkTerminated(
   return active && !loading && snapshot !== null && isNodeTerminal(snapshot.edges, currentNode);
 }
 
-function buildSendDeps(params: UseSimulationParams, s: SimulationHookState): SendMessageDeps {
+function buildSendDeps(
+  params: UseSimulationParams,
+  s: SimulationHookState,
+  translateMcpError: McpErrorTranslator
+): SendMessageDeps {
   return {
     preset: params.preset,
     loading: s.loading,
@@ -155,7 +163,9 @@ function buildSendDeps(params: UseSimulationParams, s: SimulationHookState): Sen
     setters: s.setters,
     onZoomToNode: params.onZoomToNode,
     onSelectNode: params.onSelectNode,
+    translateMcpError,
     orgId: params.orgId,
+    agentId: params.agentId,
     appType: params.appType,
     agentConfig: params.agentConfig,
     simulationLeadScore: s.simulationLeadScore,
@@ -166,6 +176,12 @@ function buildSendDeps(params: UseSimulationParams, s: SimulationHookState): Sen
 
 export function useSimulation(params: UseSimulationParams): SimulationState {
   const { allNodes, edges, onZoomToNode, onExitZoomView } = params;
+  const tMcp = useTranslations('mcpLibrary');
+  const translateMcpError = useCallback<McpErrorTranslator>(
+    (serverName, category) =>
+      tMcp('simConnectError', { name: serverName, reason: tMcp(discoveryErrorRelativeKey(category)) }),
+    [tMcp]
+  );
   const s = useSimulationState();
   const { abortSimulation, abortAndCreateSignal } = useAbortRef();
 
@@ -183,7 +199,7 @@ export function useSimulation(params: UseSimulationParams): SimulationState {
   const stop = useSimulationStop(s.setters, abortSimulation, onExitZoomView, clearSelection);
   const clear = useSimulationClear(s.setters, abortSimulation, onExitZoomView, store);
 
-  const sendDeps = buildSendDeps(params, s);
+  const sendDeps = buildSendDeps(params, s, translateMcpError);
   const sendDepsRef = useRef(sendDeps);
   useEffect(() => {
     sendDepsRef.current = sendDeps;

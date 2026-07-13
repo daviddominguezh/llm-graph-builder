@@ -22,9 +22,24 @@ const mockAssertEgress = jest.fn<() => Promise<void>>(async () => {
 });
 const mockExecuteWithCallbacks = jest.fn<() => Promise<null>>(async () => await Promise.resolve(null));
 
+// A stand-in for the real McpConnectError. `sendWorkflowError` imports the class
+// from the (mocked) lifecycle module, so the SAME class must be exported here for
+// its `instanceof` check — and for the rejection constructed below — to line up.
+class McpConnectError extends Error {
+  readonly serverName: string;
+  readonly category: string;
+  constructor(serverName: string, category: string) {
+    super(`MCP connect failed: ${category}`);
+    this.name = 'McpConnectError';
+    this.serverName = serverName;
+    this.category = category;
+  }
+}
+
 jest.unstable_mockModule('../../mcp/lifecycle.js', () => ({
   createMcpSession: mockCreateMcpSession,
   closeMcpSession: mockCloseMcpSession,
+  McpConnectError,
 }));
 
 jest.unstable_mockModule('../../lib/assertEgressForServers.js', () => ({
@@ -129,5 +144,18 @@ describe('handleSimulate — egress guard', () => {
     expect(mockCreateMcpSession).toHaveBeenCalledTimes(ONCE);
     expect(res.text).toContain('"type":"simulation_complete"');
     expect(res.text).not.toContain('"errorCategory"');
+  });
+});
+
+describe('handleSimulate — MCP connect failure', () => {
+  it('emits the server name + redacted category (never the raw error) on connect failure', async () => {
+    mockCreateMcpSession.mockRejectedValueOnce(new McpConnectError('Linear', 'auth'));
+    const res = await request(appWith())
+      .post('/simulate')
+      .send(body([publicServer()]));
+
+    expect(res.text).toContain('"serverName":"Linear"');
+    expect(res.text).toContain('"errorCategory":"auth"');
+    expect(res.text).not.toContain('MCP connect failed');
   });
 });

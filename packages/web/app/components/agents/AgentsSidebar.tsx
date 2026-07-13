@@ -83,19 +83,22 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
     >
       <StatusBar active={active} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1">
-        <span className="flex items-center gap-1">
-          <span className={`shrink-0 size-[7px] ml-[2px] shrink-0 rounded-full ${colorClass}`} />
-          <span className="shrink-0 flex-1 min-w-[0px] truncate text-[10px] font-medium font-mono">
-            {agent.name}
-          </span>
-          <div className="w-[40px] shrink-0 flex items-center ml-[2px] gap-1 text-[9px] text-muted-foreground">
+        <span className="flex items-center gap-1 justify-between">
+          <div className="flex items-center gap-1 shrink-0 flex-1">
+            <span className={`shrink-0 size-[7px] ml-[2px] shrink-0 rounded-full ${colorClass}`} />
+            <span className="shrink-0 flex-1 min-w-[0px] truncate text-[10px] font-medium">{agent.name}</span>
+          </div>
+          <div className="w-[20px] shrink-0 flex justify-end items-center ml-[2px] gap-1 text-[9px] text-muted-foreground">
             <span>v{agent.version}</span>
-            <span>·</span>
-            <span suppressHydrationWarning>{formatRelativeTime(agent.updated_at, 'en', 'compact')}</span>
           </div>
         </span>
         {agent.description ? (
-          <span className="line-clamp-1 ml-[2px] text-[10px] text-muted-foreground">{agent.description}</span>
+          <div className="flex justify-between items-center ml-[2px] text-[10px] text-muted-foreground">
+            <span className="shrink-0 line-clamp-2 flex-1 min-w-[0px] truncate">{agent.description}</span>
+            <span className="shrink-0" suppressHydrationWarning>
+              Edited {formatRelativeTime(agent.updated_at, 'en', 'compact')} ago
+            </span>
+          </div>
         ) : null}
       </div>
     </Link>

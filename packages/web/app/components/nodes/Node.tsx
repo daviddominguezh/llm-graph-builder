@@ -49,8 +49,8 @@ function AgentNodeComponent({ data, id, selected }: NodeProps) {
   const nodeKind = getNodeKind(id, edges);
   const nextNodeIsUser = nodeData.nextNodeIsUser ?? false;
 
-  const borderWidth = hasError || nextNodeIsUser ? "border-2" : "border";
-  const borderColor = hasError ? "border-destructive" : nextNodeIsUser ? "border-red-500" : "border-input";
+  const borderWidth = hasError || nextNodeIsUser ? "border-[1.5px]" : "border";
+  const borderColor = hasError ? "border-destructive" : nextNodeIsUser ? "border-primary" : "border-input";
   const mutedStyle = muted ? "border-border bg-muted dark:bg-muted grayscale dark:contrast-85 pointer-events-none" : "";
   const selectionRing = selected ? "ring-2 ring-primary" : "";
 

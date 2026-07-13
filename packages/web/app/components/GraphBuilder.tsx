@@ -422,6 +422,7 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     appType: loadResult.agentConfig !== undefined ? 'agent' : 'workflow',
     agentConfig: agentHooks.agentConfig,
     orgId: props.orgId,
+    agentId,
   });
 
   const ctxPreconditions = useContextPreconditions(edges);

@@ -5,6 +5,7 @@ import type { Request, Response } from 'express';
 import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import { type McpSession, closeMcpSession } from '../mcp/lifecycle.js';
 import type { SimulateRequest } from '../types.js';
+import { resolveSimMcpServers } from './simMcpResolution.js';
 import { sendAgentError } from './simulateAgentSse.js';
 import type { SimulateAgentRequest } from './simulateAgentTypes.js';
 import { SimulateAgentRequestSchema } from './simulateAgentTypes.js';
@@ -87,10 +88,24 @@ export async function runUnifiedSimulation(body: UnifiedSimBody, res: Response):
 
 async function handleWorkflowHttp(body: SimulateRequest, res: Response): Promise<void> {
   process.stdout.write(`[simulate] workflow request received, currentNode=${body.currentNode}\n`);
+  // DEBUG (remove before merge): the workflow sim eagerly connects ALL these MCP
+  // servers up front, before any node runs.
+  const debugServers = body.graph.mcpServers ?? [];
+  process.stdout.write(
+    `[simulate][DEBUG] eager MCP connect: count=${String(debugServers.length)} names=[${debugServers.map((s) => s.name).join(',')}]\n`
+  );
   setSseHeaders(res);
   let session: McpSession = EMPTY_SESSION;
   try {
-    const connected = await guardedCreateSession(body.graph.mcpServers ?? [], res);
+    const servers = body.graph.mcpServers ?? [];
+    // Resolve transports under the DEFAULT tenant (secret env refs included) so the
+    // eager connect uses real credentials — mirroring production. Skip when there is
+    // no agentId (e.g. unsaved/anonymous graphs): fall back to the FE-supplied servers.
+    const resolvedServers =
+      body.agentId === undefined
+        ? servers
+        : await resolveSimMcpServers(createServiceClient(), body.agentId, body.orgId ?? '', servers);
+    const connected = await guardedCreateSession(resolvedServers, res);
     if (connected === null) return;
     session = connected;
     await runUnifiedSimulation(body, res);

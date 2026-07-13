@@ -30,6 +30,10 @@ export interface SimulateRequest {
   quickReplies: Record<string, string>;
   structuredOutputs?: Record<string, unknown[]>;
   orgId?: string;
+  // Present on the workflow sim path so the backend can resolve each MCP server's
+  // transport under the org's DEFAULT tenant (tenant config + decrypted env vars),
+  // matching the production `resolveBinding` path. Undefined => resolve is skipped.
+  agentId?: string;
 }
 
 export interface ToolCallRequest {
@@ -76,7 +80,7 @@ export type SimulationEvent =
       nodeTokens: Array<{ node: string; tokens: { input: number; output: number; cached: number } }>;
       tokenUsage: { input: number; output: number; cached: number };
     }
-  | { type: 'error'; message: string; errorCategory?: DiscoveryErrorCategory }
+  | { type: 'error'; message: string; errorCategory?: DiscoveryErrorCategory; serverName?: string }
   | { type: 'simulation_complete' }
   | {
       type: 'child_dispatched';

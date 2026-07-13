@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 import type { AgentSimulateRequestBody } from '../lib/agentSimulationApi';
 import type { NodeProcessedEvent, SimulateRequestBody, StreamCallbacks } from '../lib/api';
+import type { DiscoveryErrorCategory } from '../lib/discoveryErrorCopy';
 import type { Agent, McpServerConfig } from '../schemas/graph.schema';
 import type { ContextPreset } from '../types/preset';
 import type { ConversationEntry, NodeResult, SimulationTokens } from '../types/simulation';
@@ -36,6 +37,9 @@ export interface SimulationSetters {
 
 export type FullSetters = SimulationSetters & { setActive: React.Dispatch<React.SetStateAction<boolean>> };
 
+/** Builds the actionable, localized message shown when an MCP server fails to connect. */
+export type McpErrorTranslator = (serverName: string, category: DiscoveryErrorCategory) => string;
+
 export interface SimulationStartDeps {
   setters: FullSetters;
   allNodes: Array<RFNode<RFNodeData>>;
@@ -64,7 +68,9 @@ export interface SendMessageDeps {
   setters: SimulationSetters;
   onZoomToNode: (nodeId: string) => void;
   onSelectNode: (nodeId: string) => void;
+  translateMcpError: McpErrorTranslator;
   orgId?: string;
+  agentId?: string;
   appType?: 'workflow' | 'agent';
   agentConfig?: AgentSimConfig;
   simulationLeadScore?: number | null;
@@ -85,6 +91,7 @@ export interface BuildSimulateParamsOptions extends Pick<
   modelId: string;
   structuredOutputs?: Record<string, unknown[]>;
   orgId?: string;
+  agentId?: string;
   simulationLeadScore?: number | null;
 }
 
@@ -149,6 +156,7 @@ export interface StreamCallbackDeps {
   setters: SimulationSetters;
   onZoomToNode: (nodeId: string) => void;
   onSelectNode: (nodeId: string) => void;
+  translateMcpError: McpErrorTranslator;
 }
 
 export function createAssistantMessage(text: string): Message {
@@ -163,7 +171,7 @@ export function createAssistantMessage(text: string): Message {
 }
 
 export function buildStreamCallbacks(deps: StreamCallbackDeps): StreamCallbacks {
-  const { setters, onZoomToNode, onSelectNode } = deps;
+  const { setters, onZoomToNode, onSelectNode, translateMcpError } = deps;
   let lastResponseText = '';
   return {
     onNodeVisited: (nodeId: string) => {
@@ -186,9 +194,13 @@ export function buildStreamCallbacks(deps: StreamCallbackDeps): StreamCallbacks 
         setters.setMessages((prev) => [...prev, createAssistantMessage(lastResponseText)]);
       }
     },
-    onError: (message: string) => {
+    onError: (message, meta) => {
       setters.setLoading(false);
-      toast.error(message);
+      const text =
+        meta?.serverName !== undefined && meta.errorCategory !== undefined
+          ? translateMcpError(meta.serverName, meta.errorCategory)
+          : message;
+      toast.error(text);
     },
   };
 }
@@ -216,6 +228,7 @@ export function buildSimulateParams(opts: BuildSimulateParamsOptions): SimulateR
     quickReplies,
     structuredOutputs: opts.structuredOutputs,
     orgId: opts.orgId,
+    agentId: opts.agentId,
   };
 }
 

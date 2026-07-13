@@ -13,7 +13,7 @@ import { createServiceClient } from '../db/queries/executionAuthQueries.js';
 import { assertEgressForServers } from '../lib/assertEgressForServers.js';
 import { classifyDiscoveryError } from '../lib/discoveryError.js';
 import { consoleLogger } from '../logger.js';
-import { type McpSession, createMcpSession } from '../mcp/lifecycle.js';
+import { McpConnectError, type McpSession, createMcpSession } from '../mcp/lifecycle.js';
 import { makeNoStoreBoundKvServices, makeNoStoreBoundRagServices } from '../services/noStoreBoundServices.js';
 import type { SimulateRequest } from '../types.js';
 import { buildContext, sumTokens, writeSSE } from './simulate.js';
@@ -136,6 +136,17 @@ export function sendWorkflowAgentResponse(res: Response, result: CallAgentOutput
 }
 
 export function sendWorkflowError(res: Response, err: unknown): void {
+  // A failed MCP connect surfaces the server name + redacted category (never the
+  // raw upstream message/URL) so the FE can render an actionable, localized hint.
+  if (err instanceof McpConnectError) {
+    writeSSE(res, {
+      type: 'error',
+      message: 'MCP server connection failed',
+      serverName: err.serverName,
+      errorCategory: err.category,
+    });
+    return;
+  }
   const message = err instanceof Error ? err.message : 'Simulation failed';
   writeSSE(res, { type: 'error', message });
 }

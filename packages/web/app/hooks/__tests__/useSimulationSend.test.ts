@@ -57,6 +57,7 @@ function makeDeps(overrides: Partial<SendMessageDeps>): SendMessageDeps {
     setters: makeSetters(snapshot),
     onZoomToNode: jest.fn(),
     onSelectNode: jest.fn(),
+    translateMcpError: jest.fn(() => 'mcp connect error'),
     ...overrides,
   };
 }

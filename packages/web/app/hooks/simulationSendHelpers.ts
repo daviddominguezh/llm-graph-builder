@@ -219,6 +219,7 @@ function buildWorkflowBody(
     modelId,
     structuredOutputs,
     orgId: deps.orgId,
+    agentId: deps.agentId,
     simulationLeadScore: deps.simulationLeadScore,
   });
   return { ...params, appType: 'workflow' };

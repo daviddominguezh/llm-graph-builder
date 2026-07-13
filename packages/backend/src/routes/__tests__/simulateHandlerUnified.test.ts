@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, jest } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
 
+import * as realLifecycle from '../../mcp/lifecycle.js';
 import type { SimulateRequest } from '../../types.js';
 
 /* ------------------------------------------------------------------ */
@@ -24,6 +25,7 @@ const mockAssertEgress = jest.fn<() => Promise<void>>(async () => {
 const mockExecuteWithCallbacks = jest.fn<() => Promise<null>>(async () => await Promise.resolve(null));
 
 jest.unstable_mockModule('../../mcp/lifecycle.js', () => ({
+  ...realLifecycle,
   createMcpSession: mockCreateMcpSession,
   closeMcpSession: mockCloseMcpSession,
 }));
