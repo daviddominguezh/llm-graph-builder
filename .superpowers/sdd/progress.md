@@ -148,3 +148,22 @@ Task 11: complete (commit caba2832, parent dac32862, controller-applied inline �
 ---
 ## ARCHIVED: triggers run (feat/data-tools, MERGED into main via #29) — historical, do not re-dispatch
 Triggers A1–A2,B1–B2,C1–C5,D1–D4 all complete + final review + fix-wave. Feature merge-ready and merged.
+
+---
+
+# Decision Node Option Rows (DN) SDD progress
+
+Branch: feat/migration (in-place, shared with user's parallel commits).
+Plan: docs/superpowers/plans/2026-07-13-decision-node-option-rows.md
+Model: ALL subagents = opus (user standing rule).
+Standing rules: same as RU section above (never discard un-authored changes;
+explicit pathspec commits; derive each task's review BASE from actual git parent;
+lint gate 0 errors on every implementer AND fix dispatch).
+
+## Tasks
+- DN-Task 1: shared nodeKind util + normalizeRowModeHandles — NOT STARTED
+- DN-Task 2: normalize handles at ReactFlow boundaries — NOT STARTED
+- DN-Task 3: render option rows + per-row handles + i18n — NOT STARTED
+- DN-Task 4: add-option flow + default precondition — NOT STARTED
+- DN-Task 5: per-row delete via confirm modal — NOT STARTED
+- DN-Task 6: layout height for row-mode nodes — NOT STARTED

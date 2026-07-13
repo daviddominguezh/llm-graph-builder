@@ -46,7 +46,10 @@ const NodeHeaderComponent = ({ nodeKind, nodeId }: NodeHeaderProps) => {
     <div className="flex justify-between items-center group">
       <div className="flex items-center gap-2 px-4 py-3">
         <div className={`${colorClass} rounded-sm flex items-center justify-center p-1`}>{headerIcon}</div>
-        <span className={`text-[10px] font-semibold uppercase`}>{headerLabel}</span>
+        <div className="flex flex-col gap-0.5">
+          <span className={`text-[10px] font-medium uppercase text-foreground/70`}>{headerLabel}</span>
+          <p className="text-xs uppercase font-semibold text-foreground">{nodeId}</p>
+        </div>
       </div>
 
       <Button

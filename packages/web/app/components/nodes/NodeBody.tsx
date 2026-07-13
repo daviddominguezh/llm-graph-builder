@@ -30,7 +30,6 @@ const NodeBodyComponent = ({ nodeId, description, text }: NodeBodyProps) => {
 
   return (
     <div className="px-4 py-3">
-      <p className="text-sm font-semibold text-foreground">{nodeId}</p>
       {description && renderTooltip(description, "line-clamp-3! font-medium")}
       {text && renderTooltip(text, "line-clamp-4!")}
     </div>
