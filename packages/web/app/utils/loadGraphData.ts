@@ -13,6 +13,7 @@ const INITIAL_STEP_WIDTH = 100;
 const INITIAL_STEP_HEIGHT = 44;
 const DEFAULT_NODE_HEIGHT = 130;
 const FIXED_NODE_HEIGHT = 220;
+const OPTION_ROW_HEIGHT = 40;
 const VERTICAL_SPACING = 80;
 const HALF_DIVISOR = 2;
 
@@ -23,11 +24,27 @@ function calculateNodeWidth(nodes: Graph['nodes']): number {
 }
 
 /**
- * Calculate per-node dimensions for layout.
- * All nodes have fixed height except INITIAL_STEP.
+ * Count the outgoing options for a row-mode source node.
+ * A node is row-mode when its first precondition-bearing outgoing edge is an
+ * `agent_decision` or `user_said` branch; otherwise it has no option rows.
  */
-function calculateNodeDimensions(
+function rowModeOptionCount(nodeId: string, edges: Graph['edges']): number {
+  const outgoing = edges.filter((e) => e.from === nodeId);
+  const firstType = outgoing.find((e) => (e.preconditions?.length ?? 0) > 0)?.preconditions?.[0]?.type;
+  if (firstType === 'agent_decision' || firstType === 'user_said') {
+    return outgoing.length;
+  }
+  return 0;
+}
+
+/**
+ * Calculate per-node dimensions for layout.
+ * All nodes have fixed height except INITIAL_STEP; row-mode source nodes grow
+ * by one OPTION_ROW_HEIGHT per outgoing option so Dagre spacing fits the rows.
+ */
+export function calculateNodeDimensions(
   nodes: Graph['nodes'],
+  edges: Graph['edges'],
   nodeWidth: number
 ): Record<string, { width: number; height: number }> {
   const dimensions: Record<string, { width: number; height: number }> = {};
@@ -38,7 +55,9 @@ function calculateNodeDimensions(
       continue;
     }
 
-    dimensions[node.id] = { width: nodeWidth, height: FIXED_NODE_HEIGHT };
+    const optionCount = rowModeOptionCount(node.id, edges);
+    const height = FIXED_NODE_HEIGHT + optionCount * OPTION_ROW_HEIGHT;
+    dimensions[node.id] = { width: nodeWidth, height };
   }
 
   return dimensions;
@@ -51,7 +70,7 @@ function ensureNodePositions(graph: Graph, nodeWidth: number): Graph {
     return graph;
   }
 
-  const nodeDimensions = calculateNodeDimensions(graph.nodes, nodeWidth);
+  const nodeDimensions = calculateNodeDimensions(graph.nodes, graph.edges, nodeWidth);
 
   const layoutResult = layoutGraph(graph.nodes, graph.edges, {
     horizontalSpacing: nodeWidth,
@@ -74,7 +93,7 @@ function ensureNodePositions(graph: Graph, nodeWidth: number): Graph {
  */
 export function relayoutGraph(graph: Graph): LoadGraphResult {
   const nodeWidth = calculateNodeWidth(graph.nodes);
-  const nodeDimensions = calculateNodeDimensions(graph.nodes, nodeWidth);
+  const nodeDimensions = calculateNodeDimensions(graph.nodes, graph.edges, nodeWidth);
   const layoutResult = layoutGraph(graph.nodes, graph.edges, {
     horizontalSpacing: nodeWidth,
     verticalSpacing: VERTICAL_SPACING,
