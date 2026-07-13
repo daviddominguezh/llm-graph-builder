@@ -55,7 +55,7 @@ const NodeHeaderComponent = ({ nodeKind, nodeId }: NodeHeaderProps) => {
       <Button
         variant="ghost"
         size="icon-sm"
-        className="mr-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity rounded-sm"
+        className="mr-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity rounded-sm"
         onClick={(e) => {
           e.stopPropagation();
           onZoomToNode?.(nodeId);
