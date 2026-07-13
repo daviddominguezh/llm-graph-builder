@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import type { RFEdgeData } from "../../utils/graphTransformers";
 import { getPreconditionDisplayValue } from "../../utils/preconditionHelpers";
+import { HANDLE_COLOR, HANDLE_HEIGHT, HANDLE_RADIUS, HANDLE_WIDTH } from "./HandleContent";
 import { useHandleContext } from "./HandleContext";
 
 interface NodeOptionRowProps {
@@ -18,18 +19,21 @@ interface NodeOptionRowProps {
 }
 
 const rowHandleStyle = {
-  width: "10px",
-  height: "10px",
-  borderRadius: "100px",
-  backgroundColor: "var(--background)",
-  borderColor: "var(--input)",
-  right: "-5px",
+  width: `${HANDLE_WIDTH}px`,
+  height: `${HANDLE_HEIGHT}px`,
+  borderRadius: HANDLE_RADIUS,
+  border: "none",
+  backgroundColor: HANDLE_COLOR,
+  right: `-${HANDLE_WIDTH / 2}px`,
   top: "50%",
 } as const;
 
+// Kept in the DOM during simulation (so the row's edge stays anchored) but invisible.
+const hiddenRowHandleStyle = { ...rowHandleStyle, opacity: 0, pointerEvents: "none" } as const;
+
 const NodeOptionRowComponent = ({ edge, onDelete }: NodeOptionRowProps) => {
   const t = useTranslations("nodePanel");
-  const { readOnly } = useHandleContext();
+  const { readOnly, hideHandles } = useHandleContext();
   const first = edge.data?.preconditions?.[0];
   const label = first === undefined ? edge.target : getPreconditionDisplayValue(first);
 
@@ -60,7 +64,12 @@ const NodeOptionRowComponent = ({ edge, onDelete }: NodeOptionRowProps) => {
           <Trash2 />
         </Button>
       )}
-      <Handle type="source" position={Position.Right} id={edge.id} style={rowHandleStyle} />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id={edge.id}
+        style={hideHandles === true ? hiddenRowHandleStyle : rowHandleStyle}
+      />
     </div>
   );
 };

@@ -1,129 +1,72 @@
 import { memo } from "react";
 import { Handle, Position } from "@xyflow/react";
-import {
-  BottomSourceContent,
-  BottomSourceContentRed,
-  BottomTargetContent,
-  BottomTargetContentRed,
-  HANDLE_SIZE,
-  LeftTargetContent,
-  LeftTargetContentRed,
-  RightSourceContent,
-  RightSourceContentRed,
-  TopSourceContent,
-  TopSourceContentRed,
-  TopTargetContent,
-  TopTargetContentRed,
-} from "./HandleContent";
+import { HANDLE_COLOR, HANDLE_HEIGHT, HANDLE_RADIUS, HANDLE_WIDTH } from "./HandleContent";
 import { useHandleContext } from "./HandleContext";
 
 // Pre-rendered static handle style objects - never recreate
-const handleStyleBase = {
-  width: `${HANDLE_SIZE}px`,
-  height: `${HANDLE_SIZE}px`,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
+const rectBase = {
+  width: `${HANDLE_WIDTH}px`,
+  height: `${HANDLE_HEIGHT}px`,
+  borderRadius: HANDLE_RADIUS,
+  border: "none",
+  backgroundColor: HANDLE_COLOR,
   cursor: "pointer",
-  borderRadius: '100px',
-  overflow: 'hidden',
-  borderColor: 'var(--input)'
+  top: "50%",
 } as const;
 
-const readOnlyStyleBase = {
-  ...handleStyleBase,
+const readOnlyBase = {
+  ...rectBase,
   cursor: "default",
   pointerEvents: "none",
 } as const;
 
-function buildHandleStyles(base: typeof handleStyleBase | typeof readOnlyStyleBase) {
-  return {
-    topTarget: { ...base, backgroundColor: "var(--background)", left: "35%" } as const,
-    topSource: { ...base, backgroundColor: "var(--background)", left: "65%" } as const,
-    bottomTarget: { ...base, backgroundColor: "var(--background)", left: "35%" } as const,
-    bottomSource: { ...base, backgroundColor: "var(--background)", left: "65%" } as const,
-    leftTarget: { ...base, backgroundColor: "var(--background)", top: "50%" } as const,
-    rightSource: { ...base, backgroundColor: "var(--background)", top: "50%" } as const,
-  };
-}
-
-const editableStyles = buildHandleStyles(handleStyleBase);
-const readOnlyStyles = buildHandleStyles(readOnlyStyleBase);
+// In simulation mode the handles stay in the DOM (so edges keep their anchor)
+// but are rendered invisible.
+const hiddenBase = {
+  ...rectBase,
+  opacity: 0,
+  pointerEvents: "none",
+} as const;
 
 interface HandlesProps {
   nodeId: string;
-  nextNodeIsUser?: boolean;
   rowMode?: boolean;
 }
 
-function HandlesComponent({ nodeId, nextNodeIsUser, rowMode }: HandlesProps) {
-  const { onSourceHandleClick, readOnly } = useHandleContext();
-  const s = readOnly ? readOnlyStyles : editableStyles;
+function pickBase(readOnly: boolean, hidden: boolean): typeof rectBase | typeof readOnlyBase | typeof hiddenBase {
+  if (hidden) return hiddenBase;
+  return readOnly ? readOnlyBase : rectBase;
+}
 
-  const handleSourceClick = (handleId: string) => (e: React.MouseEvent) => {
+function HandlesComponent({ nodeId, rowMode }: HandlesProps) {
+  const { onSourceHandleClick, readOnly, hideHandles } = useHandleContext();
+  const hidden = hideHandles === true;
+  const interactive = !readOnly && !hidden;
+  const style = pickBase(readOnly === true, hidden);
+
+  const handleSourceClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onSourceHandleClick?.(nodeId, handleId, e);
+    onSourceHandleClick?.(nodeId, "right-source", e);
   };
 
-  // Prevent drag-and-drop connection - only allow click
   const preventDrag = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
 
-  // In row mode, each option row renders its own right-anchored source handle,
-  // so the shared right-source handle is suppressed here.
-  const rightSource = rowMode ? null : (
-    <Handle
-      type="source"
-      position={Position.Right}
-      id="right-source"
-      style={s.rightSource}
-      onClick={readOnly ? undefined : handleSourceClick("right-source")}
-      onMouseDown={readOnly ? undefined : preventDrag}
-    >
-      {nextNodeIsUser ? RightSourceContentRed : RightSourceContent}
-    </Handle>
-  );
-
   return (
     <>
-      {/* Top handles */}
-      <Handle type="target" position={Position.Top} id="top-target" style={s.topTarget}>
-        {nextNodeIsUser ? TopTargetContentRed : TopTargetContent}
-      </Handle>
-      <Handle
-        type="source"
-        position={Position.Top}
-        id="top-source"
-        style={s.topSource}
-        onClick={readOnly ? undefined : handleSourceClick("top-source")}
-        onMouseDown={readOnly ? undefined : preventDrag}
-      >
-        {nextNodeIsUser ? TopSourceContentRed : TopSourceContent}
-      </Handle>
-
-      {/* Bottom handles */}
-      <Handle type="target" position={Position.Bottom} id="bottom-target" style={s.bottomTarget}>
-        {nextNodeIsUser ? BottomTargetContentRed : BottomTargetContent}
-      </Handle>
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="bottom-source"
-        style={s.bottomSource}
-        onClick={readOnly ? undefined : handleSourceClick("bottom-source")}
-        onMouseDown={readOnly ? undefined : preventDrag}
-      >
-        {nextNodeIsUser ? BottomSourceContentRed : BottomSourceContent}
-      </Handle>
-
-      {/* Left handles */}
-      <Handle type="target" position={Position.Left} id="left-target" style={s.leftTarget}>
-        {nextNodeIsUser ? LeftTargetContentRed : LeftTargetContent}
-      </Handle>
-
-      {/* Right handles */}
-      {rightSource}
+      <Handle type="target" position={Position.Left} id="left-target" style={style} />
+      {/* In row mode each option row renders its own right-anchored source handle. */}
+      {!rowMode && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="right-source"
+          style={style}
+          onClick={interactive ? handleSourceClick : undefined}
+          onMouseDown={interactive ? preventDrag : undefined}
+        />
+      )}
     </>
   );
 }

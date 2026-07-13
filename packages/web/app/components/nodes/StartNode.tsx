@@ -1,32 +1,26 @@
 'use client';
 
 import { Handle, type NodeProps, Position } from '@xyflow/react';
-import { ArrowRight } from 'lucide-react';
 import { memo } from 'react';
 
-import { HANDLE_SIZE, ICON_SIZE } from './HandleContent';
+import { HANDLE_COLOR, HANDLE_HEIGHT, HANDLE_RADIUS, HANDLE_WIDTH } from './HandleContent';
 import { useHandleContext } from './HandleContext';
 
 const rightSourceStyle = {
-  width: `${HANDLE_SIZE}px`,
-  height: `${HANDLE_SIZE}px`,
-  borderWidth: 0,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
+  width: `${HANDLE_WIDTH}px`,
+  height: `${HANDLE_HEIGHT}px`,
+  borderRadius: HANDLE_RADIUS,
+  border: 'none',
   cursor: 'pointer',
-  backgroundColor: 'var(--background)',
+  backgroundColor: HANDLE_COLOR,
   top: '50%',
 } as const;
 
-const RightSourceContentGreen = (
-  <div className="relative w-full h-full flex flex-col justify-center items-center border rounded-full border-input">
-    <ArrowRight size={ICON_SIZE} className="absolute text-green-500" style={{ transform: 'rotate(0deg)' }} />
-  </div>
-);
+const hiddenRightSourceStyle = { ...rightSourceStyle, opacity: 0, pointerEvents: 'none' } as const;
 
 function StartNodeComponent({ selected, id }: NodeProps) {
-  const { onSourceHandleClick } = useHandleContext();
+  const { onSourceHandleClick, hideHandles } = useHandleContext();
+  const hidden = hideHandles === true;
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -48,12 +42,10 @@ function StartNodeComponent({ selected, id }: NodeProps) {
         type="source"
         position={Position.Right}
         id="right-source"
-        onClick={handleClick}
-        onMouseDown={preventDrag}
-        style={rightSourceStyle}
-      >
-        {RightSourceContentGreen}
-      </Handle>
+        onClick={hidden ? undefined : handleClick}
+        onMouseDown={hidden ? undefined : preventDrag}
+        style={hidden ? hiddenRightSourceStyle : rightSourceStyle}
+      />
     </div>
   );
 }

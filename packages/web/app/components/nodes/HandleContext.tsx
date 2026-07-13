@@ -17,6 +17,7 @@ interface HandleContextValue {
     event: React.MouseEvent
   ) => void;
   readOnly?: boolean;
+  hideHandles?: boolean;
 }
 
 export const HandleContext = createContext<HandleContextValue>({});

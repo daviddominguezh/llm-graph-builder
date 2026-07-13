@@ -609,6 +609,7 @@ function LoadedEditor(props: LoadedEditorProps) {
     onDeleteOption: (edgeId: string, from: string, to: string) =>
       h.deleteConfirmation.requestDeleteEdge(edgeId, from, to),
     readOnly: isReadOnly,
+    hideHandles: h.simulation.active,
   };
 
   const isAgentMode = h.agentConfig !== undefined;

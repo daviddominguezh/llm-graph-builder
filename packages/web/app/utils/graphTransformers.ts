@@ -24,26 +24,11 @@ interface HandlePair {
  * - Sources: right-source, top-source, bottom-source
  * - Targets: left-target, top-target, bottom-target
  */
-function getClosestHandles(
-  sourcePos: { x: number; y: number },
-  targetPos: { x: number; y: number }
-): HandlePair {
-  const dx = targetPos.x - sourcePos.x;
-  const dy = targetPos.y - sourcePos.y;
-
-  // For left-to-right flow (target is to the right)
-  if (dx >= INITIAL_INDEX) {
-    return { sourceHandle: 'right-source', targetHandle: 'left-target' };
-  }
-
-  // For right-to-left flow (back edges), use vertical handles
-  if (dy > INITIAL_INDEX) {
-    // Target is below source: use bottom-source -> top-target
-    return { sourceHandle: 'bottom-source', targetHandle: 'top-target' };
-  }
-
-  // Target is above source: use top-source -> bottom-target
-  return { sourceHandle: 'top-source', targetHandle: 'bottom-target' };
+function getClosestHandles(): HandlePair {
+  // Nodes expose a single source handle on the right edge and a single target
+  // handle on the left edge. Every edge (including back-edges) routes right ->
+  // left; smoothstep curves the path around for leftward/upward targets.
+  return { sourceHandle: 'right-source', targetHandle: 'left-target' };
 }
 
 export interface RFNodeData extends Record<string, unknown> {
@@ -159,7 +144,7 @@ function computeHandlesFromNodes(edge: SchemaEdge, nodes: SchemaNode[]): HandleP
   const targetNode = nodes.find((n) => n.id === edge.to);
 
   if (sourceNode?.position !== undefined && targetNode?.position !== undefined) {
-    return getClosestHandles(sourceNode.position, targetNode.position);
+    return getClosestHandles();
   }
 
   return undefined;

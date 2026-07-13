@@ -58,7 +58,7 @@ function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolName, selecte
           <AlertCircle className="size-3 text-white" />
         </div>
       )}
-      <Handles nodeId={id} nextNodeIsUser={nextNodeIsUser} rowMode={rowMode} />
+      <Handles nodeId={id} rowMode={rowMode} />
       <NodeHeader nodeKind={nodeKind} agent={nodeData.agent} nodeId={id} />
       <Separator />
       <NodeBody nodeId={nodeData.nodeId} description={nodeData.description} text={nodeData.text} />
