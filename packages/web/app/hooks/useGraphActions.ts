@@ -12,8 +12,10 @@ import {
   START_NODE_WIDTH,
 } from '../utils/graphInitializer';
 import type { RFEdgeData, RFNodeData } from '../utils/graphTransformers';
+import type { NodeKind } from '../utils/nodeKind';
 import { buildInsertEdgeOp, buildInsertNodeOp } from '../utils/operationBuilders';
 import type { PushOperation } from '../utils/operationBuilders';
+import { makePrecondition } from '../utils/preconditionHelpers';
 
 const NANOID_LENGTH = 8;
 const HALF = 2;
@@ -29,6 +31,7 @@ interface ConnectionMenuState {
   position: { x: number; y: number };
   sourceNodeId: string;
   sourceHandleId: string | null;
+  addOptionKind?: NodeKind;
 }
 
 interface UseGraphActionsParams {
@@ -46,6 +49,7 @@ interface UseGraphActionsReturn {
   connectionMenu: ConnectionMenuState | null;
   onConnect: (params: Connection) => void;
   onSourceHandleClick: (nodeId: string, handleId: string, event: React.MouseEvent) => void;
+  onAddOption: (nodeId: string, nodeKind: NodeKind, event: React.MouseEvent) => void;
   handleConnectionMenuSelectNode: (targetNodeId: string) => void;
   handleConnectionMenuCreateNode: () => void;
   handleConnectionMenuClose: () => void;
@@ -124,10 +128,80 @@ function useSourceHandleClick(
   );
 }
 
+function useAddOption(
+  setMenu: (v: ConnectionMenuState | null) => void
+): (nodeId: string, nodeKind: NodeKind, event: React.MouseEvent) => void {
+  return useCallback(
+    (nodeId: string, nodeKind: NodeKind, event: React.MouseEvent) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setMenu({
+        position: { x: rect.right + HANDLE_OFFSET, y: rect.top },
+        sourceNodeId: nodeId,
+        sourceHandleId: 'add-option',
+        addOptionKind: nodeKind,
+      });
+    },
+    [setMenu]
+  );
+}
+
 const DEFAULT_USER_SAID: Precondition = { type: 'user_said', value: '' };
 
 function buildStartEdgeData(): RFEdgeData {
   return { preconditions: [{ ...DEFAULT_USER_SAID }] };
+}
+
+function buildOptionEdge(
+  sourceNodeId: string,
+  targetNodeId: string,
+  nodeKind: NodeKind
+): { id: string; edgeData: RFEdgeData } {
+  const id = `${sourceNodeId}-${targetNodeId}-${nanoid(NANOID_LENGTH)}`;
+  const type = nodeKind === 'user_routing' ? 'user_said' : 'agent_decision';
+  return { id, edgeData: { preconditions: [makePrecondition({ type, value: '' })] } };
+}
+
+// Optional `id` is only present for row-mode "add option" edges (where sourceHandle must
+// equal the edge id). For all other edges the key is omitted entirely so `addEdge` keeps
+// generating the id itself (its `isEdgeBase` check keys off `'id' in element`).
+interface MenuEdgeArg {
+  id?: string;
+  source: string;
+  target: string;
+  sourceHandle: string | null;
+  targetHandle: string;
+  type: 'precondition';
+  data: RFEdgeData | undefined;
+}
+
+function buildMenuEdgeArg(
+  menu: ConnectionMenuState,
+  targetNodeId: string,
+  fallbackTargetHandle: string
+): { arg: MenuEdgeArg; edgeData: RFEdgeData | undefined } {
+  if (menu.addOptionKind !== undefined) {
+    const { id, edgeData } = buildOptionEdge(menu.sourceNodeId, targetNodeId, menu.addOptionKind);
+    const arg: MenuEdgeArg = {
+      id,
+      source: menu.sourceNodeId,
+      target: targetNodeId,
+      sourceHandle: id,
+      targetHandle: 'left-target',
+      type: 'precondition',
+      data: edgeData,
+    };
+    return { arg, edgeData };
+  }
+  const edgeData = menu.sourceNodeId === START_NODE_ID ? buildStartEdgeData() : undefined;
+  const arg: MenuEdgeArg = {
+    source: menu.sourceNodeId,
+    target: targetNodeId,
+    sourceHandle: menu.sourceHandleId,
+    targetHandle: fallbackTargetHandle,
+    type: 'precondition',
+    data: edgeData,
+  };
+  return { arg, edgeData };
 }
 
 function useMenuSelectNode(
@@ -139,21 +213,8 @@ function useMenuSelectNode(
   return useCallback(
     (targetNodeId: string) => {
       if (menu === null) return;
-      const isFromStart = menu.sourceNodeId === START_NODE_ID;
-      const edgeData: RFEdgeData | undefined = isFromStart ? buildStartEdgeData() : undefined;
-      setEdges((eds) =>
-        addEdge(
-          {
-            source: menu.sourceNodeId,
-            target: targetNodeId,
-            sourceHandle: menu.sourceHandleId,
-            targetHandle: 'left-target',
-            type: 'precondition',
-            data: edgeData,
-          },
-          eds
-        )
-      );
+      const { arg, edgeData } = buildMenuEdgeArg(menu, targetNodeId, 'left-target');
+      setEdges((eds) => addEdge(arg, eds));
       pushOperation(buildInsertEdgeOp(menu.sourceNodeId, targetNodeId, edgeData));
       setMenu(null);
     },
@@ -174,8 +235,7 @@ function useMenuCreateNode(
     const sourceNode = params.nodes.find((n) => n.id === menu.sourceNodeId);
     const newPosition = computeNewNodePosition(menu, sourceNode, params.reactFlow.screenToFlowPosition);
     const targetHandle = resolveTargetHandle(menu.sourceHandleId);
-    const isFromStart = menu.sourceNodeId === START_NODE_ID;
-    const edgeData: RFEdgeData | undefined = isFromStart ? buildStartEdgeData() : undefined;
+    const { arg, edgeData } = buildMenuEdgeArg(menu, id, targetHandle);
 
     const newNode: Node<RFNodeData> = {
       id,
@@ -185,19 +245,7 @@ function useMenuCreateNode(
     };
 
     params.setNodes((nds) => [...nds, newNode]);
-    params.setEdges((eds) =>
-      addEdge(
-        {
-          source: menu.sourceNodeId,
-          target: id,
-          sourceHandle: menu.sourceHandleId,
-          targetHandle,
-          type: 'precondition',
-          data: edgeData,
-        },
-        eds
-      )
-    );
+    params.setEdges((eds) => addEdge(arg, eds));
     pushOperation(buildInsertNodeOp(newNode));
     pushOperation(buildInsertEdgeOp(menu.sourceNodeId, id, edgeData));
     setMenu(null);
@@ -242,6 +290,7 @@ export function useGraphActions(params: UseGraphActionsParams): UseGraphActionsR
     connectionMenu,
     onConnect: useOnConnect(params.setEdges, setConnectionMenu, params.pushOperation),
     onSourceHandleClick: useSourceHandleClick(setConnectionMenu),
+    onAddOption: useAddOption(setConnectionMenu),
     handleConnectionMenuSelectNode: useMenuSelectNode(
       connectionMenu,
       params.setEdges,

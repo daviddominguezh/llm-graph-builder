@@ -602,6 +602,7 @@ function LoadedEditor(props: LoadedEditorProps) {
 
   const handleContextValue = {
     onSourceHandleClick: h.graphActions.onSourceHandleClick,
+    onAddOption: h.graphActions.onAddOption,
     onZoomToNode: h.zoomView.handleZoomToNode,
   };
 
