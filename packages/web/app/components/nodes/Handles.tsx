@@ -5,6 +5,7 @@ import { useHandleContext } from "./HandleContext";
 
 // Pre-rendered static handle style objects - never recreate
 const rectBase = {
+  zIndex: '10',
   width: `${HANDLE_WIDTH}px`,
   height: `${HANDLE_HEIGHT}px`,
   borderRadius: HANDLE_RADIUS,
