@@ -3,12 +3,13 @@
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { memo } from 'react';
 
-import { HANDLE_COLOR, HANDLE_HEIGHT, HANDLE_RADIUS, HANDLE_WIDTH } from './HandleContent';
+import { HANDLE_COLOR, HANDLE_HEIGHT, HANDLE_WIDTH } from './HandleContent';
 
 const rightSourceStyle = {
   width: `${HANDLE_WIDTH}px`,
   height: `${HANDLE_HEIGHT}px`,
-  borderRadius: HANDLE_RADIUS,
+  borderTopRightRadius: '100px',
+  borderBottomRightRadius: '100px',
   border: 'none',
   cursor: 'pointer',
   backgroundColor: HANDLE_COLOR,
@@ -25,12 +26,7 @@ function PrevExecNodeComponent({ selected, data }: NodeProps) {
       }`}
     >
       <span className="text-sm font-semibold uppercase tracking-wide text-accent-foreground">{label}</span>
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="right-source"
-        style={rightSourceStyle}
-      />
+      <Handle type="source" position={Position.Right} id="right-source" style={rightSourceStyle} />
     </div>
   );
 }

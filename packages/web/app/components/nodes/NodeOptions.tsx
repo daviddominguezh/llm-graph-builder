@@ -1,8 +1,9 @@
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { type Edge } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { memo } from 'react';
+import React, { memo } from 'react';
 
 import type { RFEdgeData } from '../../utils/graphTransformers';
 import type { NodeKind } from '../../utils/nodeKind';
@@ -20,16 +21,16 @@ const NodeOptionsComponent = ({ nodeId, nodeKind, options }: NodeOptionsProps) =
   const { onDeleteOption, onAddOption, readOnly } = useHandleContext();
 
   return (
-    <div className="group/options">
-      {options.map((edge) => (
-        <NodeOptionRow
-          key={edge.id}
-          edge={edge}
-          onDelete={() => onDeleteOption?.(edge.id, edge.source, edge.target)}
-        />
+    <div className="group/options px-3">
+      <div className="uppercase text-[10px] text-muted-foreground">Options:</div>
+      {options.map((edge, i) => (
+        <React.Fragment key={edge.id}>
+          <NodeOptionRow edge={edge} onDelete={() => onDeleteOption?.(edge.id, edge.source, edge.target)} />
+          {i < options.length - 1 && <Separator />}
+        </React.Fragment>
       ))}
       {!readOnly && (
-        <div className="border-t border-border/60 p-1">
+        <div className="p-1">
           <Button
             variant="ghost"
             size="sm"

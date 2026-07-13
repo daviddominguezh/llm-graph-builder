@@ -2,7 +2,6 @@
 // than wide) in the theme primary color. A node exposes one target handle on its
 // left edge and one source handle on its right edge; direction is implied by the
 // edge the handle sits on, so no arrow glyph.
-export const HANDLE_WIDTH = 5;
+export const HANDLE_WIDTH = 4;
 export const HANDLE_HEIGHT = 15;
-export const HANDLE_RADIUS = '15px';
 export const HANDLE_COLOR = 'var(--color-sky-500)';
