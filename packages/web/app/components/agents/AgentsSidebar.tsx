@@ -7,7 +7,6 @@ import { formatRelativeTime } from '@/app/utils/formatRelativeTime';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/ui/glass-panel';
 import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
 import { Plus, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
