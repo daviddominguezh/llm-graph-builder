@@ -485,6 +485,8 @@
     "description": "This is the entry point of the graph. It cannot be modified."
   },
   "nodePanel": {
+    "addOption": "Add option",
+    "deleteOption": "Delete option",
     "disabledByToolCall": "Disabled — this node routes through a tool call edge.",
     "outputSchema": "Output Schema",
     "outputSchemaDescription": "Define the structured output format for this agent node.",

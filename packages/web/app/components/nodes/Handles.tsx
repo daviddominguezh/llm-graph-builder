@@ -53,9 +53,10 @@ const readOnlyStyles = buildHandleStyles(readOnlyStyleBase);
 interface HandlesProps {
   nodeId: string;
   nextNodeIsUser?: boolean;
+  rowMode?: boolean;
 }
 
-function HandlesComponent({ nodeId, nextNodeIsUser }: HandlesProps) {
+function HandlesComponent({ nodeId, nextNodeIsUser, rowMode }: HandlesProps) {
   const { onSourceHandleClick, readOnly } = useHandleContext();
   const s = readOnly ? readOnlyStyles : editableStyles;
 
@@ -68,6 +69,21 @@ function HandlesComponent({ nodeId, nextNodeIsUser }: HandlesProps) {
   const preventDrag = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
+
+  // In row mode, each option row renders its own right-anchored source handle,
+  // so the shared right-source handle is suppressed here.
+  const rightSource = rowMode ? null : (
+    <Handle
+      type="source"
+      position={Position.Right}
+      id="right-source"
+      style={s.rightSource}
+      onClick={readOnly ? undefined : handleSourceClick("right-source")}
+      onMouseDown={readOnly ? undefined : preventDrag}
+    >
+      {nextNodeIsUser ? RightSourceContentRed : RightSourceContent}
+    </Handle>
+  );
 
   return (
     <>
@@ -107,16 +123,7 @@ function HandlesComponent({ nodeId, nextNodeIsUser }: HandlesProps) {
       </Handle>
 
       {/* Right handles */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="right-source"
-        style={s.rightSource}
-        onClick={readOnly ? undefined : handleSourceClick("right-source")}
-        onMouseDown={readOnly ? undefined : preventDrag}
-      >
-        {nextNodeIsUser ? RightSourceContentRed : RightSourceContent}
-      </Handle>
+      {rightSource}
     </>
   );
 }
