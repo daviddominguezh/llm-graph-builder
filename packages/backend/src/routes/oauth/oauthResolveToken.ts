@@ -1,6 +1,5 @@
 import {
   buildResolvedVars,
-  type EnvVarMaps,
   type McpTransport,
   McpTransportSchema,
   resolveTransport,
@@ -173,8 +172,6 @@ export async function handleResolveToken(req: Request, res: AuthenticatedRespons
     logOAuthInfo('resolve-token', `orgId=${orgId} libraryItemId=${libraryItemId}`);
     const { supabase }: AuthenticatedLocals = res.locals;
     const authType = await getLibraryItemAuthType(supabase, libraryItemId);
-    // DEBUG (remove before merge): reveals if the item is even treated as OAuth.
-    logOAuthInfo('resolve-token', `authType=${authType ?? 'NULL'}`);
     if (authType === 'token') {
       await respondWithStaticToken(res, { supabase, orgId, libraryItemId, agentId, variableValues });
       return;
@@ -192,10 +189,6 @@ export async function handleResolveToken(req: Request, res: AuthenticatedRespons
     }
     const mcpServerUrl = await lookupMcpServerUrl(supabase, libraryItemId);
     const accessToken = await resolveAccessToken(supabase, orgId, libraryItemId, mcpServerUrl);
-    // DEBUG (remove before merge): did we actually resolve a token to send?
-    const tokenState =
-      typeof accessToken === 'string' && accessToken !== '' ? `present(len=${String(accessToken.length)})` : 'EMPTY';
-    logOAuthInfo('resolve-token', `oauth token=${tokenState} url=${mcpServerUrl}`);
     res.status(HTTP_OK).json({ accessToken });
   } catch (err) {
     const message = extractErrorMessage(err);
