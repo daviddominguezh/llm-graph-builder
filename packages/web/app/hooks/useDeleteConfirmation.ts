@@ -28,6 +28,7 @@ export interface UseDeleteConfirmationReturn {
   pendingDelete: PendingDeleteTarget | null;
   confirmDelete: () => void;
   cancelDelete: () => void;
+  requestDeleteEdge: (edgeId: string, from: string, to: string) => void;
 }
 
 function isEditingText(): boolean {
@@ -104,5 +105,9 @@ export function useDeleteConfirmation(params: UseDeleteConfirmationParams): UseD
     setPendingDelete(null);
   }, []);
 
-  return { pendingDelete, confirmDelete, cancelDelete };
+  const requestDeleteEdge = useCallback((edgeId: string, from: string, to: string) => {
+    setPendingDelete({ kind: 'edge', edgeId, from, to });
+  }, []);
+
+  return { pendingDelete, confirmDelete, cancelDelete, requestDeleteEdge };
 }

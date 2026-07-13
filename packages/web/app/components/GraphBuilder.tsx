@@ -604,6 +604,8 @@ function LoadedEditor(props: LoadedEditorProps) {
     onSourceHandleClick: h.graphActions.onSourceHandleClick,
     onAddOption: h.graphActions.onAddOption,
     onZoomToNode: h.zoomView.handleZoomToNode,
+    onDeleteOption: (edgeId: string, from: string, to: string) =>
+      h.deleteConfirmation.requestDeleteEdge(edgeId, from, to),
   };
 
   const isReadOnly = props.readOnly === true;
