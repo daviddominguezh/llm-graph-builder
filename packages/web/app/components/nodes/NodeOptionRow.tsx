@@ -36,7 +36,7 @@ const NodeOptionRowComponent = ({ edge, onDelete }: NodeOptionRowProps) => {
   const label = first === undefined ? edge.target : getPreconditionDisplayValue(first);
 
   return (
-    <div className="group relative flex items-center gap-1 py-2">
+    <div className="group relative flex items-center gap-1">
       <div className="min-w-0 flex-1">
         <Tooltip>
           <TooltipTrigger className="line-clamp-1! block text-left text-xs text-foreground">

@@ -488,6 +488,7 @@
     "description": "This is the entry point of the graph. It cannot be modified."
   },
   "nodePanel": {
+    "options": "Options",
     "addOption": "Add option",
     "deleteOption": "Delete option",
     "toolPrefix": "Tool:",

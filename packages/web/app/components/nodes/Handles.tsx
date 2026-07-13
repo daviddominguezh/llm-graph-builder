@@ -64,7 +64,7 @@ function HandlesComponent({ nodeId, rowMode }: HandlesProps) {
         position={Position.Left}
         id="left-target"
         style={style}
-        className="-left-[3px]! rounded-s-full"
+        className="-left-[3px]! rounded-s-full! rounded-e-none!"
       />
       {/* In row mode each option row renders its own right-anchored source handle. */}
       {!rowMode && (
@@ -72,7 +72,7 @@ function HandlesComponent({ nodeId, rowMode }: HandlesProps) {
           type="source"
           position={Position.Right}
           id="right-source"
-          className="-right-[3px]! rounded-e-full"
+          className="-right-[3px]! rounded-e-full! rounded-s-none!"
           style={style}
           onClick={interactive ? handleSourceClick : undefined}
           onMouseDown={interactive ? preventDrag : undefined}

@@ -21,14 +21,16 @@ const NodeOptionsComponent = ({ nodeId, nodeKind, options }: NodeOptionsProps) =
   const { onDeleteOption, onAddOption, readOnly } = useHandleContext();
 
   return (
-    <div className="group/options px-3">
-      <div className="uppercase text-[10px] text-muted-foreground">Options:</div>
-      {options.map((edge, i) => (
-        <React.Fragment key={edge.id}>
-          <NodeOptionRow edge={edge} onDelete={() => onDeleteOption?.(edge.id, edge.source, edge.target)} />
-          {i < options.length - 1 && <Separator />}
-        </React.Fragment>
-      ))}
+    <div className="group/options px-3 pt-2">
+      <div className="uppercase text-[10px] text-muted-foreground font-medium">{t('options')}</div>
+      <div className="flex flex-col gap-2 mt-0.5">
+        {options.map((edge) => (
+          <React.Fragment key={edge.id}>
+            <NodeOptionRow edge={edge} onDelete={() => onDeleteOption?.(edge.id, edge.source, edge.target)} />
+            <Separator />
+          </React.Fragment>
+        ))}
+      </div>
       {!readOnly && (
         <div className="p-1">
           <Button
