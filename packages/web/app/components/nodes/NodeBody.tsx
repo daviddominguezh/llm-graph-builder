@@ -17,7 +17,7 @@ const NodeBodyComponent = ({ nodeId, description, text }: NodeBodyProps) => {
     return (
       <Tooltip>
         <TooltipTrigger
-          className={`flex flex-start text-left mt-1 text-xs text-muted-foreground ${classStyle}`}
+          className={`p-1 flex flex-start text-left mt-1 text-xs text-muted-foreground ${classStyle}`}
         >
           {text}
         </TooltipTrigger>

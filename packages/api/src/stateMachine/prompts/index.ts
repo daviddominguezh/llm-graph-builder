@@ -18,7 +18,7 @@ export const SM_BASE_PROMPT_NEXT_OPTIONS = `You are a routing node. Your only jo
 
 export const buildOutputFormatPrompt = (ids: string): string => `## Output format
 
-Return ONLY valid JSON. No tools. No extra text.
+Return only valid JSON. No tools. No extra text.
 
 ${MESSAGE_TO_USER_RULE}
 
@@ -32,7 +32,7 @@ export const buildDecisionOnlySchema = (ids: string): string => `\`\`\`json
 
 export const buildDecisionOnlyOutputFormatPrompt = (ids: string): string => `## Output format
 
-Return ONLY valid JSON. No tools. No extra text.
+Return only valid JSON. No tools. No extra text.
 
 ${buildDecisionOnlySchema(ids)}`;
 
@@ -44,7 +44,7 @@ export const buildTerminalNodeSchema = (): string => `\`\`\`json
 
 export const buildTerminalOutputFormatPrompt = (): string => `## Output format
 
-Return ONLY valid JSON. No tools. No extra text.
+Return only valid JSON. No tools. No extra text.
 
 ${MESSAGE_TO_USER_RULE}
 
@@ -69,7 +69,7 @@ export const SM_TOOLREPLY_NOTOOLS_REPLY = `**DO NOT CALL ANY TOOL AT THIS STEP**
 export const SM_TOOLREPLY_NODE_REPLY = `Use the following nodeID as the "nextNodeID" parameter in your response`;
 export const SM_TOOLREPLY_EXAMPLE_REPLY = `This is an example of the reply you should give to the user, replace the values within tags <> or braces {} with their appropiated values. For example: "Hello <NAME>" with "Hello Joe", and "Hello {NAME}" with "Hello Joe". Replacing the values within braces and tags is MANDATORY, you HAVE TO REPLACE THEM. Example`;
 
-export const SM_BASE_JSON_PROMPT = `Return ONLY valid JSON:`;
+export const SM_BASE_JSON_PROMPT = `Return only valid JSON:`;
 
 export const buildSchemaAgentReplyPrompt = (ids: string): string =>
   `${SM_BASE_JSON_PROMPT}\n\n${MESSAGE_TO_USER_RULE}\n\n${buildAgentReplySchema(ids)}`;

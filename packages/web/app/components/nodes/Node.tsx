@@ -28,11 +28,11 @@ function NodeShell({ id, nodeData, nodeKind, rowMode, options, selected }: NodeS
   const nextNodeIsUser = nodeData.nextNodeIsUser ?? false;
 
   const borderWidth = hasError || nextNodeIsUser ? "border-[1.5px]" : "border";
-  const borderColor = hasError ? "border-destructive" : nextNodeIsUser ? "border-primary" : "border-input";
+  const borderColor = hasError ? "border-destructive" : nextNodeIsUser ? "border-[#22c55e]" : "border-input";
   const mutedStyle = muted ? "border-border bg-muted dark:bg-muted grayscale dark:contrast-85 pointer-events-none" : "";
   const selectionRing = selected ? "ring-2 ring-primary" : "";
 
-  const containerBaseStyle = "rounded-lg bg-background p-1 relative";
+  const containerBaseStyle = "rounded-lg bg-popover relative";
   const containerClassname = `${containerBaseStyle} ${borderWidth} ${borderColor} ${mutedStyle} ${selectionRing}`;
   const heightStyle = rowMode
     ? { minHeight: "160px" as const }

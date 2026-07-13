@@ -60,11 +60,11 @@ function PreconditionEdgeComponent({
     if (muted) return "bg-muted text-muted-foreground/50 border-border";
     switch (preconditionType) {
       case "user_said":
-        return "bg-green-100 text-green-700 border-green-300";
+        return "bg-green-100 text-[#22c55e] border-[#22c55e] dark:bg-[#22c55e] dark:text-white";
       case "agent_decision":
-        return "bg-purple-100 text-purple-700 border-purple-300";
+        return "bg-purple-100 text-[#a855f7] border-[#a855f7] dark:bg-[#a855f7] dark:text-white";
       case "tool_call":
-        return "bg-orange-100 text-orange-700 border-orange-300";
+        return "bg-orange-100 text-[#f97316] border-[#f97316] dark:bg-[#f97316] dark:text-white";
       default:
         return "bg-muted text-muted-foreground border-border";
     }
@@ -109,12 +109,11 @@ function PreconditionEdgeComponent({
           >
             <Tooltip>
               <TooltipTrigger
-                className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${getTypeColors()} ${
+                className={`flex items-center gap-1 rounded border p-1.5 text-xs ${getTypeColors()} ${
                   selected ? "ring-2 ring-blue-500 ring-offset-1" : ""
                 }`}
               >
                 {getTypeIcon()}
-                <span>{preconditions.length}</span>
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-sm">
                 <div className="space-y-1">

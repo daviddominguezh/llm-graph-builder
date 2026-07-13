@@ -180,3 +180,9 @@ lint gate 0 errors on every implementer AND fix dispatch).
 - DN-REGRESSION FIX (commit d6cc9402): start node (INITIAL_STEP) edges vanished — user_said edges made
   getNodeKind classify it user_routing → normalize rewrote sourceHandle to edge.id (StartNode has no such
   handle). Fixed: exclude START_NODE_ID in getRowModeSourceIds + regression test. 8/8 nodeKind tests pass.
+- DN-Task 4: COMPLETE (commit 301498aa, review clean — Spec ✅, quality Approved).
+  Minor for final triage: option preconditions carry cosmetic description:undefined (harmless).
+- DN-Task 5: COMPLETE (commit b62c7bc6, review clean — Spec ✅, quality Approved, no issues).
+- DN-Task 6: COMPLETE (commit 1f1c92ae, review clean — Spec ✅, quality Approved).
+  Minor for final triage: nodeDimensions test uses relative-only assertions (could pin exact 300/220).
+- ALL DN TASKS COMPLETE. Feature commits: a1f7773d 87b4c5ea 41d13379 d6cc9402(fix) 301498aa b62c7bc6 1f1c92ae.
