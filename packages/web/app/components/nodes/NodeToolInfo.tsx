@@ -3,6 +3,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useTranslations } from 'next-intl';
 import { memo } from 'react';
 
+import type { McpLibraryRow } from '../../lib/mcpLibraryTypes';
+import { useMcpLibraryItems } from '../McpLibraryProvider';
 import { type ToolRegistryValue, useToolRegistryOptional } from '../ToolRegistryProvider';
 
 export interface ToolRef {
@@ -27,9 +29,36 @@ function resolveToolDescription(ref: ToolRef, registry: ToolRegistryValue | null
   return found?.description;
 }
 
+// The MCP's display name comes from its registry group; the logo (if the MCP is one of
+// our library MCPs) is matched by name against the fetched library rows.
+function resolveMcpName(ref: ToolRef, registry: ToolRegistryValue | null): string | undefined {
+  if (ref.providerType !== 'mcp' || registry === null) return undefined;
+  const group = registry.groups.find((g) => g.kind === 'mcp' && g.providerId === ref.providerId);
+  return group?.groupName;
+}
+
+function resolveMcpImage(mcpName: string | undefined, items: McpLibraryRow[]): string | null {
+  if (mcpName === undefined) return null;
+  return items.find((item) => item.name === mcpName)?.image_url ?? null;
+}
+
+function NodeMcpBadge({ name, imageUrl }: { name: string; imageUrl: string | null }) {
+  return (
+    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+      {imageUrl !== null && (
+        <img src={imageUrl} alt="" className="size-3 rounded-sm object-contain shrink-0" />
+      )}
+      <span className="line-clamp-1!">{name}</span>
+    </div>
+  );
+}
+
 const NodeToolInfoComponent = ({ toolRef, fallbackDescription }: NodeToolInfoProps) => {
   const t = useTranslations('nodePanel');
   const registry = useToolRegistryOptional();
+  const libraryItems = useMcpLibraryItems();
+  const mcpName = resolveMcpName(toolRef, registry);
+  const mcpImage = resolveMcpImage(mcpName, libraryItems);
   const description = resolveToolDescription(toolRef, registry) ?? fallbackDescription;
   const hasDescription = description !== undefined && description !== '';
   // A tool always has a description; while the registry is still loading, show a
@@ -61,6 +90,7 @@ const NodeToolInfoComponent = ({ toolRef, fallbackDescription }: NodeToolInfoPro
         <span className="text-muted-foreground">{t('toolPrefix')} </span>
         {toolRef.toolName}
       </p>
+      {mcpName !== undefined && <NodeMcpBadge name={mcpName} imageUrl={mcpImage} />}
     </div>
   );
 };

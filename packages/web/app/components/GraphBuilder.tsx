@@ -58,6 +58,7 @@ import { AgentEditorWrapper } from './AgentEditorWrapper';
 import { GraphBuilderLoading } from './GraphBuilderLoading';
 import { GraphCanvas } from './GraphCanvas';
 import { SidePanels } from './SidePanels';
+import { McpLibraryProvider } from './McpLibraryProvider';
 import { ToolRegistryProvider } from './ToolRegistryProvider';
 import { useCopilotContext } from './copilot/CopilotProvider';
 import { useEditorCache } from './editors/EditorCacheProvider';
@@ -638,6 +639,7 @@ function LoadedEditor(props: LoadedEditorProps) {
   return (
     <HandleContext.Provider value={handleContextValue}>
       <ToolRegistryProvider agentId={props.agentId ?? ''}>
+        <McpLibraryProvider items={h.mcpLibrary.items}>
         <div className="relative h-full w-full">
           {/* Canvas layer — fills entire main area */}
           {h.agentConfig !== undefined ? (
@@ -853,6 +855,7 @@ function LoadedEditor(props: LoadedEditorProps) {
             </div>
           </div>
         </div>
+        </McpLibraryProvider>
       </ToolRegistryProvider>
     </HandleContext.Provider>
   );
