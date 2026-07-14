@@ -53,6 +53,7 @@ const NodeToolInfoComponent = ({ toolRef, fallbackDescription }: NodeToolInfoPro
       {isLoadingDescription && (
         <div className="w-full shrink-0 rounded-sm bg-card p-1 mt-1 flex flex-col gap-1">
           <Skeleton className="h-2 w-full bg-input/30" />
+          <Skeleton className="h-2 w-full bg-input/30" />
           <Skeleton className="h-2 w-3/5 bg-input/30" />
         </div>
       )}
