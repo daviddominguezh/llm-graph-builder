@@ -1,3 +1,4 @@
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTranslations } from 'next-intl';
 import { memo } from 'react';
@@ -31,6 +32,9 @@ const NodeToolInfoComponent = ({ toolRef, fallbackDescription }: NodeToolInfoPro
   const registry = useToolRegistryOptional();
   const description = resolveToolDescription(toolRef, registry) ?? fallbackDescription;
   const hasDescription = description !== undefined && description !== '';
+  // A tool always has a description; while the registry is still loading, show a
+  // placeholder instead of an empty gap that fills in a moment later.
+  const isLoadingDescription = !hasDescription && registry?.state.kind === 'loading';
 
   return (
     <div className="shrink-0 flex flex-col gap-1 px-2 pb-2 pt-1">
@@ -45,6 +49,12 @@ const NodeToolInfoComponent = ({ toolRef, fallbackDescription }: NodeToolInfoPro
             {description}
           </TooltipContent>
         </Tooltip>
+      )}
+      {isLoadingDescription && (
+        <div className="w-full shrink-0 rounded-sm bg-card p-1 mt-1 flex flex-col gap-1">
+          <Skeleton className="h-2 w-full" />
+          <Skeleton className="h-2 w-3/5" />
+        </div>
       )}
       <p className="line-clamp-1! text-xs text-foreground">
         <span className="text-muted-foreground">{t('toolPrefix')} </span>
