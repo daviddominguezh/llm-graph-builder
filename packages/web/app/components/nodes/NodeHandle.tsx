@@ -79,7 +79,7 @@ export function NodeHandle({
       id={id}
       onClick={interactive ? onClick : undefined}
       onMouseDown={interactive ? onMouseDown : undefined}
-      className={`group/nh flex items-center justify-center !rounded-none !border-0 !bg-transparent ${isFromInnerOption ? '-right-[calc(-1px+calc(var(--spacing)*3))]!' : ''}`}
+      className={`group/nh flex items-center justify-center !rounded-none !border-0 !bg-transparent ${isFromInnerOption ? '-right-[calc(0px+calc(var(--spacing)*2))]!' : ''}`}
       style={hitStyle}
     >
       <span className={dotClass} style={dotStyle} />
