@@ -48,7 +48,7 @@ const NodeOptionRowComponent = ({ edge, onDelete }: NodeOptionRowProps) => {
         </Tooltip>
         <div className="flex items-center text-[9px] text-muted-foreground gap-1">
           <ArrowRight className="h-2 w-2" />
-          <div className="line-clamp-1!">{edge.target}</div>
+          <div className="line-clamp-1! font-mono">{edge.target}</div>
         </div>
 
         {!readOnly && (

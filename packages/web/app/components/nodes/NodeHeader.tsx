@@ -47,7 +47,7 @@ const NodeHeaderComponent = ({ nodeKind, nodeId }: NodeHeaderProps) => {
         <div className={`${colorClass} rounded-sm flex items-center justify-center p-1.5`}>{headerIcon}</div>
         <div className="flex flex-col gap-0">
           <span className={`text-[9px] uppercase text-foreground/55`}>{headerLabel}</span>
-          <p className="text-[10px] uppercase font-semibold text-foreground">{nodeId}</p>
+          <p className="text-[10px] uppercase font-semibold text-foreground font-mono">{nodeId}</p>
         </div>
       </div>
 
