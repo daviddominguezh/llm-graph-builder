@@ -24,7 +24,7 @@ function StartNodeComponent({ selected, id }: NodeProps) {
 
   return (
     <div
-      className={`relative ring ring-[1.5px] ring-green-500 flex items-center justify-center rounded-lg bg-popover px-6 py-3 ${
+      className={`relative ring ring-[1.5px] ring-input flex items-center justify-center rounded-lg bg-popover px-6 py-3 ${
         selected ? 'ring-2 ring-primary' : ''
       }`}
     >
