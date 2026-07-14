@@ -95,7 +95,7 @@ const NodeOptionRowComponent = ({ edge, onDelete }: NodeOptionRowProps) => {
         type="source"
         position={Position.Right}
         id={edge.id}
-        className="-right-[calc(3px+calc(var(--spacing)*3))]!"
+        className="-right-[calc(-1px+calc(var(--spacing)*3))]!"
         style={hideHandles === true ? hiddenRowHandleStyle : rowHandleStyle}
       />
     </div>
