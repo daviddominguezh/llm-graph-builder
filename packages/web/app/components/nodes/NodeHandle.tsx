@@ -83,8 +83,8 @@ export function NodeHandle({
       style={hitStyle}
     >
       <span className={dotClass} style={dotStyle} />
-      {interactive && (
-        <Plus className="absolute size-[10px] text-white opacity-0 transition-opacity duration-200 group-hover/nh:opacity-100" />
+      {type === 'source' && !disabled && (
+        <Plus className="pointer-events-none absolute left-1/2 top-1/2 size-[10px] -translate-x-1/2 -translate-y-1/2 text-white opacity-0 transition-opacity duration-200 group-hover/nh:opacity-100" />
       )}
     </Handle>
   );
