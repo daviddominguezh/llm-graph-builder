@@ -1,23 +1,22 @@
-"use client";
+'use client';
 
-import { memo } from "react";
-import { type NodeProps, useEdges } from "@xyflow/react";
-import { useTranslations } from "next-intl";
-import { Separator } from "@/components/ui/separator";
-import type { RFNodeData, RFEdgeData } from "../../utils/graphTransformers";
-import { getNodeKind, isRowModeNodeKind, type NodeKind } from "../../utils/nodeKind";
-import { getPreconditionDisplayValue } from "../../utils/preconditionHelpers";
-import { NodeHeader } from "./NodeHeader";
-import { NodeBody } from "./NodeBody";
-import { NodeOptions } from "./NodeOptions";
-import { Handles } from "./Handles";
-import type { Edge } from "@xyflow/react";
-import { AlertCircle } from "lucide-react";
+import { Separator } from '@/components/ui/separator';
+import { type NodeProps, useEdges } from '@xyflow/react';
+import type { Edge } from '@xyflow/react';
+import { AlertCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { memo } from 'react';
+
+import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
+import { type NodeKind, getNodeKind, isRowModeNodeKind } from '../../utils/nodeKind';
+import { getPreconditionDisplayValue } from '../../utils/preconditionHelpers';
+import { Handles } from './Handles';
+import { NodeBody } from './NodeBody';
+import { NodeHeader } from './NodeHeader';
+import { NodeOptions } from './NodeOptions';
 
 function getToolNameForNode(id: string, edges: Edge<RFEdgeData>[]): string | undefined {
-  const toolEdge = edges.find(
-    (e) => e.source === id && e.data?.preconditions?.[0]?.type === "tool_call"
-  );
+  const toolEdge = edges.find((e) => e.source === id && e.data?.preconditions?.[0]?.type === 'tool_call');
   const precondition = toolEdge?.data?.preconditions?.[0];
   return precondition === undefined ? undefined : getPreconditionDisplayValue(precondition);
 }
@@ -33,26 +32,35 @@ interface NodeShellProps {
 }
 
 function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolName, selected }: NodeShellProps) {
-  const t = useTranslations("nodePanel");
+  const t = useTranslations('nodePanel');
   const width = nodeData.nodeWidth ?? 180;
   const muted = nodeData.muted ?? false;
   const hasError = nodeData.hasError ?? false;
   const nextNodeIsUser = nodeData.nextNodeIsUser ?? false;
 
-  const borderWidth = hasError || nextNodeIsUser ? "ring-[1.5px]" : "ring";
-  const borderColor = hasError ? "border-destructive" : nextNodeIsUser ? "ring-[#22c55e]" : "ring-input";
-  const hoverBorder = muted ? "" : "hover:ring-sky-500";
-  const mutedStyle = muted ? "ring-border bg-muted dark:bg-muted grayscale dark:contrast-85 pointer-events-none" : "";
-  const selectionRing = selected ? "ring-2! ring-primary!" : "";
+  const borderWidth = hasError ? 'ring-[1.5px]' : 'ring';
+  const borderColor = hasError ? 'border-destructive' : 'ring-input';
+  const hoverBorder = muted ? '' : 'hover:ring-sky-500';
+  const mutedStyle = muted
+    ? 'ring-border bg-muted dark:bg-muted grayscale dark:contrast-85 pointer-events-none'
+    : '';
+  const selectionRing = selected ? 'ring-2! ring-primary!' : '';
 
-  const containerBaseStyle = "flex flex-col rounded-lg bg-popover relative transition-colors";
+  const containerBaseStyle = 'flex flex-col rounded-lg bg-popover relative transition-colors';
   const containerClassname = `${containerBaseStyle} ${borderWidth} ${borderColor} ${hoverBorder} ${mutedStyle} ${selectionRing}`;
   const heightStyle = rowMode
-    ? { minHeight: "160px" as const }
-    : { minHeight: "220px" as const, maxHeight: "220px" as const };
+    ? { minHeight: '160px' as const }
+    : { minHeight: '220px' as const, maxHeight: '220px' as const };
 
   return (
     <div className={containerClassname} style={{ width: `${width}px`, ...heightStyle }}>
+      {nextNodeIsUser && (
+        <div className="w-full flex justify-center absolute h-[30px] -top-[20px] -z-[1]">
+          <div className="flex items-center justify-center w-full h-full bg-[#22c55e] rounded-ss-lg rounded-se-lg text-white font-semibold font-mono text-[10px] uppercase">
+            <div className="mb-[10px]">{t('inputNode')}</div>
+          </div>
+        </div>
+      )}
       {hasError && (
         <div className="shrink-0 absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full bg-destructive">
           <AlertCircle className="size-3 text-white" />
@@ -64,7 +72,7 @@ function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolName, selecte
       <NodeBody nodeId={nodeData.nodeId} description={nodeData.description} text={nodeData.text} />
       {toolName !== undefined && (
         <p className="shrink-0 line-clamp-1! p-3 text-xs text-foreground">
-          <span className="text-muted-foreground">{t("toolPrefix")} </span>
+          <span className="text-muted-foreground">{t('toolPrefix')} </span>
           {toolName}
         </p>
       )}
@@ -80,7 +88,7 @@ function AgentNodeComponent({ data, id, selected }: NodeProps) {
   const nodeKind = getNodeKind(id, edges);
   const rowMode = isRowModeNodeKind(nodeKind);
   const options = rowMode ? edges.filter((e) => e.source === id) : [];
-  const toolName = nodeKind === "tool_call" ? getToolNameForNode(id, edges) : undefined;
+  const toolName = nodeKind === 'tool_call' ? getToolNameForNode(id, edges) : undefined;
 
   return (
     <NodeShell

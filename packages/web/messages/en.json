@@ -488,6 +488,8 @@
     "description": "This is the entry point of the graph. It cannot be modified."
   },
   "nodePanel": {
+    "start": "Start",
+    "inputNode": "Input",
     "options": "Options:",
     "addOption": "Add option",
     "deleteOption": "Delete option",

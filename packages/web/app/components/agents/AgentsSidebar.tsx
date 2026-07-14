@@ -94,20 +94,20 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
             <span className="shrink-0 flex-1 min-w-[0px] truncate text-[10px] font-medium">{agent.name}</span>
           </div>
           <div
-            className={`w-[54px] border border-[0.5px] rounded-[4px] shrink-0 flex justify-center items-center ml-[2px] gap-1 text-[9px] text-muted-foreground border-[1px] ${agentIsLive ? 'border-red-700 text-red-700 dark:border-red-400 dark:text-red-400' : 'border-primary/60 text-primary/60'}`}
+            className={`w-[54px] rounded-[4px] shrink-0 flex justify-center items-center ml-[2px] gap-1 text-[9px] text-white ${agentIsLive ? 'bg-red-700 dark:bg-red-500' : 'bg-black/40 dark:bg-white/30'}`}
           >
-            <span className="uppercase font-mono font-medium">
+            <span className="uppercase font-mono font-semibold">
               {agentIsLive ? t('isLive') : t('isNotLive')}
             </span>
             <span className="font-bold">·</span>
-            <span className="font-mono">v{agent.version}</span>
+            <span className="font-mono font-semibold">v{agent.version}</span>
           </div>
         </span>
         {agent.description ? (
           <div className="flex justify-between items-center text-[10px] text-muted-foreground">
             <span className="shrink-0 line-clamp-2 flex-1 min-w-[0px] truncate">{agent.description}</span>
-            <span className="shrink-0" suppressHydrationWarning>
-              <span>{'  - '}</span>
+            <span className="shrink-0 text-foreground/85" suppressHydrationWarning>
+              <span className='whitespace-pre-wrap'>{' '}</span>
               {t('edited')} {formatRelativeTime(agent.updated_at, 'en', 'compact')} {t('ago')}
             </span>
           </div>
