@@ -63,7 +63,7 @@ const TAB_BASE =
   'cursor-pointer inline-flex h-fit items-center gap-1.5 rounded px-2.5 py-0.5 text-xs font-medium transition-colors border border-transparent';
 const TAB_ACTIVE = 'bg-input/70 text-foreground';
 const TAB_INACTIVE =
-  'text-muted-foreground hover:text-foreground border-transparent hover:bg-input dark:hover:bg-input';
+  'text-muted-foreground hover:text-foreground border-transparent hover:bg-input/70 dark:hover:bg-input/70';
 
 function TabButton({ tab, active, onClick, label }: TabButtonProps) {
   const Icon = TAB_ICONS[tab];
