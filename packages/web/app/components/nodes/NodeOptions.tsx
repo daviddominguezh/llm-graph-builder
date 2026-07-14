@@ -13,14 +13,17 @@ interface NodeOptionsProps {
   nodeId: string;
   nodeKind: NodeKind;
   options: Edge<RFEdgeData>[];
+  hasBody?: boolean;
 }
 
-const NodeOptionsComponent = ({ nodeId, nodeKind, options }: NodeOptionsProps) => {
+const NodeOptionsComponent = ({ nodeId, nodeKind, options, hasBody = true }: NodeOptionsProps) => {
   const t = useTranslations('nodePanel');
   const { onDeleteOption, onAddOption, readOnly } = useHandleContext();
 
   return (
-    <div className="flex-1 min-h-[0px] group/options px-2 pt-1 flex flex-col justify-between">
+    <div
+      className={`flex-1 min-h-[0px] group/options px-2 ${hasBody ? 'pt-0' : 'pt-2'} flex flex-col justify-between`}
+    >
       <div>
         <div className="shrink-0 uppercase text-[10px] text-muted-foreground font-medium">{t('options')}</div>
         <div className="flex flex-col gap-3 mt-1 shrink-0">

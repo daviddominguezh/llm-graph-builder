@@ -42,10 +42,7 @@ function sortOptionsByTargetY(options: Edge<RFEdgeData>[], ys: number[]): Edge<R
 // leaving each row don't cross. Subscribes narrowly (only re-sorts when a target
 // node's Y actually changes) to avoid re-rendering every node on each drag frame.
 function useSortedOptions(id: string, rowMode: boolean, edges: Edge<RFEdgeData>[]): Edge<RFEdgeData>[] {
-  const options = useMemo(
-    () => (rowMode ? edges.filter((e) => e.source === id) : []),
-    [rowMode, edges, id]
-  );
+  const options = useMemo(() => (rowMode ? edges.filter((e) => e.source === id) : []), [rowMode, edges, id]);
   const targetIds = useMemo(() => options.map((e) => e.target), [options]);
   const targetYs = useStore(
     (s) => targetIds.map((tid) => s.nodeLookup.get(tid)?.internals.positionAbsolute.y ?? 0),
@@ -105,7 +102,14 @@ function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolInfo, selecte
       {toolInfo === undefined && (
         <NodeBody nodeId={nodeData.nodeId} description={nodeData.description} text={nodeData.text} />
       )}
-      {rowMode && <NodeOptions nodeId={id} nodeKind={nodeKind} options={options} />}
+      {rowMode && (
+        <NodeOptions
+          hasBody={!!(nodeData.description || nodeData.text)}
+          nodeId={id}
+          nodeKind={nodeKind}
+          options={options}
+        />
+      )}
     </div>
   );
 }

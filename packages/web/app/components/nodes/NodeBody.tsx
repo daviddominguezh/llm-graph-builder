@@ -23,12 +23,15 @@ const NodeBodyComponent = ({ description, text }: NodeBodyProps) => {
     );
   };
 
-  return (
-    <div className="px-2 pb-0 pt-1">
-      {description && renderTooltip(description, 'line-clamp-3!')}
-      {text && renderTooltip(text, 'line-clamp-4!')}
-    </div>
-  );
+  if (description || text)
+    return (
+      <div className="px-2 pb-2 pt-1">
+        {description && renderTooltip(description, 'line-clamp-3!')}
+        {text && renderTooltip(text, 'line-clamp-4!')}
+      </div>
+    );
+
+  return <></>;
 };
 
 export const NodeBody = memo(
