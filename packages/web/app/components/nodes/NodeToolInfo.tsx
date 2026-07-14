@@ -1,6 +1,7 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTranslations } from 'next-intl';
+import Image from 'next/image';
 import { memo } from 'react';
 
 import type { McpLibraryRow } from '../../lib/mcpLibraryTypes';
@@ -47,7 +48,14 @@ function NodeMcpBadge({ label, name, imageUrl }: { label: string; name: string; 
     <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
       <span className="shrink-0">{label}</span>
       {imageUrl !== null && (
-        <img src={imageUrl} alt="" className="size-3 rounded-sm object-contain shrink-0" />
+        <Image
+          src={imageUrl}
+          alt=""
+          width={12}
+          height={12}
+          unoptimized
+          className="size-3 rounded-sm object-contain shrink-0"
+        />
       )}
       <span className="line-clamp-1! min-w-0 text-foreground/70">{name} MCP</span>
     </div>
@@ -90,7 +98,7 @@ const NodeToolInfoComponent = ({ toolRef, fallbackDescription }: NodeToolInfoPro
       <div className="flex flex-col gap-0.5">
         <p className="line-clamp-1! text-xs text-foreground">
           <span className="text-muted-foreground text-[10px]">{t('toolPrefix')} </span>
-          {toolRef.toolName}
+          <span className="font-mono">{toolRef.toolName}</span>
         </p>
         {mcpName !== undefined && (
           <NodeMcpBadge label={t('toolProvidedBy')} name={mcpName} imageUrl={mcpImage} />
