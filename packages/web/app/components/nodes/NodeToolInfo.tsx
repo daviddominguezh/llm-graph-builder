@@ -49,7 +49,7 @@ function NodeMcpBadge({ label, name, imageUrl }: { label: string; name: string; 
       {imageUrl !== null && (
         <img src={imageUrl} alt="" className="size-3 rounded-sm object-contain shrink-0" />
       )}
-      <span className="line-clamp-1! min-w-0 text-foreground/70">{name}</span>
+      <span className="line-clamp-1! min-w-0 text-foreground/70">{name} MCP</span>
     </div>
   );
 }
@@ -89,7 +89,7 @@ const NodeToolInfoComponent = ({ toolRef, fallbackDescription }: NodeToolInfoPro
       )}
       <div className="flex flex-col gap-0.5">
         <p className="line-clamp-1! text-xs text-foreground">
-          <span className="text-muted-foreground">{t('toolPrefix')} </span>
+          <span className="text-muted-foreground text-[10px]">{t('toolPrefix')} </span>
           {toolRef.toolName}
         </p>
         {mcpName !== undefined && (
