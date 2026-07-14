@@ -62,14 +62,6 @@ function SearchInput({ value, onChange }: { value: string; onChange: (v: string)
   );
 }
 
-function StatusBar({ active }: { active: boolean }) {
-  return (
-    <div
-      className={`w-0.5 my-2 shrink-0 self-stretch ${active ? 'bg-transparent' : 'bg-transparent group-hover:bg-transparent'}`}
-    />
-  );
-}
-
 function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: string; active: boolean }) {
   const t = useTranslations('agents');
 
@@ -82,15 +74,14 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
   return (
     <Link
       href={href}
-      className={`group flex gap-2 rounded-md pr-2 py-0 ${
+      className={`group flex gap-2 rounded-md px-2 py-0 ${
         active ? 'bg-input/70 text-foreground' : 'hover:bg-input/70 text-foreground'
       }`}
     >
-      <StatusBar active={active} />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5 py-1">
         <span className="w-full flex items-center gap-1 justify-between">
           <div className="flex items-center gap-1 shrink-0 flex-1 min-w-[0px]">
-            <span className={`shrink-0 size-[7px] ml-[2px] shrink-0 rounded-full ${colorClass}`} />
+            <span className={`shrink-0 size-[5.5px] ml-[2px] shrink-0 rounded-full ${colorClass}`} />
             <span className="shrink-0 flex-1 min-w-[0px] truncate text-[10px] font-medium">{agent.name}</span>
           </div>
           <div
@@ -107,7 +98,7 @@ function AgentCard({ agent, orgSlug, active }: { agent: AgentMetadata; orgSlug: 
           <div className="flex justify-between items-center text-[10px] text-muted-foreground">
             <span className="shrink-0 line-clamp-2 flex-1 min-w-[0px] truncate">{agent.description}</span>
             <span className="shrink-0 text-foreground/85" suppressHydrationWarning>
-              <span className='whitespace-pre-wrap'>{' '}</span>
+              <span className="whitespace-pre-wrap"> </span>
               {t('edited')} {formatRelativeTime(agent.updated_at, 'en', 'compact')} {t('ago')}
             </span>
           </div>
