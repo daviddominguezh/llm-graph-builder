@@ -54,12 +54,9 @@ function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolInfo, selecte
 
   const containerBaseStyle = 'flex flex-col rounded-lg bg-popover relative transition-colors';
   const containerClassname = `${containerBaseStyle} ${borderWidth} ${borderColor} ${hoverBorder} ${mutedStyle} ${selectionRing}`;
-  const heightStyle = rowMode
-    ? { minHeight: '160px' as const }
-    : { minHeight: '220px' as const, maxHeight: '220px' as const };
 
   return (
-    <div className={containerClassname} style={{ width: `${width}px`, ...heightStyle }}>
+    <div className={containerClassname} style={{ width: `${width}px` }}>
       {nextNodeIsUser && (
         <div className="w-full flex justify-center absolute h-[30px] -top-[20px] -z-[1]">
           <div className="flex items-center justify-center w-full h-full bg-[#22c55e] rounded-ss-lg rounded-se-lg text-white font-semibold font-mono text-[10px] uppercase">
