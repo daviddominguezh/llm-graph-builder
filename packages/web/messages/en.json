@@ -496,6 +496,7 @@
     "openNode": "Open node",
     "openEdge": "Open edge",
     "toolPrefix": "Tool:",
+    "toolProvidedBy": "Provided by",
     "disabledByToolCall": "Disabled — this node routes through a tool call edge.",
     "outputSchema": "Output Schema",
     "outputSchemaDescription": "Define the structured output format for this agent node.",

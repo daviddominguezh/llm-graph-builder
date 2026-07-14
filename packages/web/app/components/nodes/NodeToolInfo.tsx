@@ -42,13 +42,14 @@ function resolveMcpImage(mcpName: string | undefined, items: McpLibraryRow[]): s
   return items.find((item) => item.name === mcpName)?.image_url ?? null;
 }
 
-function NodeMcpBadge({ name, imageUrl }: { name: string; imageUrl: string | null }) {
+function NodeMcpBadge({ label, name, imageUrl }: { label: string; name: string; imageUrl: string | null }) {
   return (
     <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+      <span className="shrink-0">{label}</span>
       {imageUrl !== null && (
         <img src={imageUrl} alt="" className="size-3 rounded-sm object-contain shrink-0" />
       )}
-      <span className="line-clamp-1! min-w-0">{name}</span>
+      <span className="line-clamp-1! min-w-0 text-foreground/70">{name}</span>
     </div>
   );
 }
@@ -91,7 +92,9 @@ const NodeToolInfoComponent = ({ toolRef, fallbackDescription }: NodeToolInfoPro
           <span className="text-muted-foreground">{t('toolPrefix')} </span>
           {toolRef.toolName}
         </p>
-        {mcpName !== undefined && <NodeMcpBadge name={mcpName} imageUrl={mcpImage} />}
+        {mcpName !== undefined && (
+          <NodeMcpBadge label={t('toolProvidedBy')} name={mcpName} imageUrl={mcpImage} />
+        )}
       </div>
     </div>
   );
