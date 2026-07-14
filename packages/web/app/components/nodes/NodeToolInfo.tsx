@@ -41,7 +41,7 @@ const NodeToolInfoComponent = ({ toolRef, fallbackDescription }: NodeToolInfoPro
       {hasDescription && (
         <Tooltip>
           <TooltipTrigger
-            className={`w-full line-clamp-2! rounded-sm shrink-0 p-1 italic flex flex-start text-left mt-1 text-xs text-muted-foreground bg-card`}
+            className={`w-full line-clamp-3! rounded-sm shrink-0 p-[calc(-1px+var(--spacing))] italic flex flex-start text-left mt-1 text-[10px] text-muted-foreground bg-input/30 overflow-hidden`}
           >
             “{description}”
           </TooltipTrigger>
