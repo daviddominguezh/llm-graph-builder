@@ -12,7 +12,7 @@ const NodeBodyComponent = ({ description, text }: NodeBodyProps) => {
     return (
       <Tooltip>
         <TooltipTrigger
-          className={`p-1 flex flex-start text-left mt-1 text-xs text-muted-foreground ${classStyle}`}
+          className={`shrink-0 p-1 flex flex-start text-left mt-1 text-xs text-muted-foreground ${classStyle}`}
         >
           {text}
         </TooltipTrigger>
@@ -24,8 +24,8 @@ const NodeBodyComponent = ({ description, text }: NodeBodyProps) => {
   };
 
   return (
-    <div className="px-4 py-0">
-      {description && renderTooltip(description, 'line-clamp-3! font-medium')}
+    <div className="px-2 py-0">
+      {description && renderTooltip(description, 'line-clamp-3! italic pb-0!')}
       {text && renderTooltip(text, 'line-clamp-4!')}
     </div>
   );

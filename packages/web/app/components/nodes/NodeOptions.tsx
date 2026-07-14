@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
 import { type Edge } from '@xyflow/react';
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -21,20 +20,24 @@ const NodeOptionsComponent = ({ nodeId, nodeKind, options }: NodeOptionsProps) =
   const { onDeleteOption, onAddOption, readOnly } = useHandleContext();
 
   return (
-    <div className="group/options px-3 pt-2">
-      <div className="uppercase text-[10px] text-muted-foreground font-medium">{t('options')}</div>
-      <div className="flex flex-col gap-2 mt-0.5">
-        {options.map((edge) => (
-          <React.Fragment key={edge.id}>
-            <NodeOptionRow edge={edge} onDelete={() => onDeleteOption?.(edge.id, edge.source, edge.target)} />
-            <Separator />
-          </React.Fragment>
-        ))}
+    <div className="flex-1 min-h-[0px] group/options px-2 pt-1 flex flex-col justify-between">
+      <div>
+        <div className="shrink-0 uppercase text-[10px] text-muted-foreground font-medium">{t('options')}</div>
+        <div className="flex flex-col gap-3 mt-1 shrink-0">
+          {options.map((edge) => (
+            <React.Fragment key={edge.id}>
+              <NodeOptionRow
+                edge={edge}
+                onDelete={() => onDeleteOption?.(edge.id, edge.source, edge.target)}
+              />
+            </React.Fragment>
+          ))}
+        </div>
       </div>
       {!readOnly && (
-        <div className="p-1">
+        <div className="flex flex-col mt-1 py-2 gap-1 shrink-0">
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             className="w-full rounded-sm"
             onClick={(e) => {

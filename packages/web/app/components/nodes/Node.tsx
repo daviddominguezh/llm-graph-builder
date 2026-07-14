@@ -39,13 +39,13 @@ function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolName, selecte
   const hasError = nodeData.hasError ?? false;
   const nextNodeIsUser = nodeData.nextNodeIsUser ?? false;
 
-  const borderWidth = hasError || nextNodeIsUser ? "border-[1.5px]" : "border";
-  const borderColor = hasError ? "border-destructive" : nextNodeIsUser ? "border-[#22c55e]" : "border-input";
-  const hoverBorder = muted ? "" : "hover:border-sky-500";
-  const mutedStyle = muted ? "border-border bg-muted dark:bg-muted grayscale dark:contrast-85 pointer-events-none" : "";
-  const selectionRing = selected ? "ring-2 ring-primary" : "";
+  const borderWidth = hasError || nextNodeIsUser ? "ring-[1.5px]" : "ring";
+  const borderColor = hasError ? "border-destructive" : nextNodeIsUser ? "ring-[#22c55e]" : "ring-input";
+  const hoverBorder = muted ? "" : "hover:ring-sky-500";
+  const mutedStyle = muted ? "ring-border bg-muted dark:bg-muted grayscale dark:contrast-85 pointer-events-none" : "";
+  const selectionRing = selected ? "ring-2! ring-primary!" : "";
 
-  const containerBaseStyle = "rounded-lg bg-popover relative transition-colors";
+  const containerBaseStyle = "flex flex-col rounded-lg bg-popover relative transition-colors";
   const containerClassname = `${containerBaseStyle} ${borderWidth} ${borderColor} ${hoverBorder} ${mutedStyle} ${selectionRing}`;
   const heightStyle = rowMode
     ? { minHeight: "160px" as const }
@@ -54,7 +54,7 @@ function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolName, selecte
   return (
     <div className={containerClassname} style={{ width: `${width}px`, ...heightStyle }}>
       {hasError && (
-        <div className="absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full bg-destructive">
+        <div className="shrink-0 absolute -right-2 -top-2 z-10 flex size-5 items-center justify-center rounded-full bg-destructive">
           <AlertCircle className="size-3 text-white" />
         </div>
       )}
@@ -63,7 +63,7 @@ function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolName, selecte
       <Separator />
       <NodeBody nodeId={nodeData.nodeId} description={nodeData.description} text={nodeData.text} />
       {toolName !== undefined && (
-        <p className="line-clamp-1! p-3 text-xs text-foreground">
+        <p className="shrink-0 line-clamp-1! p-3 text-xs text-foreground">
           <span className="text-muted-foreground">{t("toolPrefix")} </span>
           {toolName}
         </p>
