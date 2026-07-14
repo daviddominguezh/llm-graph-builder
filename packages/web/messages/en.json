@@ -491,6 +491,8 @@
     "options": "Options:",
     "addOption": "Add option",
     "deleteOption": "Delete option",
+    "openNode": "Open node",
+    "openEdge": "Open edge",
     "toolPrefix": "Tool:",
     "disabledByToolCall": "Disabled — this node routes through a tool call edge.",
     "outputSchema": "Output Schema",

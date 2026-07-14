@@ -31,7 +31,7 @@ const hiddenRowHandleStyle = { ...rowHandleStyle, opacity: 0, pointerEvents: 'no
 
 const NodeOptionRowComponent = ({ edge, onDelete }: NodeOptionRowProps) => {
   const t = useTranslations('nodePanel');
-  const { readOnly, hideHandles } = useHandleContext();
+  const { readOnly, hideHandles, onOpenNode, onOpenEdge } = useHandleContext();
   const first = edge.data?.preconditions?.[0];
   const label = first === undefined ? edge.target : getPreconditionDisplayValue(first);
 
@@ -54,23 +54,25 @@ const NodeOptionRowComponent = ({ edge, onDelete }: NodeOptionRowProps) => {
       {!readOnly && (
         <div className="flex gap-1">
           <Button
-            variant="secondary"
+            variant="ghost"
             size="icon-xs"
+            aria-label={t('openNode')}
             className="opacity-0 transition-opacity group-hover:opacity-100"
             onClick={(e) => {
               e.stopPropagation();
-              // TODO: Open node
+              onOpenNode?.(edge.target);
             }}
           >
             <Box />
           </Button>
           <Button
-            variant="secondary"
+            variant="ghost"
             size="icon-xs"
+            aria-label={t('openEdge')}
             className="opacity-0 transition-opacity group-hover:opacity-100"
             onClick={(e) => {
               e.stopPropagation();
-              // TODO: Open edge
+              onOpenEdge?.(edge.id);
             }}
           >
             <Cable />

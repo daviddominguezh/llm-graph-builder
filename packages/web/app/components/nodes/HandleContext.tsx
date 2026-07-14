@@ -10,6 +10,8 @@ interface HandleContextValue {
     event: React.MouseEvent
   ) => void;
   onZoomToNode?: (nodeId: string) => void;
+  onOpenNode?: (nodeId: string) => void;
+  onOpenEdge?: (edgeId: string) => void;
   onDeleteOption?: (edgeId: string, from: string, to: string) => void;
   onAddOption?: (
     nodeId: string,
