@@ -14,6 +14,7 @@ interface NodeHandleProps {
   type: 'source' | 'target';
   position: Position;
   id: string;
+  isFromInnerOption?: boolean;
   interactive?: boolean;
   readOnly?: boolean;
   hidden?: boolean;
@@ -46,11 +47,16 @@ export function NodeHandle({
   interactive = false,
   readOnly = false,
   hidden = false,
+  isFromInnerOption = false,
   onClick,
   onMouseDown,
 }: NodeHandleProps): React.JSX.Element {
   const disabled = readOnly || hidden;
-  const hitStyle = buildHitStyle(interactive ? HIT_SIZE_INTERACTIVE : HIT_SIZE_PASSIVE, disabled, interactive);
+  const hitStyle = buildHitStyle(
+    interactive ? HIT_SIZE_INTERACTIVE : HIT_SIZE_PASSIVE,
+    disabled,
+    interactive
+  );
 
   // Only width + position animate; the dot stays fully rounded so the resting
   // pill (HANDLE_WIDTH x HANDLE_HEIGHT) becomes a HANDLE_HEIGHT circle by widening.
@@ -73,7 +79,7 @@ export function NodeHandle({
       id={id}
       onClick={interactive ? onClick : undefined}
       onMouseDown={interactive ? onMouseDown : undefined}
-      className="group/nh flex items-center justify-center !rounded-none !border-0 !bg-transparent"
+      className={`group/nh flex items-center justify-center !rounded-none !border-0 !bg-transparent ${isFromInnerOption ? '-right-[calc(-1px+calc(var(--spacing)*3))]!' : ''}`}
       style={hitStyle}
     >
       <span className={dotClass} style={dotStyle} />

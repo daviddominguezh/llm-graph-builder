@@ -85,6 +85,7 @@ const NodeOptionRowComponent = ({ edge, onDelete }: NodeOptionRowProps) => {
         id={edge.id}
         readOnly={readOnly === true}
         hidden={hideHandles === true}
+        isFromInnerOption
       />
     </div>
   );
