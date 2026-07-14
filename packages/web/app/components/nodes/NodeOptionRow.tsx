@@ -37,7 +37,7 @@ const NodeOptionRowComponent = ({ edge, onDelete }: NodeOptionRowProps) => {
 
   return (
     <div className="group relative flex items-end gap-1">
-      <div className="min-w-0 flex-1 ml-0.5 border-l border-l-muted-foreground/60 pl-1.5">
+      <div className="relative min-w-0 flex-1 ml-0.5 border-l border-l-muted-foreground/60 pl-1.5">
         <Tooltip>
           <TooltipTrigger className="line-clamp-2! block text-left text-[9px] italic text-foreground leading-[10px]">
             “{label}”
@@ -50,47 +50,49 @@ const NodeOptionRowComponent = ({ edge, onDelete }: NodeOptionRowProps) => {
           <ArrowRight className="h-2 w-2" />
           <div className="line-clamp-1!">{edge.target}</div>
         </div>
+
+        {!readOnly && (
+          <div className="opacity-0 transition-opacity group-hover:opacity-100 absolute bg-popover py-0.5 px-1 rounded-sm bottom-0 right-0 flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={t('openNode')}
+              className="opacity-0 transition-opacity group-hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenNode?.(edge.target);
+              }}
+            >
+              <Box />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              aria-label={t('openEdge')}
+              className="opacity-0 transition-opacity group-hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenEdge?.(edge.id);
+              }}
+            >
+              <Cable />
+            </Button>
+            <Button
+              variant="destructive"
+              size="icon-xs"
+              aria-label={t('deleteOption')}
+              className="opacity-0 transition-opacity group-hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+            >
+              <Trash2 />
+            </Button>
+          </div>
+        )}
       </div>
-      {!readOnly && (
-        <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label={t('openNode')}
-            className="opacity-0 transition-opacity group-hover:opacity-100"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenNode?.(edge.target);
-            }}
-          >
-            <Box />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            aria-label={t('openEdge')}
-            className="opacity-0 transition-opacity group-hover:opacity-100"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenEdge?.(edge.id);
-            }}
-          >
-            <Cable />
-          </Button>
-          <Button
-            variant="destructive"
-            size="icon-xs"
-            aria-label={t('deleteOption')}
-            className="opacity-0 transition-opacity group-hover:opacity-100"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-          >
-            <Trash2 />
-          </Button>
-        </div>
-      )}
+
       <Handle
         type="source"
         position={Position.Right}
