@@ -1,11 +1,11 @@
 'use client';
 
 import { Separator } from '@/components/ui/separator';
-import { type NodeProps, useEdges } from '@xyflow/react';
+import { type NodeProps, useEdges, useStore } from '@xyflow/react';
 import type { Edge } from '@xyflow/react';
 import { AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 
 import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
 import { type NodeKind, getNodeKind, isRowModeNodeKind } from '../../utils/nodeKind';
@@ -25,6 +25,33 @@ function getToolInfoForNode(id: string, edges: Edge<RFEdgeData>[]): ToolInfo | u
   const precondition = toolEdge?.data?.preconditions?.[0];
   if (precondition === undefined || precondition.type !== 'tool_call') return undefined;
   return { toolRef: precondition.tool, fallbackDescription: precondition.description };
+}
+
+function arraysEqual(a: number[], b: number[]): boolean {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+function sortOptionsByTargetY(options: Edge<RFEdgeData>[], ys: number[]): Edge<RFEdgeData>[] {
+  return options
+    .map((edge, i) => ({ edge, y: ys[i] ?? 0 }))
+    .sort((a, b) => a.y - b.y)
+    .map((entry) => entry.edge);
+}
+
+// Order the option rows by their target node's vertical position so the edges
+// leaving each row don't cross. Subscribes narrowly (only re-sorts when a target
+// node's Y actually changes) to avoid re-rendering every node on each drag frame.
+function useSortedOptions(id: string, rowMode: boolean, edges: Edge<RFEdgeData>[]): Edge<RFEdgeData>[] {
+  const options = useMemo(
+    () => (rowMode ? edges.filter((e) => e.source === id) : []),
+    [rowMode, edges, id]
+  );
+  const targetIds = useMemo(() => options.map((e) => e.target), [options]);
+  const targetYs = useStore(
+    (s) => targetIds.map((tid) => s.nodeLookup.get(tid)?.internals.positionAbsolute.y ?? 0),
+    arraysEqual
+  );
+  return useMemo(() => sortOptionsByTargetY(options, targetYs), [options, targetYs]);
 }
 
 interface NodeShellProps {
@@ -89,7 +116,7 @@ function AgentNodeComponent({ data, id, selected }: NodeProps) {
 
   const nodeKind = getNodeKind(id, edges);
   const rowMode = isRowModeNodeKind(nodeKind);
-  const options = rowMode ? edges.filter((e) => e.source === id) : [];
+  const options = useSortedOptions(id, rowMode, edges);
   const toolInfo = nodeKind === 'tool_call' ? getToolInfoForNode(id, edges) : undefined;
 
   return (
