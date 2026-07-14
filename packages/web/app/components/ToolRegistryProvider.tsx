@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import { type RegistryState, useAgentRegistry } from '../hooks/useAgentRegistry';
 import type { RegistryTool, ToolGroup } from '../lib/toolRegistryTypes';
 
-interface ToolRegistryValue {
+export interface ToolRegistryValue {
   tools: RegistryTool[];
   groups: ToolGroup[];
   state: RegistryState;
@@ -41,4 +41,10 @@ export function useToolRegistry(): ToolRegistryValue {
     throw new Error('useToolRegistry must be used within a ToolRegistryProvider');
   }
   return ctx;
+}
+
+// Non-throwing variant for components (e.g. graph nodes) that may render both
+// inside and outside a ToolRegistryProvider. Returns null when no provider is present.
+export function useToolRegistryOptional(): ToolRegistryValue | null {
+  return useContext(ToolRegistryContext);
 }

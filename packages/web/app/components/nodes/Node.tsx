@@ -9,23 +9,22 @@ import { memo } from 'react';
 
 import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
 import { type NodeKind, getNodeKind, isRowModeNodeKind } from '../../utils/nodeKind';
-import { getPreconditionDisplayValue } from '../../utils/preconditionHelpers';
 import { Handles } from './Handles';
 import { NodeBody } from './NodeBody';
 import { NodeHeader } from './NodeHeader';
 import { NodeOptions } from './NodeOptions';
-import { NodeToolInfo } from './NodeToolInfo';
+import { NodeToolInfo, type ToolRef } from './NodeToolInfo';
 
 interface ToolInfo {
-  name: string;
-  description?: string;
+  toolRef: ToolRef;
+  fallbackDescription?: string;
 }
 
 function getToolInfoForNode(id: string, edges: Edge<RFEdgeData>[]): ToolInfo | undefined {
   const toolEdge = edges.find((e) => e.source === id && e.data?.preconditions?.[0]?.type === 'tool_call');
   const precondition = toolEdge?.data?.preconditions?.[0];
-  if (precondition === undefined) return undefined;
-  return { name: getPreconditionDisplayValue(precondition), description: precondition.description };
+  if (precondition === undefined || precondition.type !== 'tool_call') return undefined;
+  return { toolRef: precondition.tool, fallbackDescription: precondition.description };
 }
 
 interface NodeShellProps {
@@ -77,7 +76,9 @@ function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolInfo, selecte
       <NodeHeader nodeKind={nodeKind} agent={nodeData.agent} nodeId={id} />
       <Separator />
       <NodeBody nodeId={nodeData.nodeId} description={nodeData.description} text={nodeData.text} />
-      {toolInfo !== undefined && <NodeToolInfo name={toolInfo.name} description={toolInfo.description} />}
+      {toolInfo !== undefined && (
+        <NodeToolInfo toolRef={toolInfo.toolRef} fallbackDescription={toolInfo.fallbackDescription} />
+      )}
       {rowMode && <NodeOptions nodeId={id} nodeKind={nodeKind} options={options} />}
     </div>
   );
