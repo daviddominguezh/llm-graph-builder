@@ -43,10 +43,10 @@ function resolveMcpImage(mcpName: string | undefined, items: McpLibraryRow[]): s
   return items.find((item) => item.name === mcpName)?.image_url ?? null;
 }
 
-function NodeMcpBadge({ label, name, imageUrl }: { label: string; name: string; imageUrl: string | null }) {
+function NodeMcpBadge({ name, imageUrl }: { name: string; imageUrl: string | null }) {
   return (
-    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-      <span className="shrink-0">{label}</span>
+    <div className="w-full flex items-center gap-1 text-[10px] text-muted-foreground">
+      <div className="shrink-0 w-[60px] min-w-[60px] line-clamp-1! min-w-0 text-foreground/70">MCP server:</div>
       {imageUrl !== null && (
         <Image
           src={imageUrl}
@@ -57,7 +57,7 @@ function NodeMcpBadge({ label, name, imageUrl }: { label: string; name: string; 
           className="size-3 rounded-sm object-contain shrink-0"
         />
       )}
-      <span className="line-clamp-1! min-w-0 text-foreground/70">{name} MCP</span>
+      <div className="line-clamp-1! min-w-0 text-foreground">{name}</div>
     </div>
   );
 }
@@ -95,14 +95,12 @@ const NodeToolInfoComponent = ({ toolRef, fallbackDescription }: NodeToolInfoPro
           <Skeleton className="h-2 w-3/5 bg-input/30" />
         </div>
       )}
-      <div className="flex flex-col gap-0.5">
-        <p className="line-clamp-1! text-xs text-foreground">
-          <span className="text-muted-foreground text-[10px]">{t('toolPrefix')} </span>
-          <span className="font-mono">{toolRef.toolName}</span>
-        </p>
-        {mcpName !== undefined && (
-          <NodeMcpBadge label={t('toolProvidedBy')} name={mcpName} imageUrl={mcpImage} />
-        )}
+      <div className="w-full flex flex-col gap-0.5">
+        {mcpName !== undefined && <NodeMcpBadge name={mcpName} imageUrl={mcpImage} />}
+        <div className="w-full flex items-center flex-nowrap text-[10px] text-foreground">
+          <div className="shrink-0 w-[65px] min-w-[65px] text-muted-foreground">{t('toolPrefix')} </div>
+          <div className="shrink-0 flex-1 min-w-[0px] font-mono">{toolRef.toolName}</div>
+        </div>
       </div>
     </div>
   );
