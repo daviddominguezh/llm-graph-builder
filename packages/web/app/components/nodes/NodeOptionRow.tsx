@@ -1,33 +1,19 @@
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { type Edge, Handle, Position } from '@xyflow/react';
+import { type Edge, Position } from '@xyflow/react';
 import { ArrowRight, Box, Cable, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { memo } from 'react';
 
 import type { RFEdgeData } from '../../utils/graphTransformers';
 import { getPreconditionDisplayValue } from '../../utils/preconditionHelpers';
-import { HANDLE_COLOR, HANDLE_HEIGHT, HANDLE_WIDTH } from './HandleContent';
 import { useHandleContext } from './HandleContext';
+import { NodeHandle } from './NodeHandle';
 
 interface NodeOptionRowProps {
   edge: Edge<RFEdgeData>;
   onDelete: () => void;
 }
-
-const rowHandleStyle = {
-  width: `${HANDLE_WIDTH}px`,
-  height: `${HANDLE_HEIGHT}px`,
-  borderTopRightRadius: '100px',
-  borderBottomRightRadius: '100px',
-  border: 'none',
-  backgroundColor: HANDLE_COLOR,
-  right: `-${HANDLE_WIDTH / 2}px`,
-  top: '50%',
-} as const;
-
-// Kept in the DOM during simulation (so the row's edge stays anchored) but invisible.
-const hiddenRowHandleStyle = { ...rowHandleStyle, opacity: 0, pointerEvents: 'none' } as const;
 
 const NodeOptionRowComponent = ({ edge, onDelete }: NodeOptionRowProps) => {
   const t = useTranslations('nodePanel');
@@ -93,12 +79,12 @@ const NodeOptionRowComponent = ({ edge, onDelete }: NodeOptionRowProps) => {
         )}
       </div>
 
-      <Handle
+      <NodeHandle
         type="source"
         position={Position.Right}
         id={edge.id}
-        className="-right-[calc(-1px+calc(var(--spacing)*3))]!"
-        style={hideHandles === true ? hiddenRowHandleStyle : rowHandleStyle}
+        readOnly={readOnly === true}
+        hidden={hideHandles === true}
       />
     </div>
   );

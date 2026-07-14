@@ -1,24 +1,11 @@
 'use client';
 
-import { Handle, type NodeProps, Position } from '@xyflow/react';
+import { type NodeProps, Position } from '@xyflow/react';
 import { useTranslations } from 'next-intl';
 import { memo } from 'react';
 
-import { HANDLE_COLOR, HANDLE_HEIGHT, HANDLE_WIDTH } from './HandleContent';
 import { useHandleContext } from './HandleContext';
-
-const rightSourceStyle = {
-  width: `${HANDLE_WIDTH}px`,
-  height: `${HANDLE_HEIGHT}px`,
-  borderTopRightRadius: '100px',
-  borderBottomRightRadius: '100px',
-  border: 'none',
-  cursor: 'pointer',
-  backgroundColor: HANDLE_COLOR,
-  top: '50%',
-} as const;
-
-const hiddenRightSourceStyle = { ...rightSourceStyle, opacity: 0, pointerEvents: 'none' } as const;
+import { NodeHandle } from './NodeHandle';
 
 function StartNodeComponent({ selected, id }: NodeProps) {
   const t = useTranslations('nodePanel');
@@ -47,14 +34,14 @@ function StartNodeComponent({ selected, id }: NodeProps) {
         </div>
       </div>
       <span className="text-sm uppercase font-mono font-semibold uppercase tracking-wide">{t('start')}</span>
-      <Handle
+      <NodeHandle
         type="source"
         position={Position.Right}
         id="right-source"
-        onClick={hidden ? undefined : handleClick}
-        onMouseDown={hidden ? undefined : preventDrag}
-        className="-right-[3px]! rounded-e-full! rounded-s-none!"
-        style={hidden ? hiddenRightSourceStyle : rightSourceStyle}
+        interactive={!hidden}
+        hidden={hidden}
+        onClick={handleClick}
+        onMouseDown={preventDrag}
       />
     </div>
   );

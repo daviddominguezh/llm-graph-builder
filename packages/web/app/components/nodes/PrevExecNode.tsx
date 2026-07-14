@@ -1,20 +1,9 @@
 'use client';
 
-import { Handle, type NodeProps, Position } from '@xyflow/react';
+import { type NodeProps, Position } from '@xyflow/react';
 import { memo } from 'react';
 
-import { HANDLE_COLOR, HANDLE_HEIGHT, HANDLE_WIDTH } from './HandleContent';
-
-const rightSourceStyle = {
-  width: `${HANDLE_WIDTH}px`,
-  height: `${HANDLE_HEIGHT}px`,
-  borderTopRightRadius: '100px',
-  borderBottomRightRadius: '100px',
-  border: 'none',
-  cursor: 'pointer',
-  backgroundColor: HANDLE_COLOR,
-  top: '50%',
-} as const;
+import { NodeHandle } from './NodeHandle';
 
 function PrevExecNodeComponent({ selected, data }: NodeProps) {
   const label = typeof data.label === 'string' ? data.label : 'Previous';
@@ -26,7 +15,7 @@ function PrevExecNodeComponent({ selected, data }: NodeProps) {
       }`}
     >
       <span className="text-sm font-semibold uppercase tracking-wide text-accent-foreground">{label}</span>
-      <Handle type="source" position={Position.Right} id="right-source" style={rightSourceStyle} />
+      <NodeHandle type="source" position={Position.Right} id="right-source" />
     </div>
   );
 }

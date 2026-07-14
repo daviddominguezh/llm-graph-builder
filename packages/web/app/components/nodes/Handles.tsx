@@ -1,52 +1,19 @@
-import { Handle, Position } from '@xyflow/react';
+import { Position } from '@xyflow/react';
 import { memo } from 'react';
 
-import { HANDLE_COLOR, HANDLE_HEIGHT, HANDLE_WIDTH } from './HandleContent';
 import { useHandleContext } from './HandleContext';
-
-// Pre-rendered static handle style objects - never recreate
-const rectBase = {
-  zIndex: '10',
-  width: `${HANDLE_WIDTH}px`,
-  height: `${HANDLE_HEIGHT}px`,
-  border: 'none',
-  backgroundColor: HANDLE_COLOR,
-  cursor: 'pointer',
-  top: '50%',
-} as const;
-
-const readOnlyBase = {
-  ...rectBase,
-  cursor: 'default',
-  pointerEvents: 'none',
-} as const;
-
-// In simulation mode the handles stay in the DOM (so edges keep their anchor)
-// but are rendered invisible.
-const hiddenBase = {
-  ...rectBase,
-  opacity: 0,
-  pointerEvents: 'none',
-} as const;
+import { NodeHandle } from './NodeHandle';
 
 interface HandlesProps {
   nodeId: string;
   rowMode?: boolean;
 }
 
-function pickBase(
-  readOnly: boolean,
-  hidden: boolean
-): typeof rectBase | typeof readOnlyBase | typeof hiddenBase {
-  if (hidden) return hiddenBase;
-  return readOnly ? readOnlyBase : rectBase;
-}
-
 function HandlesComponent({ nodeId, rowMode }: HandlesProps) {
   const { onSourceHandleClick, readOnly, hideHandles } = useHandleContext();
   const hidden = hideHandles === true;
-  const interactive = !readOnly && !hidden;
-  const style = pickBase(readOnly === true, hidden);
+  const ro = readOnly === true;
+  const interactive = !ro && !hidden;
 
   const handleSourceClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -59,23 +26,18 @@ function HandlesComponent({ nodeId, rowMode }: HandlesProps) {
 
   return (
     <>
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="left-target"
-        style={style}
-        className="-left-[3px]! rounded-s-full! rounded-e-none!"
-      />
+      <NodeHandle type="target" position={Position.Left} id="left-target" readOnly={ro} hidden={hidden} />
       {/* In row mode each option row renders its own right-anchored source handle. */}
       {!rowMode && (
-        <Handle
+        <NodeHandle
           type="source"
           position={Position.Right}
           id="right-source"
-          className="-right-[3px]! rounded-e-full! rounded-s-none!"
-          style={style}
-          onClick={interactive ? handleSourceClick : undefined}
-          onMouseDown={interactive ? preventDrag : undefined}
+          interactive={interactive}
+          readOnly={ro}
+          hidden={hidden}
+          onClick={handleSourceClick}
+          onMouseDown={preventDrag}
         />
       )}
     </>
