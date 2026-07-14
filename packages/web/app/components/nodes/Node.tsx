@@ -14,11 +14,18 @@ import { Handles } from './Handles';
 import { NodeBody } from './NodeBody';
 import { NodeHeader } from './NodeHeader';
 import { NodeOptions } from './NodeOptions';
+import { NodeToolInfo } from './NodeToolInfo';
 
-function getToolNameForNode(id: string, edges: Edge<RFEdgeData>[]): string | undefined {
+interface ToolInfo {
+  name: string;
+  description?: string;
+}
+
+function getToolInfoForNode(id: string, edges: Edge<RFEdgeData>[]): ToolInfo | undefined {
   const toolEdge = edges.find((e) => e.source === id && e.data?.preconditions?.[0]?.type === 'tool_call');
   const precondition = toolEdge?.data?.preconditions?.[0];
-  return precondition === undefined ? undefined : getPreconditionDisplayValue(precondition);
+  if (precondition === undefined) return undefined;
+  return { name: getPreconditionDisplayValue(precondition), description: precondition.description };
 }
 
 interface NodeShellProps {
@@ -27,11 +34,11 @@ interface NodeShellProps {
   nodeKind: NodeKind;
   rowMode: boolean;
   options: Edge<RFEdgeData>[];
-  toolName?: string;
+  toolInfo?: ToolInfo;
   selected: boolean;
 }
 
-function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolName, selected }: NodeShellProps) {
+function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolInfo, selected }: NodeShellProps) {
   const t = useTranslations('nodePanel');
   const width = nodeData.nodeWidth ?? 180;
   const muted = nodeData.muted ?? false;
@@ -70,12 +77,7 @@ function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolName, selecte
       <NodeHeader nodeKind={nodeKind} agent={nodeData.agent} nodeId={id} />
       <Separator />
       <NodeBody nodeId={nodeData.nodeId} description={nodeData.description} text={nodeData.text} />
-      {toolName !== undefined && (
-        <p className="shrink-0 line-clamp-1! p-3 text-xs text-foreground">
-          <span className="text-muted-foreground">{t('toolPrefix')} </span>
-          {toolName}
-        </p>
-      )}
+      {toolInfo !== undefined && <NodeToolInfo name={toolInfo.name} description={toolInfo.description} />}
       {rowMode && <NodeOptions nodeId={id} nodeKind={nodeKind} options={options} />}
     </div>
   );
@@ -88,7 +90,7 @@ function AgentNodeComponent({ data, id, selected }: NodeProps) {
   const nodeKind = getNodeKind(id, edges);
   const rowMode = isRowModeNodeKind(nodeKind);
   const options = rowMode ? edges.filter((e) => e.source === id) : [];
-  const toolName = nodeKind === 'tool_call' ? getToolNameForNode(id, edges) : undefined;
+  const toolInfo = nodeKind === 'tool_call' ? getToolInfoForNode(id, edges) : undefined;
 
   return (
     <NodeShell
@@ -97,7 +99,7 @@ function AgentNodeComponent({ data, id, selected }: NodeProps) {
       nodeKind={nodeKind}
       rowMode={rowMode}
       options={options}
-      toolName={toolName}
+      toolInfo={toolInfo}
       selected={selected ?? false}
     />
   );
