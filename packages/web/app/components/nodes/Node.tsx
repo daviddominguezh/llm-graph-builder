@@ -75,9 +75,11 @@ function NodeShell({ id, nodeData, nodeKind, rowMode, options, toolInfo, selecte
       <Handles nodeId={id} rowMode={rowMode} />
       <NodeHeader nodeKind={nodeKind} agent={nodeData.agent} nodeId={id} />
       <Separator />
-      <NodeBody nodeId={nodeData.nodeId} description={nodeData.description} text={nodeData.text} />
       {toolInfo !== undefined && (
         <NodeToolInfo toolRef={toolInfo.toolRef} fallbackDescription={toolInfo.fallbackDescription} />
+      )}
+      {toolInfo === undefined && (
+        <NodeBody nodeId={nodeData.nodeId} description={nodeData.description} text={nodeData.text} />
       )}
       {rowMode && <NodeOptions nodeId={id} nodeKind={nodeKind} options={options} />}
     </div>

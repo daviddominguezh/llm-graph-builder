@@ -33,14 +33,12 @@ const NodeToolInfoComponent = ({ toolRef, fallbackDescription }: NodeToolInfoPro
   const hasDescription = description !== undefined && description !== '';
 
   return (
-    <div className="shrink-0 flex flex-col gap-1 p-3">
-      <p className="line-clamp-1! text-xs text-foreground">
-        <span className="text-muted-foreground">{t('toolPrefix')} </span>
-        {toolRef.toolName}
-      </p>
+    <div className="shrink-0 flex flex-col gap-1 px-2 pb-2 pt-1">
       {hasDescription && (
         <Tooltip>
-          <TooltipTrigger className="line-clamp-2! block text-left text-[9px] italic text-foreground leading-[10px]">
+          <TooltipTrigger
+            className={`w-full line-clamp-2! rounded-sm shrink-0 p-1 italic flex flex-start text-left mt-1 text-xs text-muted-foreground bg-card`}
+          >
             “{description}”
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-sm">
@@ -48,6 +46,10 @@ const NodeToolInfoComponent = ({ toolRef, fallbackDescription }: NodeToolInfoPro
           </TooltipContent>
         </Tooltip>
       )}
+      <p className="line-clamp-1! text-xs text-foreground">
+        <span className="text-muted-foreground">{t('toolPrefix')} </span>
+        {toolRef.toolName}
+      </p>
     </div>
   );
 };
