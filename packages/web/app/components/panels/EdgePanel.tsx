@@ -512,7 +512,7 @@ export function EdgePanel({
                         </Button>
                       </div>
 
-                      <div className="flex flex-col border-l-2 pl-2 gap-1">
+                      <div className="flex flex-col gap-1">
                         <div className="flex text-sm items-start gap-1 bg-card rounded-md px-2 py-1 cursor-default">
                           {p.type === 'user_said' && '\u201C'}
                           <div className="text-muted-foreground text-xs font-mono">

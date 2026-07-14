@@ -13,7 +13,7 @@ import { NodeHandle } from './NodeHandle';
 import { NodeOptions } from './NodeOptions';
 import { useSortedOptions } from './useSortedOptions';
 
-const LABEL_CLASS = 'text-sm uppercase font-mono font-semibold tracking-wide';
+const LABEL_CLASS = 'w-full flex justify-center text-sm uppercase font-mono font-semibold tracking-wide';
 
 function StartBadge({ label }: { label: string }) {
   return (
