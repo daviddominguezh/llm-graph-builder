@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
+import { useEditorIntegration } from '../editor-actions/useEditorIntegration';
+import { EditorHotkeys } from '../editor-keyboard/EditorHotkeys';
 import { useAgentEditorHooks } from '../hooks/useAgentEditorHooks';
 import { useAgentExport } from '../hooks/useAgentExport';
 import { useAgentImport } from '../hooks/useAgentImport';
@@ -288,6 +290,27 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   const createIfElse = useCreateIfElse(structuredCreationParams);
   const createLoop = useCreateLoop(structuredCreationParams);
 
+  const { activeEditorId } = useEditorCache();
+  const editorIntegration = useEditorIntegration({
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    pushOperation: opQueue.pushOperation,
+    isActiveEditor: agentId !== undefined && agentId === activeEditorId,
+    callbacks: {
+      handleAddNode: graphActions.handleAddNode,
+      onConnect: graphActions.onConnect,
+      handleConnectionMenuSelectNode: graphActions.handleConnectionMenuSelectNode,
+      handleConnectionMenuCreateNode: graphActions.handleConnectionMenuCreateNode,
+      createUserNode,
+      createToolNode,
+      createIfElse,
+      createLoop,
+      confirmDelete: deleteConfirmation.confirmDelete,
+    },
+  });
+
   const getNodes = useCallback(() => nodes, [nodes]);
   const getMcpServers = useCallback(() => mcpHook.servers, [mcpHook.servers]);
 
@@ -497,6 +520,8 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
     createToolNode,
     createIfElse,
     createLoop,
+    dispatch: editorIntegration.dispatch,
+    getState: editorIntegration.getState,
   };
 }
 
@@ -649,6 +674,13 @@ function LoadedEditor(props: LoadedEditorProps) {
       <ToolRegistryProvider agentId={props.agentId ?? ''}>
         <McpLibraryProvider items={h.mcpLibrary.items}>
           <div className="relative h-full w-full">
+            {h.agentConfig === undefined && (
+              <EditorHotkeys
+                dispatch={h.dispatch}
+                active={isActiveEditor && !isReadOnly}
+                ctx={{ searchOpen: h.searchOpen }}
+              />
+            )}
             {/* Canvas layer — fills entire main area */}
             {h.agentConfig !== undefined ? (
               <div className="absolute inset-0 overflow-hidden">
@@ -673,7 +705,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                   edges={displayEdges}
                   onNodesChange={isReadOnly ? () => {} : h.onNodesChange}
                   onEdgesChange={isReadOnly ? () => {} : h.onEdgesChange}
-                  onConnect={isReadOnly ? () => {} : h.graphActions.onConnect}
+                  onConnect={isReadOnly ? () => {} : (params) => h.dispatch('edge.connect', params)}
                   onNodeClick={h.selection.onNodeClick}
                   onEdgeClick={h.selection.onEdgeClick}
                   onPaneClick={h.selection.onPaneClick}
@@ -690,7 +722,7 @@ function LoadedEditor(props: LoadedEditorProps) {
               toolbarPortal &&
               createPortal(
                 <Toolbar
-                  onAddNode={h.graphActions.handleAddNode}
+                  onAddNode={() => h.dispatch('node.add', undefined)}
                   onImport={h.handleImport}
                   onExport={h.handleExport}
                   onFormat={h.handleFormat}
@@ -838,7 +870,7 @@ function LoadedEditor(props: LoadedEditorProps) {
                 {!isReadOnly && h.agentConfig === undefined && (
                   <DeleteConfirmDialog
                     pendingDelete={h.deleteConfirmation.pendingDelete}
-                    onConfirm={h.deleteConfirmation.confirmDelete}
+                    onConfirm={() => h.dispatch('graph.confirmDelete', undefined)}
                     onCancel={h.deleteConfirmation.cancelDelete}
                   />
                 )}
@@ -850,12 +882,16 @@ function LoadedEditor(props: LoadedEditorProps) {
                     sourceHandleId={h.graphActions.connectionMenu.sourceHandleId}
                     sourceEdgeType={getSourceEdgeType(h.graphActions.connectionMenu.sourceNodeId, h.edges)}
                     nodes={h.nodes.map((n) => ({ id: n.id, text: (n.data as RFNodeData).text }))}
-                    onSelectNode={h.graphActions.handleConnectionMenuSelectNode}
-                    onCreateNode={h.graphActions.handleConnectionMenuCreateNode}
-                    onCreateUserNode={h.createUserNode}
-                    onCreateToolNode={h.createToolNode}
-                    onCreateIfElse={h.createIfElse}
-                    onCreateLoop={h.createLoop}
+                    onSelectNode={(id) => h.dispatch('menu.selectNode', id)}
+                    onCreateNode={() => h.dispatch('menu.createNode', undefined)}
+                    onCreateUserNode={(value) => h.dispatch('menu.createUserNode', value)}
+                    onCreateToolNode={(tool) => h.dispatch('menu.createToolNode', tool)}
+                    onCreateIfElse={(branchA, branchB) =>
+                      h.dispatch('menu.createIfElse', { branchA, branchB })
+                    }
+                    onCreateLoop={(connection, continueValue, exitValue) =>
+                      h.dispatch('menu.createLoop', { connection, continueValue, exitValue })
+                    }
                     onClose={h.graphActions.handleConnectionMenuClose}
                     toolStores={toolStores}
                   />
