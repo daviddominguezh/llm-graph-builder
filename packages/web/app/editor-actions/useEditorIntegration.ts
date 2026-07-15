@@ -12,6 +12,7 @@ import type { PushOperation } from '../utils/operationBuilders';
 import { buildUpdateEdgeOp, buildUpdateNodeOp } from '../utils/operationBuilders';
 import type { Dispatch } from './actionRegistry';
 import { ActionRegistry } from './actionRegistry';
+import { registerPanelActions } from './panelActions';
 
 /** Bundled params for the multi-argument connection-menu creators. */
 export interface IfElseParams {
@@ -36,6 +37,8 @@ export interface EditorCallbacks {
   createLoop: (connection: LoopConnection, continueValue: string, exitValue: string) => void;
   confirmDelete: () => void;
   requestDeleteSelected: () => void;
+  deleteNode: (nodeId: string) => void;
+  deleteEdge: (edgeId: string, from: string, to: string) => void;
   toggleSearch: () => void;
   closeSearch: () => void;
 }
@@ -56,7 +59,7 @@ export interface EditorIntegration {
   getState: () => HistorySnapshot;
 }
 
-type Callbacks = () => EditorCallbacks;
+export type Callbacks = () => EditorCallbacks;
 
 const NOOP_UNDO = (): void => undefined;
 
@@ -66,7 +69,7 @@ const NOOP_UNDO = (): void => undefined;
  * so registered action closures read fresh values without tripping the
  * ref-in-render lint rules — same pattern as OperationQueueCore.
  */
-class EditorContextHolder {
+export class EditorContextHolder {
   private params: EditorIntegrationParams;
   private undoFn: () => void = NOOP_UNDO;
 
@@ -233,6 +236,7 @@ function buildRegistry(
   registerMenuBasicActions(registry, cb);
   registerMenuStructuredActions(registry, cb);
   registerPropActions(registry, holder);
+  registerPanelActions(registry, cb, holder);
   return registry;
 }
 

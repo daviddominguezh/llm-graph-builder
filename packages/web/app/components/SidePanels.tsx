@@ -145,7 +145,6 @@ function SelectionPanel(props: SelectionPanelProps) {
           onNodeIdChanged={(newId) => selection.setSelectedNodeId(newId)}
           onSelectEdge={selection.selectEdge}
           onSelectNode={selection.navigateToNode}
-          pushOperation={pushOperation}
           dispatch={dispatch}
           getState={getState}
           outputSchemas={props.outputSchemasHook.schemas}

@@ -40,6 +40,8 @@ function noopCallbacks(): EditorCallbacks {
     createLoop: () => undefined,
     confirmDelete: () => undefined,
     requestDeleteSelected: () => undefined,
+    deleteNode: () => undefined,
+    deleteEdge: () => undefined,
     toggleSearch: () => undefined,
     closeSearch: () => undefined,
   };
@@ -57,6 +59,8 @@ function spyCallbacks(): CallbackMocks {
     createLoop: jest.fn<(connection: LoopConnection, continueValue: string, exitValue: string) => void>(),
     confirmDelete: jest.fn<() => void>(),
     requestDeleteSelected: jest.fn<() => void>(),
+    deleteNode: jest.fn<(nodeId: string) => void>(),
+    deleteEdge: jest.fn<(edgeId: string, from: string, to: string) => void>(),
     toggleSearch: jest.fn<() => void>(),
     closeSearch: jest.fn<() => void>(),
   };
@@ -127,6 +131,20 @@ const DELEGATION_CASES: DelegationCase[] = [
   { id: 'node.add', param: undefined, callback: 'handleAddNode', args: [], undoable: true },
   { id: 'edge.connect', param: CONNECTION, callback: 'onConnect', args: [CONNECTION], undoable: true },
   { id: 'graph.confirmDelete', param: undefined, callback: 'confirmDelete', args: [], undoable: true },
+  {
+    id: 'node.deleteFromPanel',
+    param: { nodeId: 'a' },
+    callback: 'deleteNode',
+    args: ['a'],
+    undoable: true,
+  },
+  {
+    id: 'edge.deleteFromPanel',
+    param: { edgeId: 'a-b', from: 'a', to: 'b' },
+    callback: 'deleteEdge',
+    args: ['a-b', 'a', 'b'],
+    undoable: true,
+  },
   {
     id: 'graph.requestDeleteSelected',
     param: undefined,
@@ -250,6 +268,38 @@ describe('useEditorIntegration: edge.updateProps', () => {
     dispatch('edge.updateProps', { from: 'a', to: 'b' });
     expect(ops).toHaveLength(ONE);
     expect(ops[ORIGIN]?.type).toBe('updateEdge');
+  });
+});
+
+describe('useEditorIntegration: node.rename', () => {
+  it('renames the node in place, pushes rename ops, and records one undo entry', () => {
+    const h = undoHarness();
+    h.dispatch('node.rename', { oldId: 'a', newId: 'b' });
+    expect(h.history.depth).toBe(ONE);
+    expect(h.setNodesCalls).toHaveLength(ONE);
+    expect(h.setNodesCalls[ORIGIN]?.[ORIGIN]?.id).toBe('b');
+    expect(h.setNodesCalls[ORIGIN]?.[ORIGIN]?.data.nodeId).toBe('b');
+    expect(h.ops.map((o) => o.type)).toContain('insertNode');
+  });
+
+  it('is a no-op when the node id does not exist', () => {
+    const h = undoHarness();
+    h.dispatch('node.rename', { oldId: 'missing', newId: 'b' });
+    expect(h.setNodesCalls).toHaveLength(NONE);
+    expect(h.ops).toHaveLength(NONE);
+    // Snapshot is still pushed (the registry snapshots before running).
+    expect(h.history.depth).toBe(ONE);
+  });
+});
+
+describe('useEditorIntegration: edge.changeType', () => {
+  it('runs the supplied mutation callback and records one undo entry', () => {
+    const { dispatch, history } = spySetup([node('a', 'x')]);
+    const run = jest.fn<() => void>();
+    expect(history.depth).toBe(NONE);
+    dispatch('edge.changeType', { run });
+    expect(run).toHaveBeenCalledTimes(ONE);
+    expect(history.depth).toBe(ONE);
   });
 });
 

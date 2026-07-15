@@ -42,7 +42,7 @@ import {
 } from '../../utils/preconditionHelpers';
 import { ToolCombobox } from './ToolCombobox';
 import { ToolParamsCard } from './ToolParamsCard';
-import { type EdgePreconditionInput, pushDeleteEdge, pushTypeChangeOps } from './edgePanelOps';
+import { type EdgePreconditionInput, pushTypeChangeOps } from './edgePanelOps';
 import { nodeHasContent } from './toolCallGuard';
 
 const START_NODE_ID = 'INITIAL_STEP';
@@ -278,25 +278,25 @@ export function EdgePanel({
     return makePrecondition({ type: newPreconditionType, value: input.value.trim(), description });
   };
 
-  const doConfirmTypeChange = () => {
-    setEdges((eds) =>
-      eds.map((e) => {
-        const input = multiEdgeInputs[e.id];
-        if (!input) return e;
-        const newPrecondition = buildMultiEdgePrecondition(input);
-        if (!newPrecondition) return e;
-        const existingPreconditions = (e.data?.preconditions as Precondition[] | undefined) ?? [];
-        return {
-          ...e,
-          data: {
-            ...e.data,
-            preconditions: [...existingPreconditions, newPrecondition],
-          },
-        };
-      })
-    );
+  const applyTypeChangeToEdges = (eds: Array<Edge<RFEdgeData>>): Array<Edge<RFEdgeData>> =>
+    eds.map((e) => {
+      const input = multiEdgeInputs[e.id];
+      if (!input) return e;
+      const newPrecondition = buildMultiEdgePrecondition(input);
+      if (!newPrecondition) return e;
+      const existingPreconditions = (e.data?.preconditions as Precondition[] | undefined) ?? [];
+      return { ...e, data: { ...e.data, preconditions: [...existingPreconditions, newPrecondition] } };
+    });
 
-    pushTypeChangeOps(allSourceEdges, multiEdgeInputs, newPreconditionType, pushOperation);
+  const doConfirmTypeChange = () => {
+    // One undo entry wraps the whole multi-edge mutation; panel-local UI state
+    // (display preconditions, dialog visibility) is reset after dispatch.
+    dispatch('edge.changeType', {
+      run: () => {
+        setEdges(applyTypeChangeToEdges);
+        pushTypeChangeOps(allSourceEdges, multiEdgeInputs, newPreconditionType, pushOperation);
+      },
+    });
 
     const currentInput = multiEdgeInputs[edge.id];
     if (currentInput) {
@@ -315,8 +315,7 @@ export function EdgePanel({
   };
 
   const handleDeleteEdge = () => {
-    setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-    pushDeleteEdge(from, to, pushOperation);
+    dispatch('edge.deleteFromPanel', { edgeId: edge.id, from, to });
     onEdgeDeleted?.();
   };
 

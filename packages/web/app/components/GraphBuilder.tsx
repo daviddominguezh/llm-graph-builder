@@ -305,6 +305,8 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
       createLoop,
       confirmDelete: deleteConfirmation.confirmDelete,
       requestDeleteSelected: deleteConfirmation.requestDeleteSelected,
+      deleteNode: deleteConfirmation.deleteNode,
+      deleteEdge: deleteConfirmation.deleteEdge,
       toggleSearch: () => setSearchOpen((p) => !p),
       closeSearch: () => setSearchOpen(() => false),
     },

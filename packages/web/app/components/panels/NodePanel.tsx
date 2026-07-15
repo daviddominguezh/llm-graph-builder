@@ -27,13 +27,11 @@ import type { HistorySnapshot } from '../../editor-history/historyStore';
 import type { Agent, PreconditionType } from '../../schemas/graph.schema';
 import type { ContextPreset } from '../../types/preset';
 import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
-import type { PushOperation } from '../../utils/operationBuilders';
 import { getPreconditionDisplayValue } from '../../utils/preconditionHelpers';
 import { CommittedNodeTextarea } from './CommittedNodeTextarea';
 import { FallbackNodeSelect } from './FallbackNodeSelect';
 import { NodePanelOutputSchema } from './NodePanelOutputSchema';
 import { NodePromptDialog } from './NodePromptDialog';
-import { pushDeleteNode, pushRenameNode } from './nodePanelOps';
 import { hasToolCallEdge } from './toolCallGuard';
 
 interface NodePanelProps {
@@ -48,7 +46,6 @@ interface NodePanelProps {
   onNodeIdChanged?: (newId: string) => void;
   onSelectEdge?: (edgeId: string) => void;
   onSelectNode?: (nodeId: string) => void;
-  pushOperation: PushOperation;
   dispatch: Dispatch;
   getState: () => HistorySnapshot;
   outputSchemas: OutputSchemaEntity[];
@@ -69,7 +66,6 @@ export function NodePanel({
   onNodeIdChanged,
   onSelectEdge,
   onSelectNode,
-  pushOperation,
   dispatch,
   getState,
   outputSchemas,
@@ -79,7 +75,7 @@ export function NodePanel({
 }: NodePanelProps) {
   const nodes = useNodes<Node<RFNodeData>>();
   const edges = useEdges<Edge<RFEdgeData>>();
-  const { setNodes, setEdges } = useReactFlow();
+  const { setNodes } = useReactFlow();
 
   // Get incoming and outgoing edges
   const incomingEdges = edges.filter((e) => e.target === nodeId);
@@ -123,24 +119,13 @@ export function NodePanel({
   const handleIdBlur = () => {
     if (id !== nodeId && id.trim()) {
       const newId = id.trim();
-      const renamedNode = { ...node, id: newId, data: { ...node.data, nodeId: newId } };
-      setNodes((nds) => nds.map((n) => (n.id === nodeId ? renamedNode : n)));
-      setEdges((eds) =>
-        eds.map((e) => {
-          const newSource = e.source === nodeId ? newId : e.source;
-          const newTarget = e.target === nodeId ? newId : e.target;
-          return { ...e, id: `${newSource}-${newTarget}`, source: newSource, target: newTarget };
-        })
-      );
-      pushRenameNode(nodeId, renamedNode, edges, pushOperation);
+      dispatch('node.rename', { oldId: nodeId, newId });
       onNodeIdChanged?.(newId);
     }
   };
 
   const handleDelete = () => {
-    setNodes((nds) => nds.filter((n) => n.id !== nodeId));
-    setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
-    pushDeleteNode(nodeId, pushOperation);
+    dispatch('node.deleteFromPanel', { nodeId });
     onNodeDeleted?.();
   };
 

@@ -30,6 +30,36 @@ export interface UseDeleteConfirmationReturn {
   cancelDelete: () => void;
   requestDeleteEdge: (edgeId: string, from: string, to: string) => void;
   requestDeleteSelected: () => void;
+  deleteNode: (nodeId: string) => void;
+  deleteEdge: (edgeId: string, from: string, to: string) => void;
+}
+
+/** Shared node-deletion mutation: used by both the confirm dialog and panel actions. */
+function runDeleteNode(
+  nodeId: string,
+  setNodes: NodeSetter,
+  setEdges: EdgeSetter,
+  pushOperation: PushOperation,
+  onNodeDeleted?: () => void
+): void {
+  setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+  setEdges((eds) => eds.filter((e) => e.source !== nodeId && e.target !== nodeId));
+  pushDeleteNode(nodeId, pushOperation);
+  onNodeDeleted?.();
+}
+
+/** Shared edge-deletion mutation: used by both the confirm dialog and panel actions. */
+function runDeleteEdge(
+  edgeId: string,
+  from: string,
+  to: string,
+  setEdges: EdgeSetter,
+  pushOperation: PushOperation,
+  onEdgeDeleted?: () => void
+): void {
+  setEdges((eds) => eds.filter((e) => e.id !== edgeId));
+  pushDeleteEdge(from, to, pushOperation);
+  onEdgeDeleted?.();
 }
 
 function findSelectedNode(nodes: Array<Node<RFNodeData>>): Node<RFNodeData> | undefined {
@@ -62,22 +92,27 @@ export function useDeleteConfirmation(params: UseDeleteConfirmationParams): UseD
     }
   }, [nodes, edges]);
 
+  const deleteNode = useCallback(
+    (nodeId: string) => {
+      runDeleteNode(nodeId, setNodes, setEdges, pushOperation, onNodeDeleted);
+    },
+    [setNodes, setEdges, pushOperation, onNodeDeleted]
+  );
+
+  const deleteEdge = useCallback(
+    (edgeId: string, from: string, to: string) => {
+      runDeleteEdge(edgeId, from, to, setEdges, pushOperation, onEdgeDeleted);
+    },
+    [setEdges, pushOperation, onEdgeDeleted]
+  );
+
   const confirmDelete = useCallback(() => {
     const target = pendingDelete;
     setPendingDelete(null);
     if (target === null) return;
-
-    if (target.kind === 'node') {
-      setNodes((nds) => nds.filter((n) => n.id !== target.nodeId));
-      setEdges((eds) => eds.filter((e) => e.source !== target.nodeId && e.target !== target.nodeId));
-      pushDeleteNode(target.nodeId, pushOperation);
-      onNodeDeleted?.();
-    } else {
-      setEdges((eds) => eds.filter((e) => e.id !== target.edgeId));
-      pushDeleteEdge(target.from, target.to, pushOperation);
-      onEdgeDeleted?.();
-    }
-  }, [pendingDelete, setNodes, setEdges, pushOperation, onNodeDeleted, onEdgeDeleted]);
+    if (target.kind === 'node') deleteNode(target.nodeId);
+    else deleteEdge(target.edgeId, target.from, target.to);
+  }, [pendingDelete, deleteNode, deleteEdge]);
 
   const cancelDelete = useCallback(() => {
     setPendingDelete(null);
@@ -87,5 +122,13 @@ export function useDeleteConfirmation(params: UseDeleteConfirmationParams): UseD
     setPendingDelete({ kind: 'edge', edgeId, from, to });
   }, []);
 
-  return { pendingDelete, confirmDelete, cancelDelete, requestDeleteEdge, requestDeleteSelected };
+  return {
+    pendingDelete,
+    confirmDelete,
+    cancelDelete,
+    requestDeleteEdge,
+    requestDeleteSelected,
+    deleteNode,
+    deleteEdge,
+  };
 }
