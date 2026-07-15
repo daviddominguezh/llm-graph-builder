@@ -180,6 +180,7 @@
     "publishedVersion": "Published",
     "saving": "Saving...",
     "autoSaveFailed": "Auto-save failed. Your changes may not be saved.",
+    "duplicateEdgeBlocked": "These nodes are already connected. Edit the existing connection instead.",
     "notFound": "Agent not found",
     "exportValidationError": "Graph has validation errors. Please fix before exporting.",
     "loadGraphFailed": "Failed to load graph data.",

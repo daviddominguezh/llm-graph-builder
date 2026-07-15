@@ -1,6 +1,8 @@
 import { type Connection, type Edge, type Node, type ReactFlowInstance, addEdge } from '@xyflow/react';
 import { nanoid } from 'nanoid';
+import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 
 import {
   DEFAULT_NODE_HEIGHT,
@@ -93,20 +95,36 @@ function resolveTargetHandle(sourceHandleId: string | null): string {
   return 'left-target';
 }
 
+// Edges are persisted keyed by (from, to) — the DB allows a single edge per
+// node pair, and inserting over an existing pair silently replaces its
+// preconditions. Creating a second parallel edge in the editor would
+// therefore collapse into one corrupted edge on reload, so we block it here.
+function edgeExists(edges: EdgeArray, from: string, to: string): boolean {
+  return edges.some((e) => e.source === from && e.target === to);
+}
+
 function useOnConnect(
+  edges: EdgeArray,
   setEdges: UseGraphActionsParams['setEdges'],
   setMenu: (v: ConnectionMenuState | null) => void,
   pushOperation: PushOperation
 ): (params: Connection) => void {
+  const t = useTranslations('editor');
+
   return useCallback(
     (params: Connection) => {
       if (params.target === START_NODE_ID) return;
       if (params.source === null || params.target === null) return;
+      if (edgeExists(edges, params.source, params.target)) {
+        toast.warning(t('duplicateEdgeBlocked'));
+        setMenu(null);
+        return;
+      }
       setEdges((eds) => addEdge({ ...params, type: 'precondition' }, eds));
       pushOperation(buildInsertEdgeOp(params.source, params.target));
       setMenu(null);
     },
-    [setEdges, setMenu, pushOperation]
+    [edges, setEdges, setMenu, pushOperation, t]
   );
 }
 
@@ -146,19 +164,27 @@ function useAddOption(
 
 function useMenuSelectNode(
   menu: ConnectionMenuState | null,
+  edges: EdgeArray,
   setEdges: UseGraphActionsParams['setEdges'],
   setMenu: (v: ConnectionMenuState | null) => void,
   pushOperation: PushOperation
 ): (targetNodeId: string) => void {
+  const t = useTranslations('editor');
+
   return useCallback(
     (targetNodeId: string) => {
       if (menu === null) return;
+      if (edgeExists(edges, menu.sourceNodeId, targetNodeId)) {
+        toast.warning(t('duplicateEdgeBlocked'));
+        setMenu(null);
+        return;
+      }
       const { arg, edgeData } = buildMenuEdgeArg(menu, targetNodeId, 'left-target');
       setEdges((eds) => addEdge(arg, eds));
       pushOperation(buildInsertEdgeOp(menu.sourceNodeId, targetNodeId, edgeData));
       setMenu(null);
     },
-    [menu, setEdges, setMenu, pushOperation]
+    [menu, edges, setEdges, setMenu, pushOperation, t]
   );
 }
 
@@ -228,11 +254,12 @@ export function useGraphActions(params: UseGraphActionsParams): UseGraphActionsR
 
   return {
     connectionMenu,
-    onConnect: useOnConnect(params.setEdges, setConnectionMenu, params.pushOperation),
+    onConnect: useOnConnect(params.edges, params.setEdges, setConnectionMenu, params.pushOperation),
     onSourceHandleClick: useSourceHandleClick(setConnectionMenu),
     onAddOption: useAddOption(setConnectionMenu),
     handleConnectionMenuSelectNode: useMenuSelectNode(
       connectionMenu,
+      params.edges,
       params.setEdges,
       setConnectionMenu,
       params.pushOperation

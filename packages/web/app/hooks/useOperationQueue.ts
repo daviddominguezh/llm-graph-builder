@@ -1,9 +1,14 @@
 'use client';
 
 import { useAgentsSidebar } from '@/app/components/agents/AgentsSidebarContext';
-import { sendOperations } from '@/app/lib/graphApi';
 import type { Operation } from '@daviddh/graph-types';
-import { useCallback, useRef, useState } from 'react';
+import type { RefObject } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
+import type { LocalGraphProvider } from '../utils/graphSaveDebug';
+import { sendOperationsDebugged } from '../utils/graphSaveDebug';
+import type { SendContext } from './operationQueueCore';
+import { OperationQueueCore } from './operationQueueCore';
 
 const EMPTY_COUNT = 0;
 const INCREMENT = 1;
@@ -17,45 +22,54 @@ export interface UseOperationQueueReturn {
   clearQueue: () => void;
 }
 
-export function useOperationQueue(agentId: string | undefined): UseOperationQueueReturn {
+function sendBatch(ops: Operation[], ctx: SendContext, getPendingCount: () => number): Promise<void> {
+  const { agentId } = ctx;
+  if (agentId === undefined) return Promise.reject(new Error('Cannot save: agent id is not set'));
+  return sendOperationsDebugged(agentId, ops, ctx.getLocalGraph, getPendingCount);
+}
+
+/**
+ * Queue of graph mutations awaiting persistence.
+ *
+ * Flushes are strictly serialized and failed batches are requeued (never
+ * silently dropped) — see OperationQueueCore. Every flush is instrumented
+ * with before/payload/after debug logging via sendOperationsDebugged.
+ */
+export function useOperationQueue(
+  agentId: string | undefined,
+  localGraphRef?: RefObject<LocalGraphProvider>
+): UseOperationQueueReturn {
   const { touchAgent } = useAgentsSidebar();
-  const queueRef = useRef<Operation[]>([]);
-  const flushGenRef = useRef(EMPTY_COUNT);
   const [pendingCount, setPendingCount] = useState(EMPTY_COUNT);
   const [flushSeq, setFlushSeq] = useState(EMPTY_COUNT);
 
-  const pushOperation = useCallback((op: Operation) => {
-    queueRef.current = [...queueRef.current, op];
-    setPendingCount((prev) => prev + INCREMENT);
-    setFlushSeq((s) => s + INCREMENT);
-  }, []);
+  const [core] = useState(() => new OperationQueueCore(sendBatch, setPendingCount));
+
+  useEffect(() => {
+    core.setContext({
+      agentId,
+      getLocalGraph: () => localGraphRef?.current?.() ?? null,
+    });
+  }, [core, agentId, localGraphRef]);
+
+  const pushOperation = useCallback(
+    (op: Operation) => {
+      core.push(op);
+      setFlushSeq((s) => s + INCREMENT);
+    },
+    [core]
+  );
 
   const flush = useCallback(async () => {
-    if (queueRef.current.length === EMPTY_COUNT) return;
     if (agentId === undefined) return;
-
-    const gen = ++flushGenRef.current;
-    const ops = [...queueRef.current];
-    queueRef.current = [];
-
-    try {
-      await sendOperations(agentId, ops);
-      setPendingCount(queueRef.current.length);
-      touchAgent(agentId);
-    } catch (error: unknown) {
-      if (gen === flushGenRef.current) {
-        queueRef.current = [...ops, ...queueRef.current];
-      }
-      setPendingCount(queueRef.current.length);
-      throw error;
-    }
-  }, [agentId, touchAgent]);
+    const hadOps = core.getPendingCount() > EMPTY_COUNT;
+    await core.flush();
+    if (hadOps) touchAgent(agentId);
+  }, [core, agentId, touchAgent]);
 
   const clearQueue = useCallback(() => {
-    flushGenRef.current++;
-    queueRef.current = [];
-    setPendingCount(EMPTY_COUNT);
-  }, []);
+    core.clear();
+  }, [core]);
 
   const hasPendingOps = pendingCount > EMPTY_COUNT;
 
