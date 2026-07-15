@@ -15,6 +15,7 @@ const THIRD = 2;
 const NONE = 0;
 const ONE = 1;
 const TWO = 2;
+const ORIGIN = 0;
 
 function setup(initial = 'hello'): {
   hook: ReturnType<typeof renderHook<CommittedFieldApi, CommittedFieldParams>>;
@@ -36,6 +37,43 @@ function setup(initial = 'hello'): {
   };
   const hook = renderHook((p: CommittedFieldParams) => useCommittedField(p), { initialProps: props });
   return { hook, live, commits, state };
+}
+
+/**
+ * Setup whose `getState` returns a NEW snapshot derived from a mutable holder
+ * that `onLiveChange` writes into. This makes preState-capture ordering
+ * observable: capturing after the live change would leak the typed value.
+ */
+function setupMutable(): {
+  hook: ReturnType<typeof renderHook<CommittedFieldApi, CommittedFieldParams>>;
+  commits: CommittedFieldCommit[];
+} {
+  let liveText = 'initial';
+  const getState = (): HistorySnapshot => ({
+    nodes: [
+      {
+        id: 'n',
+        type: 'agent',
+        position: { x: ORIGIN, y: ORIGIN },
+        data: { nodeId: 'n', text: liveText, description: '' },
+      },
+    ],
+    edges: [],
+  });
+  const commits: CommittedFieldCommit[] = [];
+  const props: CommittedFieldParams = {
+    value: 'hello',
+    fieldKey: 'node-1:text',
+    getState,
+    onLiveChange: (v: string) => {
+      liveText = v;
+    },
+    onCommit: (c) => {
+      commits.push(c);
+    },
+  };
+  const hook = renderHook((p: CommittedFieldParams) => useCommittedField(p), { initialProps: props });
+  return { hook, commits };
 }
 
 beforeEach(() => {
@@ -64,14 +102,14 @@ describe('useCommittedField: debounce and preState', () => {
   });
 
   it('captures preState before the first keystroke of a session', () => {
-    const { hook, commits, state } = setup();
+    const { hook, commits } = setupMutable();
     act(() => {
-      hook.result.current.onChange('x');
+      hook.result.current.onChange('typed');
     });
     act(() => {
       jest.advanceTimersByTime(DEBOUNCE);
     });
-    expect(commits[FIRST]?.preState).toBe(state);
+    expect(commits[FIRST]?.preState.nodes[FIRST]?.data.text).toBe('initial');
   });
 });
 
