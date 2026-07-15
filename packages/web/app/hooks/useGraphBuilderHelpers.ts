@@ -31,25 +31,6 @@ export function useInitialViewport(
   }, [setViewport, wrapper, initialGraphData]);
 }
 
-export function useSearchKeyboard(setSearchOpen: (fn: (prev: boolean) => boolean) => void): void {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent): void => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
-        e.preventDefault();
-        setSearchOpen((prev) => !prev);
-        return;
-      }
-      if (e.key === 'Escape') {
-        setSearchOpen(() => false);
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [setSearchOpen]);
-}
-
 interface ContextPreconditionsReturn {
   customContextPreconditions: ContextPrecondition[];
   setCustomContextPreconditions: React.Dispatch<React.SetStateAction<ContextPrecondition[]>>;

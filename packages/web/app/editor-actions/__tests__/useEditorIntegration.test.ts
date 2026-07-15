@@ -33,6 +33,9 @@ function noopCallbacks(): EditorCallbacks {
     createIfElse: () => undefined,
     createLoop: () => undefined,
     confirmDelete: () => undefined,
+    requestDeleteSelected: () => undefined,
+    toggleSearch: () => undefined,
+    closeSearch: () => undefined,
   };
 }
 

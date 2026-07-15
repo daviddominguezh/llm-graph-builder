@@ -19,11 +19,7 @@ import { useEnvVariables } from '../hooks/useEnvVariables';
 import { useExportGraph } from '../hooks/useExportGraph';
 import { useFormatGraph } from '../hooks/useFormatGraph';
 import { useGraphActions } from '../hooks/useGraphActions';
-import {
-  useContextPreconditions,
-  useInitialViewport,
-  useSearchKeyboard,
-} from '../hooks/useGraphBuilderHelpers';
+import { useContextPreconditions, useInitialViewport } from '../hooks/useGraphBuilderHelpers';
 import type { GraphLoadResult } from '../hooks/useGraphLoader';
 import { useGraphLoader } from '../hooks/useGraphLoader';
 import { useGraphSelection } from '../hooks/useGraphSelection';
@@ -308,6 +304,9 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
       createIfElse,
       createLoop,
       confirmDelete: deleteConfirmation.confirmDelete,
+      requestDeleteSelected: deleteConfirmation.requestDeleteSelected,
+      toggleSearch: () => setSearchOpen((p) => !p),
+      closeSearch: () => setSearchOpen(() => false),
     },
   });
 
@@ -409,7 +408,6 @@ function useGraphBuilderHooks(props: LoadedEditorProps) {
   const canPublish = isAgentMode ? !hasMcpError : serializedGraph !== null && !hasMcpError;
 
   useInitialViewport(reactFlowWrapper, rf.setViewport, loadResult.graphData);
-  useSearchKeyboard(setSearchOpen);
 
   const initialLayoutDone = useRef(false);
   useEffect(() => {

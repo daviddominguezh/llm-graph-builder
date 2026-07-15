@@ -35,6 +35,9 @@ export interface EditorCallbacks {
   createIfElse: (branchA: string, branchB: string) => void;
   createLoop: (connection: LoopConnection, continueValue: string, exitValue: string) => void;
   confirmDelete: () => void;
+  requestDeleteSelected: () => void;
+  toggleSearch: () => void;
+  closeSearch: () => void;
 }
 
 export interface EditorIntegrationParams {
@@ -119,6 +122,33 @@ function registerCoreActions(registry: ActionRegistry, cb: Callbacks, holder: Ed
   });
 }
 
+function registerShortcutActions(registry: ActionRegistry, cb: Callbacks): void {
+  // Non-undoable: requestDeleteSelected only opens the confirm dialog — the
+  // mutation lives in the undoable graph.confirmDelete. Search toggling is UI
+  // state, not graph history.
+  registry.register({
+    id: 'graph.requestDeleteSelected',
+    undoable: false,
+    run: () => {
+      cb().requestDeleteSelected();
+    },
+  });
+  registry.register({
+    id: 'search.toggle',
+    undoable: false,
+    run: () => {
+      cb().toggleSearch();
+    },
+  });
+  registry.register({
+    id: 'search.close',
+    undoable: false,
+    run: () => {
+      cb().closeSearch();
+    },
+  });
+}
+
 function registerMenuBasicActions(registry: ActionRegistry, cb: Callbacks): void {
   registry.register<string>({
     id: 'menu.selectNode',
@@ -199,6 +229,7 @@ function buildRegistry(
   const cb: Callbacks = () => holder.getParams().callbacks;
 
   registerCoreActions(registry, cb, holder);
+  registerShortcutActions(registry, cb);
   registerMenuBasicActions(registry, cb);
   registerMenuStructuredActions(registry, cb);
   registerPropActions(registry, holder);

@@ -17,8 +17,28 @@ export interface ShortcutDef {
  * Declarative editor shortcut table — the single place future shortcuts are
  * added. Each row binds keys to an action id dispatched through the action
  * registry; `description` feeds a future shortcut-help / command palette.
- * Delete / ⌘F / Escape rows land in Task 8 — this ships the undo row only.
  */
 export const EDITOR_SHORTCUTS: ShortcutDef[] = [
   { id: 'history.undo', keys: 'mod+z', actionId: 'history.undo', description: 'Undo last change' },
+  {
+    id: 'graph.deleteSelected',
+    keys: 'delete, backspace',
+    actionId: 'graph.requestDeleteSelected',
+    description: 'Delete selected node or edge',
+  },
+  {
+    id: 'search.toggle',
+    keys: 'mod+f',
+    actionId: 'search.toggle',
+    description: 'Search nodes',
+    enableOnFormTags: true,
+  },
+  {
+    id: 'search.close',
+    keys: 'escape',
+    actionId: 'search.close',
+    description: 'Close search',
+    enableOnFormTags: true,
+    enabled: (ctx) => ctx.searchOpen,
+  },
 ];

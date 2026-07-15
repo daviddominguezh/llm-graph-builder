@@ -34,6 +34,16 @@ function pressUndo(target: EventTarget = document.body): void {
   }
 }
 
+function pressEscape(target: EventTarget = document.body): void {
+  const event = new KeyboardEvent('keydown', {
+    key: 'Escape',
+    code: 'Escape',
+    bubbles: true,
+    cancelable: true,
+  });
+  target.dispatchEvent(event);
+}
+
 function makeDispatch(): { dispatch: Dispatch; calls: string[] } {
   const calls: string[] = [];
   const dispatch: Dispatch = (id: string) => {
@@ -88,11 +98,17 @@ describe('EditorHotkeys: form-field and ctx gating', () => {
     expect(calls).toHaveLength(NONE);
   });
 
-  it('respects per-shortcut enabled(ctx) gating', () => {
+  it('does not dispatch search.close on Escape when searchOpen is false', () => {
     const { dispatch, calls } = makeDispatch();
     render(createElement(EditorHotkeys, { dispatch, active: true, ctx: { searchOpen: false } }));
-    const escape = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
-    document.body.dispatchEvent(escape);
-    expect(calls).not.toContain('search.close'); // searchOpen: false → disabled
+    pressEscape();
+    expect(calls).not.toContain('search.close'); // searchOpen: false → enabled(ctx) disabled
+  });
+
+  it('dispatches search.close on Escape when searchOpen is true', () => {
+    const { dispatch, calls } = makeDispatch();
+    render(createElement(EditorHotkeys, { dispatch, active: true, ctx: { searchOpen: true } }));
+    pressEscape();
+    expect(calls).toContain('search.close');
   });
 });

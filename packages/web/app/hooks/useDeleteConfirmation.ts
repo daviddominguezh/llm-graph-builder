@@ -1,5 +1,5 @@
 import type { Edge, Node } from '@xyflow/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import { pushDeleteEdge } from '../components/panels/edgePanelOps';
 import { pushDeleteNode } from '../components/panels/nodePanelOps';
@@ -29,17 +29,8 @@ export interface UseDeleteConfirmationReturn {
   confirmDelete: () => void;
   cancelDelete: () => void;
   requestDeleteEdge: (edgeId: string, from: string, to: string) => void;
+  requestDeleteSelected: () => void;
 }
-
-function isEditingText(): boolean {
-  const el = document.activeElement;
-  if (el === null) return false;
-  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return true;
-  if (el instanceof HTMLElement && el.isContentEditable) return true;
-  return false;
-}
-
-const DELETE_KEYS = new Set(['Delete', 'Backspace']);
 
 function findSelectedNode(nodes: Array<Node<RFNodeData>>): Node<RFNodeData> | undefined {
   return nodes.find((n) => n.selected === true && n.id !== START_NODE_ID);
@@ -54,34 +45,21 @@ export function useDeleteConfirmation(params: UseDeleteConfirmationParams): UseD
 
   const [pendingDelete, setPendingDelete] = useState<PendingDeleteTarget | null>(null);
 
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent): void {
-      if (!DELETE_KEYS.has(e.key)) return;
-      if (isEditingText()) return;
-
-      const selectedNode = findSelectedNode(nodes);
-      if (selectedNode !== undefined) {
-        e.preventDefault();
-        setPendingDelete({ kind: 'node', nodeId: selectedNode.id });
-        return;
-      }
-
-      const selectedEdge = findSelectedEdge(edges);
-      if (selectedEdge !== undefined) {
-        e.preventDefault();
-        setPendingDelete({
-          kind: 'edge',
-          edgeId: selectedEdge.id,
-          from: selectedEdge.source,
-          to: selectedEdge.target,
-        });
-      }
+  const requestDeleteSelected = useCallback(() => {
+    const selectedNode = findSelectedNode(nodes);
+    if (selectedNode !== undefined) {
+      setPendingDelete({ kind: 'node', nodeId: selectedNode.id });
+      return;
     }
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
+    const selectedEdge = findSelectedEdge(edges);
+    if (selectedEdge !== undefined) {
+      setPendingDelete({
+        kind: 'edge',
+        edgeId: selectedEdge.id,
+        from: selectedEdge.source,
+        to: selectedEdge.target,
+      });
+    }
   }, [nodes, edges]);
 
   const confirmDelete = useCallback(() => {
@@ -109,5 +87,5 @@ export function useDeleteConfirmation(params: UseDeleteConfirmationParams): UseD
     setPendingDelete({ kind: 'edge', edgeId, from, to });
   }, []);
 
-  return { pendingDelete, confirmDelete, cancelDelete, requestDeleteEdge };
+  return { pendingDelete, confirmDelete, cancelDelete, requestDeleteEdge, requestDeleteSelected };
 }
