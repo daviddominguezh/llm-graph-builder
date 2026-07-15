@@ -117,7 +117,7 @@ export function NodePanel({
   const updateNodeDataCommitted = (updates: Partial<RFNodeData>): void => {
     const preState = getState();
     updateNodeDataLive(updates);
-    dispatch('node.commitProps', { nodeId }, { preState });
+    dispatch('node.commitProps', { nodeId, updates }, { preState });
   };
 
   const handleIdBlur = () => {

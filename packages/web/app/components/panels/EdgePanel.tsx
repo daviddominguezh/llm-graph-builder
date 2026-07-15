@@ -140,7 +140,7 @@ export function EdgePanel({
     const preState = getState();
     const updates = { text: '', description: '' };
     setNodes((nds) => nds.map((n) => (n.id === from ? { ...n, data: { ...n.data, ...updates } } : n)));
-    dispatch('node.commitProps', { nodeId: from }, { preState });
+    dispatch('node.commitProps', { nodeId: from, updates }, { preState });
   };
 
   const guardToolCall = (type: PreconditionType, action: () => void) => {

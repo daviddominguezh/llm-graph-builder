@@ -137,12 +137,17 @@ function registerMenuStructuredActions(registry: ActionRegistry, cb: Callbacks):
 }
 
 function registerPropActions(registry: ActionRegistry, paramsRef: ParamsRef): void {
-  registry.register<{ nodeId: string }>({
+  registry.register<{ nodeId: string; updates?: Partial<RFNodeData> }>({
     id: 'node.commitProps',
     undoable: true,
-    run: ({ nodeId }) => {
+    run: ({ nodeId, updates }) => {
       const n = paramsRef.current.nodes.find((x) => x.id === nodeId);
-      if (n !== undefined) paramsRef.current.pushOperation(buildUpdateNodeOp(n));
+      if (n === undefined) return;
+      // Synchronous discrete callers pass `updates` so the op reflects the
+      // change immediately, before React re-renders and refreshes `nodes`.
+      // Debounced text commits omit it (a re-render already flushed the edit).
+      const committed = updates !== undefined ? { ...n, data: { ...n.data, ...updates } } : n;
+      paramsRef.current.pushOperation(buildUpdateNodeOp(committed));
     },
   });
   registry.register<{ from: string; to: string; data?: RFEdgeData }>({
