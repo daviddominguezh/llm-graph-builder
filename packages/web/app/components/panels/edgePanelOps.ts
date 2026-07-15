@@ -7,15 +7,6 @@ import { buildDeleteEdgeOp, buildUpdateEdgeOp } from '../../utils/operationBuild
 import type { PushOperation } from '../../utils/operationBuilders';
 import { makePrecondition, makeToolCallPrecondition } from '../../utils/preconditionHelpers';
 
-export function pushUpdateEdge(
-  from: string,
-  to: string,
-  data: RFEdgeData | undefined,
-  pushOp: PushOperation
-): void {
-  pushOp(buildUpdateEdgeOp(from, to, data));
-}
-
 export function pushDeleteEdge(from: string, to: string, pushOp: PushOperation): void {
   pushOp(buildDeleteEdgeOp(from, to));
 }

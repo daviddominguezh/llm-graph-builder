@@ -6,18 +6,8 @@ import {
   buildDeleteNodeOp,
   buildInsertEdgeOp,
   buildInsertNodeOp,
-  buildUpdateNodeOp,
 } from '../../utils/operationBuilders';
 import type { PushOperation } from '../../utils/operationBuilders';
-
-export function pushUpdateNode(
-  node: Node<RFNodeData>,
-  updates: Partial<RFNodeData>,
-  pushOp: PushOperation
-): void {
-  const updated: Node<RFNodeData> = { ...node, data: { ...node.data, ...updates } };
-  pushOp(buildUpdateNodeOp(updated));
-}
 
 export function pushDeleteNode(nodeId: string, pushOp: PushOperation): void {
   pushOp(buildDeleteNodeOp(nodeId));
