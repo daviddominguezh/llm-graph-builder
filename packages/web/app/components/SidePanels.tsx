@@ -4,6 +4,8 @@ import { GlassPanel } from '@/components/ui/glass-panel';
 import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import type { Edge } from '@xyflow/react';
 
+import type { Dispatch } from '../editor-actions/actionRegistry';
+import type { HistorySnapshot } from '../editor-history/historyStore';
 import { useAgentToolsState } from '../hooks/useAgentToolsState';
 import type { UseGraphSelectionReturn } from '../hooks/useGraphSelection';
 import type { McpLibraryState } from '../hooks/useMcpLibrary';
@@ -92,6 +94,8 @@ export interface SidePanelsProps {
   onCloseLibrary: () => void;
   onCloseTools: () => void;
   pushOperation: PushOperation;
+  dispatch: Dispatch;
+  getState: () => HistorySnapshot;
   agentToolsConfig?: AgentToolsConfig;
   toolStores: ToolStoresState;
 }
@@ -112,6 +116,7 @@ interface SelectionPanelProps extends SidePanelsProps {
 
 function SelectionPanel(props: SelectionPanelProps) {
   const { selection, nodes, agents, presetsHook, ctxPreconditions, pushOperation, toolStores } = props;
+  const { dispatch, getState } = props;
   const isStartNode = selection.selectedNodeId === START_NODE_ID;
 
   return (
@@ -141,6 +146,8 @@ function SelectionPanel(props: SelectionPanelProps) {
           onSelectEdge={selection.selectEdge}
           onSelectNode={selection.navigateToNode}
           pushOperation={pushOperation}
+          dispatch={dispatch}
+          getState={getState}
           outputSchemas={props.outputSchemasHook.schemas}
           onAddOutputSchema={props.outputSchemasHook.addSchema}
           onEditOutputSchema={props.onEditSchema}
@@ -154,6 +161,8 @@ function SelectionPanel(props: SelectionPanelProps) {
           availableContextPreconditions={ctxPreconditions.allContextPreconditions}
           onSelectNode={selection.navigateToNode}
           pushOperation={pushOperation}
+          dispatch={dispatch}
+          getState={getState}
           toolStores={toolStores}
         />
       )}

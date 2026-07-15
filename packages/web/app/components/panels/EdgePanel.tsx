@@ -29,6 +29,8 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useRef } from 'react';
 
+import type { Dispatch } from '../../editor-actions/actionRegistry';
+import type { HistorySnapshot } from '../../editor-history/historyStore';
 import type { ToolStoresState } from '../../hooks/useToolStoresState';
 import type { Precondition, PreconditionType, ToolFieldValue } from '../../schemas/graph.schema';
 import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
@@ -40,13 +42,7 @@ import {
 } from '../../utils/preconditionHelpers';
 import { ToolCombobox } from './ToolCombobox';
 import { ToolParamsCard } from './ToolParamsCard';
-import {
-  type EdgePreconditionInput,
-  pushDeleteEdge,
-  pushTypeChangeOps,
-  pushUpdateEdge,
-} from './edgePanelOps';
-import { pushUpdateNode } from './nodePanelOps';
+import { type EdgePreconditionInput, pushDeleteEdge, pushTypeChangeOps } from './edgePanelOps';
 import { nodeHasContent } from './toolCallGuard';
 
 const START_NODE_ID = 'INITIAL_STEP';
@@ -57,6 +53,8 @@ interface EdgePanelProps {
   onSelectNode?: (nodeId: string) => void;
   availableContextPreconditions?: string[];
   pushOperation: PushOperation;
+  dispatch: Dispatch;
+  getState: () => HistorySnapshot;
   toolStores: ToolStoresState;
 }
 
@@ -66,6 +64,8 @@ export function EdgePanel({
   onSelectNode,
   availableContextPreconditions = [],
   pushOperation,
+  dispatch,
+  getState,
   toolStores,
 }: EdgePanelProps) {
   const edges = useEdges<Edge<RFEdgeData>>();
@@ -126,17 +126,21 @@ export function EdgePanel({
   // All edges from same source (current + siblings)
   const allSourceEdges = [edge, ...siblingEdges];
 
+  // Discrete (click-driven) edge update: one undo entry per change. The op
+  // payload is built from the merged data here (not read back from state).
   const updateEdgeData = (updates: Partial<RFEdgeData>) => {
+    const preState = getState();
     const merged = { ...edgeData, ...updates };
     setEdges((eds) => eds.map((e) => (e.id === edge.id ? { ...e, data: { ...e.data, ...updates } } : e)));
-    pushUpdateEdge(from, to, merged, pushOperation);
+    dispatch('edge.updateProps', { from, to, data: merged }, { preState });
   };
 
   const clearSourceNodeContent = () => {
     if (!sourceNode) return;
+    const preState = getState();
     const updates = { text: '', description: '' };
     setNodes((nds) => nds.map((n) => (n.id === from ? { ...n, data: { ...n.data, ...updates } } : n)));
-    pushUpdateNode(sourceNode, updates, pushOperation);
+    dispatch('node.commitProps', { nodeId: from }, { preState });
   };
 
   const guardToolCall = (type: PreconditionType, action: () => void) => {

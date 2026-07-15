@@ -15,7 +15,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import { useEdges, useNodes, useReactFlow } from '@xyflow/react';
@@ -23,15 +22,18 @@ import type { Edge, Node } from '@xyflow/react';
 import { ArrowLeft, ArrowRight, Box, Cable, ListTodo, Play, Split, Trash2, UserRoundPen } from 'lucide-react';
 import { useState } from 'react';
 
+import type { Dispatch } from '../../editor-actions/actionRegistry';
+import type { HistorySnapshot } from '../../editor-history/historyStore';
 import type { Agent, PreconditionType } from '../../schemas/graph.schema';
 import type { ContextPreset } from '../../types/preset';
 import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
 import type { PushOperation } from '../../utils/operationBuilders';
 import { getPreconditionDisplayValue } from '../../utils/preconditionHelpers';
+import { CommittedNodeTextarea } from './CommittedNodeTextarea';
 import { FallbackNodeSelect } from './FallbackNodeSelect';
 import { NodePanelOutputSchema } from './NodePanelOutputSchema';
 import { NodePromptDialog } from './NodePromptDialog';
-import { pushDeleteNode, pushRenameNode, pushUpdateNode } from './nodePanelOps';
+import { pushDeleteNode, pushRenameNode } from './nodePanelOps';
 import { hasToolCallEdge } from './toolCallGuard';
 
 interface NodePanelProps {
@@ -47,6 +49,8 @@ interface NodePanelProps {
   onSelectEdge?: (edgeId: string) => void;
   onSelectNode?: (nodeId: string) => void;
   pushOperation: PushOperation;
+  dispatch: Dispatch;
+  getState: () => HistorySnapshot;
   outputSchemas: OutputSchemaEntity[];
   onAddOutputSchema: () => string;
   onEditOutputSchema: (id: string) => void;
@@ -66,6 +70,8 @@ export function NodePanel({
   onSelectEdge,
   onSelectNode,
   pushOperation,
+  dispatch,
+  getState,
   outputSchemas,
   onAddOutputSchema,
   onEditOutputSchema,
@@ -102,9 +108,16 @@ export function NodePanel({
     return null;
   }
 
-  const updateNodeData = (updates: Partial<RFNodeData>) => {
+  // Live per-keystroke state update, no undo/persist op (commits do that).
+  const updateNodeDataLive = (updates: Partial<RFNodeData>): void => {
     setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...updates } } : n)));
-    pushUpdateNode(node, updates, pushOperation);
+  };
+
+  // Discrete (non-text) update: one undo entry per change.
+  const updateNodeDataCommitted = (updates: Partial<RFNodeData>): void => {
+    const preState = getState();
+    updateNodeDataLive(updates);
+    dispatch('node.commitProps', { nodeId }, { preState });
   };
 
   const handleIdBlur = () => {
@@ -209,10 +222,15 @@ export function NodePanel({
           {!isToolCallNode && (
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
-              <Textarea
+              <CommittedNodeTextarea
+                key={`${nodeId}:description`}
                 id="description"
+                nodeId={nodeId}
+                fieldKey={`${nodeId}:description`}
                 value={nodeData.description}
-                onChange={(e) => updateNodeData({ description: e.target.value })}
+                getState={getState}
+                dispatch={dispatch}
+                onValueChange={(v) => updateNodeDataLive({ description: v })}
                 rows={2}
                 placeholder="Node description..."
               />
@@ -222,10 +240,15 @@ export function NodePanel({
           {isUserSaidNode && (
             <div className="space-y-2">
               <Label htmlFor="text">Text</Label>
-              <Textarea
+              <CommittedNodeTextarea
+                key={`${nodeId}:text`}
                 id="text"
+                nodeId={nodeId}
+                fieldKey={`${nodeId}:text`}
                 value={nodeData.text}
-                onChange={(e) => updateNodeData({ text: e.target.value })}
+                getState={getState}
+                dispatch={dispatch}
+                onValueChange={(v) => updateNodeDataLive({ text: v })}
                 rows={3}
                 placeholder="Node text..."
               />
@@ -233,11 +256,15 @@ export function NodePanel({
           )}
 
           <NodePanelOutputSchema
+            nodeId={nodeId}
             nodeData={nodeData}
             nodeType={node.type}
             outgoingEdges={outgoingEdges}
             outputSchemas={outputSchemas}
-            onUpdateNodeData={updateNodeData}
+            getState={getState}
+            dispatch={dispatch}
+            onUpdateNodeData={updateNodeDataCommitted}
+            onUpdateNodeDataLive={updateNodeDataLive}
             onAddOutputSchema={onAddOutputSchema}
             onEditOutputSchema={onEditOutputSchema}
             onEditNewOutputSchema={onEditNewOutputSchema}
@@ -420,7 +447,7 @@ export function NodePanel({
             edges={edges}
             globalNodeIds={globalNodeIds}
             value={nodeData.fallbackNodeId}
-            onChange={(fallbackId) => updateNodeData({ fallbackNodeId: fallbackId })}
+            onChange={(fallbackId) => updateNodeDataCommitted({ fallbackNodeId: fallbackId })}
           />
         </div>
       </div>

@@ -1,22 +1,27 @@
 'use client';
 
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import type { OutputSchemaEntity } from '@daviddh/graph-types';
 import type { Edge } from '@xyflow/react';
 import { useTranslations } from 'next-intl';
 
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-
+import type { Dispatch } from '../../editor-actions/actionRegistry';
+import type { HistorySnapshot } from '../../editor-history/historyStore';
 import type { RFEdgeData, RFNodeData } from '../../utils/graphTransformers';
+import { CommittedNodeTextarea } from './CommittedNodeTextarea';
 import { OutputSchemaSelect } from './OutputSchemaSelect';
 
 interface NodePanelOutputSchemaProps {
+  nodeId: string;
   nodeData: RFNodeData;
   nodeType: string | undefined;
   outgoingEdges: Array<Edge<RFEdgeData>>;
   outputSchemas: OutputSchemaEntity[];
+  getState: () => HistorySnapshot;
+  dispatch: Dispatch;
   onUpdateNodeData: (updates: Partial<RFNodeData>) => void;
+  onUpdateNodeDataLive: (updates: Partial<RFNodeData>) => void;
   onAddOutputSchema: () => string;
   onEditOutputSchema: (id: string) => void;
   onEditNewOutputSchema: (id: string) => void;
@@ -41,19 +46,27 @@ function isOutputSchemaHidden(nodeData: RFNodeData, outgoingEdges: Array<Edge<RF
 }
 
 function OutputSchemaSection({
+  nodeId,
   nodeData,
   outgoingEdges,
   outputSchemas,
+  getState,
+  dispatch,
   onUpdateNodeData,
+  onUpdateNodeDataLive,
   onAddOutputSchema,
   onEditOutputSchema,
   onEditNewOutputSchema,
   t,
 }: {
+  nodeId: string;
   nodeData: RFNodeData;
   outgoingEdges: Array<Edge<RFEdgeData>>;
   outputSchemas: OutputSchemaEntity[];
+  getState: () => HistorySnapshot;
+  dispatch: Dispatch;
   onUpdateNodeData: (updates: Partial<RFNodeData>) => void;
+  onUpdateNodeDataLive: (updates: Partial<RFNodeData>) => void;
   onAddOutputSchema: () => string;
   onEditOutputSchema: (id: string) => void;
   onEditNewOutputSchema: (id: string) => void;
@@ -80,10 +93,15 @@ function OutputSchemaSection({
       {nodeData.outputSchemaId !== undefined && (
         <div className="space-y-2">
           <Label htmlFor="outputPrompt">{t('outputPrompt')}</Label>
-          <Textarea
+          <CommittedNodeTextarea
+            key={`${nodeId}:outputPrompt`}
             id="outputPrompt"
+            nodeId={nodeId}
+            fieldKey={`${nodeId}:outputPrompt`}
             value={nodeData.outputPrompt ?? ''}
-            onChange={(e) => onUpdateNodeData({ outputPrompt: e.target.value })}
+            getState={getState}
+            dispatch={dispatch}
+            onValueChange={(v) => onUpdateNodeDataLive({ outputPrompt: v })}
             rows={3}
             placeholder={t('outputPromptPlaceholder')}
           />
@@ -94,11 +112,15 @@ function OutputSchemaSection({
 }
 
 export function NodePanelOutputSchema({
+  nodeId,
   nodeData,
   nodeType,
   outgoingEdges,
   outputSchemas,
+  getState,
+  dispatch,
   onUpdateNodeData,
+  onUpdateNodeDataLive,
   onAddOutputSchema,
   onEditOutputSchema,
   onEditNewOutputSchema,
@@ -110,10 +132,14 @@ export function NodePanelOutputSchema({
     <>
       {nodeType === 'agent' && (
         <OutputSchemaSection
+          nodeId={nodeId}
           nodeData={nodeData}
           outgoingEdges={outgoingEdges}
           outputSchemas={outputSchemas}
+          getState={getState}
+          dispatch={dispatch}
           onUpdateNodeData={onUpdateNodeData}
+          onUpdateNodeDataLive={onUpdateNodeDataLive}
           onAddOutputSchema={onAddOutputSchema}
           onEditOutputSchema={onEditOutputSchema}
           onEditNewOutputSchema={onEditNewOutputSchema}

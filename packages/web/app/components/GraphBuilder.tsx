@@ -847,6 +847,8 @@ function LoadedEditor(props: LoadedEditorProps) {
                   onCloseLibrary={() => h.setLibraryOpen(false)}
                   onCloseTools={() => h.setToolsOpen(false)}
                   pushOperation={h.pushOperation}
+                  dispatch={h.dispatch}
+                  getState={h.getState}
                   toolStores={toolStores}
                   agentToolsConfig={
                     props.agentId !== undefined &&
