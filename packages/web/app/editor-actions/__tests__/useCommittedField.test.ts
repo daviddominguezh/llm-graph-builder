@@ -178,3 +178,47 @@ describe('useCommittedField: coalesceKey and unmount', () => {
     expect(commits[FIRST]?.value).toBe('bye');
   });
 });
+
+describe('useCommittedField: external value resync between sessions', () => {
+  // Regression (I-1): an undo mutates the controlled `value` in place without
+  // remounting. `lastCommitted` must track that external change, otherwise
+  // retyping the previously-committed value no-ops and the edit is silently lost.
+  it('commits again after an external value change restores a prior value', () => {
+    const state: HistorySnapshot = { nodes: [], edges: [] };
+    const commits: CommittedFieldCommit[] = [];
+    const makeProps = (value: string): CommittedFieldParams => ({
+      value,
+      fieldKey: 'node-1:text',
+      getState: () => state,
+      onLiveChange: () => undefined,
+      onCommit: (c) => {
+        commits.push(c);
+      },
+    });
+    const hook = renderHook((p: CommittedFieldParams) => useCommittedField(p), {
+      initialProps: makeProps('hello'),
+    });
+
+    act(() => {
+      hook.result.current.onChange('hello world');
+    });
+    act(() => {
+      hook.result.current.onBlur();
+    });
+    expect(commits).toHaveLength(ONE);
+    expect(commits[FIRST]?.value).toBe('hello world');
+
+    // External value change (undo restores "hello") — no editing session open.
+    hook.rerender(makeProps('hello'));
+
+    // Retype the previously-committed value; a fresh commit must fire.
+    act(() => {
+      hook.result.current.onChange('hello world');
+    });
+    act(() => {
+      hook.result.current.onBlur();
+    });
+    expect(commits).toHaveLength(TWO);
+    expect(commits[SECOND]?.value).toBe('hello world');
+  });
+});

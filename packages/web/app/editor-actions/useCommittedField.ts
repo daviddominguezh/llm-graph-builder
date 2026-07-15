@@ -58,6 +58,15 @@ class CommittedFieldCore {
   }
 
   setParams(params: CommittedFieldParams): void {
+    // Resync the no-op baseline to external value changes that happen between
+    // editing sessions (e.g. an undo mutates the controlled value in place; the
+    // component does not remount). Skipping this leaves `lastCommitted` stale, so
+    // retyping the previously-committed value would no-op and silently lose the
+    // edit. Never resync mid-session: during a burst the controlled value tracks
+    // live keystrokes and resyncing would defeat the no-op guard.
+    if (this.session === null) {
+      this.lastCommitted = params.value;
+    }
     this.params = params;
   }
 
