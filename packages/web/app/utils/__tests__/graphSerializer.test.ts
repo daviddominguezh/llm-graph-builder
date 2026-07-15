@@ -87,6 +87,7 @@ describe('serializeGraphData', () => {
           id: 'srv1',
           name: 'server',
           transport: { type: 'http' as const, url: 'https://example.com/mcp' },
+          enabled: true,
         },
       ],
       outputSchemas: [
