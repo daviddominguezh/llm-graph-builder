@@ -186,3 +186,35 @@ lint gate 0 errors on every implementer AND fix dispatch).
 - DN-Task 6: COMPLETE (commit 1f1c92ae, review clean — Spec ✅, quality Approved).
   Minor for final triage: nodeDimensions test uses relative-only assertions (could pin exact 300/220).
 - ALL DN TASKS COMPLETE. Feature commits: a1f7773d 87b4c5ea 41d13379 d6cc9402(fix) 301498aa b62c7bc6 1f1c92ae.
+
+# Keyboard-undo SDD progress (2026-07-15)
+
+Plan: docs/superpowers/plans/2026-07-15-keyboard-undo.md (9 tasks)
+Spec: docs/superpowers/specs/2026-07-15-keyboard-undo-design.md
+Branch: feat/migration. Model: ALL subagents = opus (user standing rule).
+Standing rules from RU section apply (explicit staging, lint gate, user commits in parallel — derive BASE from git log).
+Base: 8b527fad
+
+Task 1: complete (commit ffdf5fe8, review clean, spec+quality approved)
+Task 2: complete (commit 5812eb70, review clean, spec+quality approved)
+  Minor (final-review triage): task-2-report.md misdescribes edgeKey separator as a space (code correctly uses U+0000 NUL); intra-group insert/update interleave in upserts (harmless, disclosed).
+Task 3: complete (commit 454aa075, review clean, spec+quality approved)
+  Contract note for later tasks: dispatch signature is dispatch(id: string, params: unknown, opts?) (no generic) — call shapes unchanged; register<P> overload keeps definer typing.
+Task 4: complete pending test-strengthen fix (commit 0a818c2d, spec+quality approved)
+  Fix in flight: preState-ordering test cannot detect order flip (static state object) — strengthening so a flipped getState/onLiveChange order fails.
+  Task 7 dispatch note: panels must remount (key by nodeId/edge key) per selection, else CommittedFieldCore.lastCommitted retains prior node's value.
+Task 4: complete (commits 0a818c2d + f815f2c7 test-strengthen w/ mutation-check evidence, review clean)
+Task 5: complete (commit 12a08754, review clean, spec+quality approved)
+  jest.config.js: .tsx now in extensionsToTreatAsEsm (needed for rhh ESM); component tests use .test.ts + createElement (testMatch globs only .ts).
+  Task 8 note: enabled(ctx) gating test currently vacuous (no Escape row yet) — Task 8 must add a real gated-row assertion.
+Task 6: complete (commit 5b7759cd, review clean on all 8 failure modes, spec+quality approved)
+  Contract: dispatch ids as planned; multi-arg creators bundled (IfElseParams/LoopParams); edge.updateProps data optional matching buildUpdateEdgeOp.
+Task 7: implemented (commit 3452d8d5), HIGH fix in flight: node.commitProps one-render-stale read on synchronous discrete updates — extending action with explicit updates payload (mirrors edge.updateProps). Reviewer gets combined range after fix.
+GATE LESSON: eslint from repo root resolves a config WITHOUT react-hooks rules. Binding gate for web files is `npm run lint -w packages/web`. All remaining task/fix dispatches must use the package-level lint. Fix in flight for 4 react-hooks/refs errors (useCommittedField, useEditorIntegration).
+Task 7: complete (commits 3452d8d5 + 70864a7c stale-fix + 7de29fcd refs-fix, review clean)
+  Minor (final-review triage): pushUpdateNode/pushUpdateEdge exports now dead (zero callers) — candidate deletion; task-7-report usage claim inaccurate.
+Task 8: complete (commit 4ff8185e, review clean, zero findings, spec+quality approved)
+Task 9: complete (commit adcf2925 coverage table test; suites 289 green, lint 0 errors, typecheck clean, all new modules >=95% lines - useEditorIntegration 100%)
+Final whole-branch review: NEEDS FIXES. I-1 lastCommitted resync (undo-then-retype silent loss); I-2 panel delete/rename/edge-delete/type-change bypass registry (spec includes them in undo scope; plan caller list missed them); Minor: delete dead pushUpdateNode/pushUpdateEdge. One fixer dispatched with full list. Accepted: edgeKey prose, upsert interleave.
+Final-review fixes: complete (169d18f6 I-1 resync, 37a888df I-2 panel actions, 892b0d6a dead exports). Re-review verdict: READY TO MERGE. Gates at HEAD: 297 tests green, lint 0 errors, typecheck clean.
+PROJECT COMPLETE: keyboard-undo (16 commits, 8b527fad..892b0d6a on feat/migration). Pending: user manual dev-server pass (checklist in final summary).
