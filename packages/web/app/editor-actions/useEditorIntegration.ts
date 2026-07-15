@@ -2,8 +2,7 @@
 
 import type { SelectedTool } from '@daviddh/llm-graph-runner';
 import type { Connection, Edge, Node } from '@xyflow/react';
-import type { RefObject } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import type { LoopConnection } from '../components/panels/nodeCreationDialogs/LoopDialog';
 import type { EditorHistory, HistorySnapshot } from '../editor-history/historyStore';
@@ -54,15 +53,47 @@ export interface EditorIntegration {
   getState: () => HistorySnapshot;
 }
 
-type ParamsRef = RefObject<EditorIntegrationParams>;
 type Callbacks = () => EditorCallbacks;
 
-function registerCoreActions(registry: ActionRegistry, cb: Callbacks, undoRef: RefObject<() => void>): void {
+const NOOP_UNDO = (): void => undefined;
+
+/**
+ * Mutable holder for the latest editor params and undo fn. Kept as a plain
+ * class instance (mutated via `set*` from effects, never a captured ref object)
+ * so registered action closures read fresh values without tripping the
+ * ref-in-render lint rules — same pattern as OperationQueueCore.
+ */
+class EditorContextHolder {
+  private params: EditorIntegrationParams;
+  private undoFn: () => void = NOOP_UNDO;
+
+  constructor(params: EditorIntegrationParams) {
+    this.params = params;
+  }
+
+  setParams(params: EditorIntegrationParams): void {
+    this.params = params;
+  }
+
+  getParams(): EditorIntegrationParams {
+    return this.params;
+  }
+
+  setUndo(undo: () => void): void {
+    this.undoFn = undo;
+  }
+
+  undo(): void {
+    this.undoFn();
+  }
+}
+
+function registerCoreActions(registry: ActionRegistry, cb: Callbacks, holder: EditorContextHolder): void {
   registry.register({
     id: 'history.undo',
     undoable: false,
     run: () => {
-      undoRef.current();
+      holder.undo();
     },
   });
   registry.register({
@@ -136,25 +167,25 @@ function registerMenuStructuredActions(registry: ActionRegistry, cb: Callbacks):
   });
 }
 
-function registerPropActions(registry: ActionRegistry, paramsRef: ParamsRef): void {
+function registerPropActions(registry: ActionRegistry, holder: EditorContextHolder): void {
   registry.register<{ nodeId: string; updates?: Partial<RFNodeData> }>({
     id: 'node.commitProps',
     undoable: true,
     run: ({ nodeId, updates }) => {
-      const n = paramsRef.current.nodes.find((x) => x.id === nodeId);
+      const n = holder.getParams().nodes.find((x) => x.id === nodeId);
       if (n === undefined) return;
       // Synchronous discrete callers pass `updates` so the op reflects the
       // change immediately, before React re-renders and refreshes `nodes`.
       // Debounced text commits omit it (a re-render already flushed the edit).
-      const committed = updates !== undefined ? { ...n, data: { ...n.data, ...updates } } : n;
-      paramsRef.current.pushOperation(buildUpdateNodeOp(committed));
+      const committed = updates === undefined ? n : { ...n, data: { ...n.data, ...updates } };
+      holder.getParams().pushOperation(buildUpdateNodeOp(committed));
     },
   });
   registry.register<{ from: string; to: string; data?: RFEdgeData }>({
     id: 'edge.updateProps',
     undoable: true,
     run: ({ from, to, data }) => {
-      paramsRef.current.pushOperation(buildUpdateEdgeOp(from, to, data));
+      holder.getParams().pushOperation(buildUpdateEdgeOp(from, to, data));
     },
   });
 }
@@ -162,16 +193,15 @@ function registerPropActions(registry: ActionRegistry, paramsRef: ParamsRef): vo
 function buildRegistry(
   history: EditorHistory,
   getState: () => HistorySnapshot,
-  paramsRef: ParamsRef,
-  undoRef: RefObject<() => void>
+  holder: EditorContextHolder
 ): ActionRegistry {
   const registry = new ActionRegistry(history, getState);
-  const cb: Callbacks = () => paramsRef.current.callbacks;
+  const cb: Callbacks = () => holder.getParams().callbacks;
 
-  registerCoreActions(registry, cb, undoRef);
+  registerCoreActions(registry, cb, holder);
   registerMenuBasicActions(registry, cb);
   registerMenuStructuredActions(registry, cb);
-  registerPropActions(registry, paramsRef);
+  registerPropActions(registry, holder);
   return registry;
 }
 
@@ -182,30 +212,43 @@ function buildRegistry(
  * (cached editors stay mounted when switching workflows).
  */
 export function useEditorIntegration(params: EditorIntegrationParams): EditorIntegration {
-  const paramsRef = useRef(params);
-  paramsRef.current = params;
+  const [holder] = useState(() => new EditorContextHolder(params));
+
+  useEffect(() => {
+    holder.setParams(params);
+  });
 
   const [getState] = useState<() => HistorySnapshot>(() => () => ({
-    nodes: paramsRef.current.nodes,
-    edges: paramsRef.current.edges,
+    nodes: holder.getParams().nodes,
+    edges: holder.getParams().edges,
   }));
 
-  const setNodes = useCallback((n: Array<Node<RFNodeData>>) => {
-    paramsRef.current.setNodes(n);
-  }, []);
-  const setEdges = useCallback((e: Array<Edge<RFEdgeData>>) => {
-    paramsRef.current.setEdges(e);
-  }, []);
-  const pushOperation = useCallback<PushOperation>((op) => {
-    paramsRef.current.pushOperation(op);
-  }, []);
+  const setNodes = useCallback(
+    (n: Array<Node<RFNodeData>>) => {
+      holder.getParams().setNodes(n);
+    },
+    [holder]
+  );
+  const setEdges = useCallback(
+    (e: Array<Edge<RFEdgeData>>) => {
+      holder.getParams().setEdges(e);
+    },
+    [holder]
+  );
+  const pushOperation = useCallback<PushOperation>(
+    (op) => {
+      holder.getParams().pushOperation(op);
+    },
+    [holder]
+  );
 
   const { history, undo } = useGraphHistory({ getState, setNodes, setEdges, pushOperation });
 
-  const undoRef = useRef(undo);
-  undoRef.current = undo;
+  useEffect(() => {
+    holder.setUndo(undo);
+  }, [holder, undo]);
 
-  const [registry] = useState(() => buildRegistry(history, getState, paramsRef, undoRef));
+  const [registry] = useState(() => buildRegistry(history, getState, holder));
   const [dispatch] = useState<Dispatch>(() => registry.dispatch.bind(registry));
 
   useEffect(() => {

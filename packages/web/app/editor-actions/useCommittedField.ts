@@ -1,7 +1,6 @@
 'use client';
 
-import type { RefObject } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { HistorySnapshot } from '../editor-history/historyStore';
 
@@ -39,28 +38,35 @@ let sessionCounter = 0;
  * Mutable per-field commit engine. Kept in a class (mutating `this`, not a
  * captured ref object) so it survives re-renders unchanged and stays clear of
  * the strict no-param-reassign / ref-in-render lint rules — same pattern as
- * OperationQueueCore behind useOperationQueue.
+ * OperationQueueCore behind useOperationQueue. Latest params flow in through
+ * `setParams`, called from an effect on every render.
  */
 class CommittedFieldCore {
   private session: FieldSession | null = null;
   private pending: string | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private params: CommittedFieldParams;
 
   readonly api: CommittedFieldApi;
 
   constructor(
-    private readonly paramsRef: RefObject<CommittedFieldParams>,
+    params: CommittedFieldParams,
     private lastCommitted: string
   ) {
+    this.params = params;
     this.api = { onChange: this.onChange, onBlur: this.onBlur };
+  }
+
+  setParams(params: CommittedFieldParams): void {
+    this.params = params;
   }
 
   onChange = (value: string): void => {
     this.openSession();
     this.pending = value;
-    this.paramsRef.current.onLiveChange(value);
+    this.params.onLiveChange(value);
     this.clearTimer();
-    const delay = this.paramsRef.current.debounceMs ?? DEFAULT_DEBOUNCE_MS;
+    const delay = this.params.debounceMs ?? DEFAULT_DEBOUNCE_MS;
     this.timer = setTimeout(this.commit, delay);
   };
 
@@ -77,8 +83,8 @@ class CommittedFieldCore {
     if (this.session !== null) return;
     sessionCounter += INCREMENT;
     this.session = {
-      preState: this.paramsRef.current.getState(),
-      coalesceKey: `${this.paramsRef.current.fieldKey}#${String(sessionCounter)}`,
+      preState: this.params.getState(),
+      coalesceKey: `${this.params.fieldKey}#${String(sessionCounter)}`,
     };
   }
 
@@ -94,7 +100,7 @@ class CommittedFieldCore {
     if (session === null || pending === null || pending === this.lastCommitted) return;
     this.lastCommitted = pending;
     this.pending = null;
-    this.paramsRef.current.onCommit({
+    this.params.onCommit({
       value: pending,
       preState: session.preState,
       coalesceKey: session.coalesceKey,
@@ -103,10 +109,11 @@ class CommittedFieldCore {
 }
 
 export function useCommittedField(params: CommittedFieldParams): CommittedFieldApi {
-  const paramsRef = useRef(params);
-  paramsRef.current = params;
+  const [core] = useState(() => new CommittedFieldCore(params, params.value));
 
-  const [core] = useState(() => new CommittedFieldCore(paramsRef, params.value));
+  useEffect(() => {
+    core.setParams(params);
+  });
 
   useEffect(() => core.dispose, [core]);
 
